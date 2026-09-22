@@ -1,0 +1,29 @@
+{
+  "$descricao": "Opções de aparência de uma conta e parâmetros de limite. 'cores' são chaves de cor.acento em docs/design/tokens.json, na ordem do seletor; a cor padrão de uma conta nova é cores[quantidadeDeContas % cores.length]. 'emojis' é a lista fechada do seletor (sem teclado de emoji livre, para as duas plataformas validarem igual); null = sem emoji, o avatar mostra a inicial do apelido. 'limites' são parâmetros do app, não regras de loja: mudar aqui muda nas duas plataformas.",
+  "versao": 1,
+
+  "cores": ["azul", "rosa", "amarelo", "verde", "ciano", "roxo", "laranja"],
+
+  "emojis": [
+    "😀", "😎", "🤓", "🥳", "😺", "🐶", "🦊", "🐼",
+    "🐸", "🦄", "🐝", "🌵", "🌻", "🍕", "🍩", "☕",
+    "⚽", "🎮", "🎧", "🎨", "📷", "🎬", "📚", "💼",
+    "💡", "🚀", "🌙", "⭐", "🔥", "💎", "🏠", "🛒"
+  ],
+
+  "limites": {
+    "maxContas": 50,
+    "contasGratis": null,
+    "maxContextosVivos": 3,
+    "maxContextosVivosMemoriaBaixa": 1,
+    "apelido": { "minimo": 1, "maximo": 30 },
+    "urlPersonalizada": { "maximo": 2048 }
+  },
+
+  "limitesComentario": {
+    "maxContas": "teto técnico por aparelho (memória de disco e usabilidade), igual para todos; ao atingir, o botão de adicionar mostra o erro de §5.4.",
+    "contasGratis": "null = sem limite de plano nesta fase (nenhum paywall implementado). Quando MONETIZACAO.md for decidido, vira um número e o comportamento de §13 passa a valer.",
+    "maxContextosVivos": "quantos contêineres (WebViews) ficam vivos em memória ao mesmo tempo; o mais antigo em uso é descartado (LRU). Ver CONTEINERES.md §5.",
+    "maxContextosVivosMemoriaBaixa": "valor aplicado depois de um aviso de memória do sistema, até o app ir para segundo plano e voltar."
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "$descricao": "Parâmetros do motor nativo (só Android, fase 2 — ver VIRTUALIZACAO.md). 'abisSuportadas': ABIs nativas que o build 'completo' embute; app com bibliotecas nativas só de outras ABIs não é clonável. 'incompativeis': pacotes que comprovadamente recusam rodar em ambiente clonado ou quebram nele, preenchida a partir dos testes em aparelho. O Duo respeita a recusa: não tenta contorná-la. 'pacoteProprio' nunca é clonável.",
+  "versao": 1,
+  "pacoteProprio": "com.falcaosl.duo",
+  "abisSuportadas": ["arm64-v8a"],
+  "incompativeis": []
+}

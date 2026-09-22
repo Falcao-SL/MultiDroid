@@ -1,0 +1,19 @@
+{
+  "descricao": "Interpretação de deep links duo:// (FUNCIONALIDADES §9). resultado null = não é do Duo (o sistema não entrega ao app). rota conteiner com id em minúsculas; se a conta não existir, o app vai para o Início com o aviso da §9 (fora destes vetores). adicionar com servico = id do catálogo ou null.",
+  "casos": [
+    {"url": "duo://conta/3f2b8c1e-9a4d-4e7b-8c21-5d6e7f809a1b", "resultado": {"rota": "conteiner", "id": "3f2b8c1e-9a4d-4e7b-8c21-5d6e7f809a1b"}},
+    {"url": "duo://conta/3F2B8C1E-9A4D-4E7B-8C21-5D6E7F809A1B", "resultado": {"rota": "conteiner", "id": "3f2b8c1e-9a4d-4e7b-8c21-5d6e7f809a1b"}},
+    {"url": "DUO://conta/3f2b8c1e-9a4d-4e7b-8c21-5d6e7f809a1b/", "resultado": {"rota": "conteiner", "id": "3f2b8c1e-9a4d-4e7b-8c21-5d6e7f809a1b"}},
+    {"url": "duo://conta/123", "resultado": {"rota": "inicio"}},
+    {"url": "duo://conta/", "resultado": {"rota": "inicio"}},
+    {"url": "duo://adicionar", "resultado": {"rota": "adicionar", "servico": null}},
+    {"url": "duo://adicionar?servico=instagram", "resultado": {"rota": "adicionar", "servico": "instagram"}},
+    {"url": "duo://adicionar?servico=orkut", "resultado": {"rota": "adicionar", "servico": null}},
+    {"url": "duo://", "resultado": {"rota": "inicio"}},
+    {"url": "duo://inicio", "resultado": {"rota": "inicio"}},
+    {"url": "duo://ajustes", "resultado": {"rota": "inicio"}},
+    {"url": "duo:conta/3f2b8c1e-9a4d-4e7b-8c21-5d6e7f809a1b", "resultado": {"rota": "inicio"}},
+    {"url": "https://duo.falcaosl.com/conta/3f2b8c1e-9a4d-4e7b-8c21-5d6e7f809a1b", "resultado": null},
+    {"url": "duox://conta/x", "resultado": null}
+  ]
+}

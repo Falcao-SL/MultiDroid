@@ -1,0 +1,57 @@
+{
+  "descricao": "Regras de conta (FUNCIONALIDADES §5.4): apelido (validarApelido(entrada, existentesNoServico) — apelido null e valido true = vazio, usar o apelido padrão), apelidoPadrao, inicial do avatar, limite de contas (podeAdicionar(quantidade, contasGratis); motivo \"plano\" é a chave do fluxo de plano, não um texto) e cor padrão da conta nova. Contagem de caracteres em pontos de código Unicode.",
+  "validarApelido": [
+    {"entrada": "Trabalho", "existentesNoServico": [], "valido": true, "apelido": "Trabalho", "erro": null},
+    {"entrada": "  Pessoal  ", "existentesNoServico": [], "valido": true, "apelido": "Pessoal", "erro": null},
+    {"entrada": "Loja   da  Ana", "existentesNoServico": [], "valido": true, "apelido": "Loja da Ana", "erro": null},
+    {"entrada": "Loja\tda\nAna", "existentesNoServico": [], "valido": true, "apelido": "Loja da Ana", "erro": null},
+    {"entrada": "", "existentesNoServico": [], "valido": true, "apelido": null, "erro": null},
+    {"entrada": "   ", "existentesNoServico": [], "valido": true, "apelido": null, "erro": null},
+    {"entrada": "Conta com mais de trinta caracteres", "existentesNoServico": [], "valido": false, "apelido": null, "erro": "apelido deve ter no máximo 30 caracteres"},
+    {"entrada": "Exatamente trinta caracteres!!", "existentesNoServico": [], "valido": true, "apelido": "Exatamente trinta caracteres!!", "erro": null},
+    {"entrada": "Ação", "existentesNoServico": ["acao"], "valido": false, "apelido": null, "erro": "já existe uma conta com esse apelido neste serviço"},
+    {"entrada": "TRABALHO", "existentesNoServico": ["Trabalho"], "valido": false, "apelido": null, "erro": "já existe uma conta com esse apelido neste serviço"},
+    {"entrada": "Trabalho 2", "existentesNoServico": ["Trabalho"], "valido": true, "apelido": "Trabalho 2", "erro": null},
+    {"entrada": "🦊 Raposa", "existentesNoServico": [], "valido": true, "apelido": "🦊 Raposa", "erro": null},
+    {"entrada": "Nome\u0000oculto", "existentesNoServico": [], "valido": false, "apelido": null, "erro": "apelido não pode ter caracteres de controle"},
+    {"entrada": "Instagram 1", "existentesNoServico": ["Instagram 1"], "valido": false, "apelido": null, "erro": "já existe uma conta com esse apelido neste serviço"}
+  ],
+  "apelidoPadrao": [
+    {"nomeServico": "Instagram", "existentesNoServico": [], "apelido": "Instagram 1"},
+    {"nomeServico": "Instagram", "existentesNoServico": ["Instagram 1"], "apelido": "Instagram 2"},
+    {"nomeServico": "Instagram", "existentesNoServico": ["Instagram 1", "Instagram 2"], "apelido": "Instagram 3"},
+    {"nomeServico": "Instagram", "existentesNoServico": ["Instagram 2"], "apelido": "Instagram 1"},
+    {"nomeServico": "Instagram", "existentesNoServico": ["instagram 1", "Trabalho"], "apelido": "Instagram 2"},
+    {"nomeServico": "X (Twitter)", "existentesNoServico": ["X (Twitter) 1"], "apelido": "X (Twitter) 2"},
+    {"nomeServico": "exemplo.com.br", "existentesNoServico": [], "apelido": "exemplo.com.br 1"}
+  ],
+  "inicial": [
+    {"apelido": "Trabalho", "inicial": "T"},
+    {"apelido": "pessoal", "inicial": "P"},
+    {"apelido": "ágata", "inicial": "Á"},
+    {"apelido": "çarpa", "inicial": "Ç"},
+    {"apelido": "  loja", "inicial": "L"},
+    {"apelido": "🦊 Raposa", "inicial": "R"},
+    {"apelido": "2ª conta", "inicial": "2"},
+    {"apelido": "@@@", "inicial": "?"},
+    {"apelido": "🔥🔥", "inicial": "?"},
+    {"apelido": "Ωmega", "inicial": "Ω"}
+  ],
+  "podeAdicionar": [
+    {"quantidade": 0, "contasGratis": null, "pode": true, "motivo": null},
+    {"quantidade": 49, "contasGratis": null, "pode": true, "motivo": null},
+    {"quantidade": 50, "contasGratis": null, "pode": false, "motivo": "limite de 50 contas atingido"},
+    {"quantidade": 51, "contasGratis": null, "pode": false, "motivo": "limite de 50 contas atingido"},
+    {"quantidade": 2, "contasGratis": 3, "pode": true, "motivo": null},
+    {"quantidade": 3, "contasGratis": 3, "pode": false, "motivo": "plano"},
+    {"quantidade": 10, "contasGratis": 3, "pode": false, "motivo": "plano"}
+  ],
+  "corPadrao": [
+    {"quantidade": 0, "cor": "azul"},
+    {"quantidade": 1, "cor": "rosa"},
+    {"quantidade": 6, "cor": "laranja"},
+    {"quantidade": 7, "cor": "azul"},
+    {"quantidade": 8, "cor": "rosa"},
+    {"quantidade": 49, "cor": "azul"}
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "descricao": "Motor nativo (fase 2): classificarClonavel(app, abisSuportadas, incompativeis) e diretorioDaCopia(contaId, pacote). Regras na ordem de VIRTUALIZACAO.md §5; a primeira que falha define o motivo (texto exato). 'abis' vazio = app sem bibliotecas nativas (roda em qualquer ABI). Os pacotes de teste são fictícios.",
+  "abisSuportadas": ["arm64-v8a"],
+  "incompativeis": ["br.exemplo.banco"],
+  "classificar": [
+    {"app": {"pacote": "br.exemplo.social", "sistema": false, "temLauncher": true, "abis": ["arm64-v8a", "armeabi-v7a"]}, "clonavel": true, "motivo": null},
+    {"app": {"pacote": "br.exemplo.leitor", "sistema": false, "temLauncher": true, "abis": []}, "clonavel": true, "motivo": null},
+    {"app": {"pacote": "com.falcaosl.duo", "sistema": false, "temLauncher": true, "abis": []}, "clonavel": false, "motivo": "O próprio Duo"},
+    {"app": {"pacote": "com.android.settings", "sistema": true, "temLauncher": true, "abis": []}, "clonavel": false, "motivo": "App do sistema"},
+    {"app": {"pacote": "br.exemplo.servico", "sistema": false, "temLauncher": false, "abis": []}, "clonavel": false, "motivo": "Sem tela inicial"},
+    {"app": {"pacote": "br.exemplo.antigo", "sistema": false, "temLauncher": true, "abis": ["armeabi-v7a"]}, "clonavel": false, "motivo": "Arquitetura não suportada"},
+    {"app": {"pacote": "br.exemplo.x86", "sistema": false, "temLauncher": true, "abis": ["x86_64"]}, "clonavel": false, "motivo": "Arquitetura não suportada"},
+    {"app": {"pacote": "br.exemplo.banco", "sistema": false, "temLauncher": true, "abis": ["arm64-v8a"]}, "clonavel": false, "motivo": "Não roda em ambiente clonado"},
+    {"app": {"pacote": "com.falcaosl.duo", "sistema": true, "temLauncher": false, "abis": ["x86"]}, "clonavel": false, "motivo": "O próprio Duo"},
+    {"app": {"pacote": "br.exemplo.banco", "sistema": false, "temLauncher": true, "abis": ["armeabi-v7a"]}, "clonavel": false, "motivo": "Arquitetura não suportada"}
+  ],
+  "diretorioDaCopia": [
+    {"contaId": "3f2b8c1e-9a4d-4e7b-8c21-5d6e7f809a1b", "pacote": "br.exemplo.social", "diretorio": "virtual/3f2b8c1e-9a4d-4e7b-8c21-5d6e7f809a1b/br.exemplo.social"},
+    {"contaId": "3F2B8C1E-9A4D-4E7B-8C21-5D6E7F809A1B", "pacote": "br.exemplo.social", "diretorio": "virtual/3f2b8c1e-9a4d-4e7b-8c21-5d6e7f809a1b/br.exemplo.social"}
+  ]
+}

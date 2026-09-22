@@ -1,0 +1,33 @@
+{
+  "descricao": "Ordem e busca da tela Início (FUNCIONALIDADES §4). ordenar(contas): fixadas primeiro, cada grupo por ordem crescente, desempate por id. buscar(contas, consulta, servico): aplica trim, normalizarBusca e casa por substring no apelido ou no nome do serviço (dominioBase no personalizado); servico != null filtra pelo chip de serviço; resultado na ordem de ordenar. normalizarBusca é a mesma do BR Generator (só á à â ã é ê í ó ô õ ú ç).",
+  "contas": [
+    {"id": "a", "servico": "instagram", "apelido": "Pessoal", "fixada": false, "ordem": 2},
+    {"id": "b", "servico": "instagram", "apelido": "Loja da Ana", "fixada": true, "ordem": 4},
+    {"id": "c", "servico": "tiktok", "apelido": "Receitas", "fixada": false, "ordem": 0},
+    {"id": "d", "servico": "x", "apelido": "Trabalho", "fixada": true, "ordem": 1},
+    {"id": "e", "servico": "personalizado", "dominioBase": "exemplo.com.br", "apelido": "Painel", "fixada": false, "ordem": 3},
+    {"id": "f", "servico": "youtube", "apelido": "Canal ação", "fixada": false, "ordem": 5}
+  ],
+  "ordenar": ["d", "b", "c", "a", "e", "f"],
+  "buscar": [
+    {"consulta": "", "servico": null, "ids": ["d", "b", "c", "a", "e", "f"]},
+    {"consulta": "insta", "servico": null, "ids": ["b", "a"]},
+    {"consulta": "INSTAGRAM", "servico": null, "ids": ["b", "a"]},
+    {"consulta": "loja", "servico": null, "ids": ["b"]},
+    {"consulta": "acao", "servico": null, "ids": ["f"]},
+    {"consulta": "ação", "servico": null, "ids": ["f"]},
+    {"consulta": "  pessoal ", "servico": null, "ids": ["a"]},
+    {"consulta": "exemplo", "servico": null, "ids": ["e"]},
+    {"consulta": "twitter", "servico": null, "ids": ["d"]},
+    {"consulta": "zzz", "servico": null, "ids": []},
+    {"consulta": "", "servico": "instagram", "ids": ["b", "a"]},
+    {"consulta": "loja", "servico": "tiktok", "ids": []}
+  ],
+  "normalizarBusca": [
+    {"entrada": "Loja da Ana", "saida": "loja da ana"},
+    {"entrada": "AÇÃO", "saida": "acao"},
+    {"entrada": "Ótimo Café", "saida": "otimo cafe"},
+    {"entrada": "ü è", "saida": "ü è"},
+    {"entrada": "  x  ", "saida": "  x  "}
+  ]
+}

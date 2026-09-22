@@ -1,0 +1,204 @@
+{
+  "$descricao": "Catálogo canônico de serviços do Duo. Ordem = ordem de exibição na folha de adicionar conta. 'id' é estável e nunca muda (é gravado em cada conta). 'dominios' decide o que abre dentro do contêiner (host igual ao domínio ou subdomínio dele, ver CONTEINERES.md §6 e vetores/navegacao.json); 'dominiosAuxiliares' também abre dentro (login, encurtadores, redirecionadores do próprio serviço). 'esquemasApp' são esquemas de URL do app oficial: navegação para eles é bloqueada com aviso. 'userAgent' é uma chave de 'userAgents'. 'cor' é uma chave de cor.acento em docs/design/tokens.json — nunca a cor da marca. 'compatibilidade': boa | limitada | experimental. Nenhum logo, ícone ou cor de marca de terceiros é embutido no app (ver publicacao/CONFORMIDADE_LOJAS.md). Nomes de serviço são marcas dos respectivos donos; o Duo não é afiliado a nenhum deles.",
+  "versao": 1,
+
+  "userAgents": {
+    "padrao": {
+      "descricao": "User-Agent padrão do motor da plataforma, sem alteração. Android: o de WebSettings.getDefaultUserAgent (contém '; wv'). iOS: o padrão do WKWebView (termina em 'Mobile/15E148'). É o padrão de todo serviço.",
+      "android": null,
+      "ios": null
+    },
+    "mobile": {
+      "descricao": "Navegador móvel da plataforma, para serviços que entregam página quebrada ao User-Agent de WebView. Android: o UA padrão sem o marcador '; wv' e sem 'Version/4.0 ' (formato do Chrome para Android). iOS: WKWebViewConfiguration.applicationNameForUserAgent = 'Version/<versão do iOS>.0 Mobile/15E148 Safari/604.1'. Nunca usado em domínios de 'dominiosIdentidade'.",
+      "android": "remover '; wv' e 'Version/4.0 ' do UA padrão",
+      "ios": "applicationNameForUserAgent = \"Version/{iosMaior}.0 Mobile/15E148 Safari/604.1\""
+    },
+    "desktop": {
+      "descricao": "Modo computador, para serviços cuja versão web só existe para computador. iOS: WKWebpagePreferences.preferredContentMode = .desktop (API oficial, a mesma do 'Pedir site de computador' do Safari). Android: UA de Chrome para computador + setUseWideViewPort(true) + setLoadWithOverviewMode(true); se USER_AGENT_METADATA existir, metadados coerentes (mobile = false).",
+      "android": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{chromeMaior}.0.0.0 Safari/537.36",
+      "ios": "preferredContentMode = .desktop"
+    }
+  },
+
+  "dominiosIdentidade": ["accounts.google.com", "appleid.apple.com", "login.microsoftonline.com", "login.live.com"],
+
+  "servicos": [
+    {
+      "id": "tiktok",
+      "nome": "TikTok",
+      "urlInicial": "https://www.tiktok.com/",
+      "dominios": ["tiktok.com"],
+      "dominiosAuxiliares": [],
+      "esquemasApp": ["tiktok", "snssdk1233", "snssdk1180"],
+      "userAgent": "padrao",
+      "cor": "rosa",
+      "compatibilidade": "limitada",
+      "observacoes": "A versão web móvel insiste em convidar para o app oficial (faixas e diálogos). Assistir, curtir, comentar e mensagens funcionam; publicar vídeo e lives exigem o app oficial."
+    },
+    {
+      "id": "instagram",
+      "nome": "Instagram",
+      "urlInicial": "https://www.instagram.com/",
+      "dominios": ["instagram.com"],
+      "dominiosAuxiliares": ["facebook.com"],
+      "esquemasApp": ["instagram"],
+      "userAgent": "padrao",
+      "cor": "laranja",
+      "compatibilidade": "boa",
+      "observacoes": "Feed, stories, Direct e publicação de foto funcionam na web móvel. Reels com edição, lives e alguns filtros exigem o app oficial. 'facebook.com' fica dentro para o login com Facebook."
+    },
+    {
+      "id": "snapchat",
+      "nome": "Snapchat",
+      "urlInicial": "https://web.snapchat.com/",
+      "dominios": ["snapchat.com"],
+      "dominiosAuxiliares": [],
+      "esquemasApp": ["snapchat"],
+      "userAgent": "desktop",
+      "cor": "amarelo",
+      "compatibilidade": "experimental",
+      "observacoes": "O Snapchat para a web é oficialmente só para computador; abre em modo computador. Câmera, snaps e stories exigem o app oficial. Os termos do Snap proíbem apps de terceiros que interajam com o serviço sem consentimento escrito — o Duo é só um navegador, mas este é o item de maior risco do catálogo (ver CONFORMIDADE_LOJAS.md)."
+    },
+    {
+      "id": "youtube",
+      "nome": "YouTube",
+      "urlInicial": "https://m.youtube.com/",
+      "dominios": ["youtube.com", "youtu.be"],
+      "dominiosAuxiliares": ["accounts.google.com"],
+      "esquemasApp": ["youtube", "vnd.youtube"],
+      "userAgent": "padrao",
+      "cor": "vermelho",
+      "compatibilidade": "limitada",
+      "observacoes": "Assistir sem login funciona. O Google bloqueia login de conta Google dentro de WebView (erro 'disallowed_useragent' ou 'Este navegador ou app pode não ser seguro'); o Duo não contorna o bloqueio. Reprodução em segundo plano não é suportada."
+    },
+    {
+      "id": "facebook",
+      "nome": "Facebook",
+      "urlInicial": "https://m.facebook.com/",
+      "dominios": ["facebook.com", "fb.com", "fb.me"],
+      "dominiosAuxiliares": [],
+      "esquemasApp": ["fb", "fb-messenger"],
+      "userAgent": "padrao",
+      "cor": "azul",
+      "compatibilidade": "limitada",
+      "observacoes": "Feed, grupos e páginas funcionam. Mensagens na web móvel redirecionam para o app Messenger; o Duo bloqueia o redirecionamento com aviso. Os termos da Meta pedem uma única conta pessoal por pessoa (contas de página e de trabalho à parte)."
+    },
+    {
+      "id": "x",
+      "nome": "X (Twitter)",
+      "urlInicial": "https://x.com/",
+      "dominios": ["x.com", "twitter.com", "t.co"],
+      "dominiosAuxiliares": [],
+      "esquemasApp": ["twitter"],
+      "userAgent": "padrao",
+      "cor": "ciano",
+      "compatibilidade": "boa",
+      "observacoes": "A versão web é completa (publicar, mensagens, mídia). 't.co' é o encurtador do serviço: abre dentro e o destino final é classificado de novo."
+    },
+    {
+      "id": "threads",
+      "nome": "Threads",
+      "urlInicial": "https://www.threads.com/",
+      "dominios": ["threads.com", "threads.net"],
+      "dominiosAuxiliares": ["instagram.com"],
+      "esquemasApp": ["barcelona"],
+      "userAgent": "padrao",
+      "cor": "roxo",
+      "compatibilidade": "boa",
+      "observacoes": "Login pela conta do Instagram, por isso 'instagram.com' fica dentro."
+    },
+    {
+      "id": "linkedin",
+      "nome": "LinkedIn",
+      "urlInicial": "https://www.linkedin.com/",
+      "dominios": ["linkedin.com", "lnkd.in"],
+      "dominiosAuxiliares": [],
+      "esquemasApp": ["linkedin"],
+      "userAgent": "padrao",
+      "cor": "azul",
+      "compatibilidade": "boa",
+      "observacoes": "Feed, mensagens e vagas funcionam na web móvel."
+    },
+    {
+      "id": "pinterest",
+      "nome": "Pinterest",
+      "urlInicial": "https://www.pinterest.com/",
+      "dominios": ["pinterest.com", "pin.it"],
+      "dominiosAuxiliares": [],
+      "esquemasApp": ["pinterest"],
+      "userAgent": "padrao",
+      "cor": "vermelho",
+      "compatibilidade": "boa",
+      "observacoes": "Subdomínios por país (br.pinterest.com) ficam dentro."
+    },
+    {
+      "id": "reddit",
+      "nome": "Reddit",
+      "urlInicial": "https://www.reddit.com/",
+      "dominios": ["reddit.com", "redd.it"],
+      "dominiosAuxiliares": [],
+      "esquemasApp": ["reddit"],
+      "userAgent": "padrao",
+      "cor": "laranja",
+      "compatibilidade": "limitada",
+      "observacoes": "A web móvel mostra convites frequentes para o app; chat e alguns fluxos redirecionam ao app, e o Duo bloqueia com aviso."
+    },
+    {
+      "id": "twitch",
+      "nome": "Twitch",
+      "urlInicial": "https://m.twitch.tv/",
+      "dominios": ["twitch.tv"],
+      "dominiosAuxiliares": [],
+      "esquemasApp": ["twitch"],
+      "userAgent": "padrao",
+      "cor": "roxo",
+      "compatibilidade": "limitada",
+      "observacoes": "Assistir e o chat funcionam; transmitir exige o app oficial ou software de computador."
+    },
+    {
+      "id": "discord",
+      "nome": "Discord",
+      "urlInicial": "https://discord.com/app",
+      "dominios": ["discord.com", "discord.gg", "discordapp.com"],
+      "dominiosAuxiliares": [],
+      "esquemasApp": ["discord"],
+      "userAgent": "desktop",
+      "cor": "roxo",
+      "compatibilidade": "experimental",
+      "observacoes": "No navegador móvel o Discord manda para o app; em modo computador a versão web abre. Interface de computador em tela pequena; chamadas de voz dependem da permissão de microfone."
+    },
+    {
+      "id": "telegram",
+      "nome": "Telegram Web",
+      "urlInicial": "https://web.telegram.org/k/",
+      "dominios": ["telegram.org", "t.me"],
+      "dominiosAuxiliares": [],
+      "esquemasApp": ["tg"],
+      "userAgent": "padrao",
+      "cor": "ciano",
+      "compatibilidade": "boa",
+      "observacoes": "A versão 'K' é responsiva e funciona bem em celular. Login por número de telefone e código."
+    },
+    {
+      "id": "whatsapp",
+      "nome": "WhatsApp Web",
+      "urlInicial": "https://web.whatsapp.com/",
+      "dominios": ["whatsapp.com", "wa.me"],
+      "dominiosAuxiliares": [],
+      "esquemasApp": ["whatsapp"],
+      "userAgent": "desktop",
+      "cor": "verde",
+      "compatibilidade": "experimental",
+      "observacoes": "O WhatsApp Web é um aparelho vinculado a um WhatsApp que já existe em outro celular: a vinculação é por QR code ou por código com o número de telefone. Só abre em modo computador. Não cria uma conta nova de WhatsApp."
+    }
+  ],
+
+  "personalizado": {
+    "id": "personalizado",
+    "nome": "Site personalizado",
+    "userAgent": "padrao",
+    "cor": "amarelo",
+    "compatibilidade": "experimental",
+    "observacoes": "Qualquer site https informado pelo usuário (validação em FUNCIONALIDADES.md §5.3 e vetores/url-personalizada.json). 'dominios' da conta = [dominioBase] calculado da URL; sem auxiliares; sem esquemas de app conhecidos."
+  }
+}
