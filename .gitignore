@@ -1,0 +1,25 @@
+# Sistema e editores
+.DS_Store
+*.log
+*.swp
+.idea/
+*.iml
+
+# Saídas de build e segredos de assinatura em qualquer projeto
+# (regras específicas do Gradle/Android em android/.gitignore)
+**/build/
+local.properties
+*.jks
+*.keystore
+key.properties
+
+# Xcode / SwiftPM (ios/)
+xcuserdata/
+DerivedData/
+.build/
+.swiftpm/
+*.xcresult
+
+# Configurações locais do Claude Code (por máquina)
+.claude/settings.local.json
+.mcp.json
