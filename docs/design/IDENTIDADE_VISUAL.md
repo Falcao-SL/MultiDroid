@@ -177,16 +177,26 @@ de serviço.
 
 ## Ícone do app e splash
 
-- Arte: releitura neo-brutalista de **duas formas iguais deslocadas** (a
-  ideia de "duplicar"): dois quadrados de cantos arredondados, um azul e um
-  do fundo, com borda grossa e a sombra dura característica, sobre creme.
-  Sem qualquer referência a marcas de serviços.
+- Arte (2026-10-07): **dois aparelhos iguais deslocados** (a ideia de
+  "duplicar"), em releitura neo-brutalista: aparelho de trás `roxo`
+  (`#A78BFA`), da frente `ciano` (`#5CE1E6`), borda grossa off-white
+  (`#EFEDE6`) e a sombra dura na cor do aparelho de trás, sobre grafite
+  (`#14161B`; `#0B0C10` no modo escuro). Escolhida entre três direções, numa
+  paleta mais tecnológica que o creme da interface. Sem qualquer referência a
+  marcas de serviços.
+- Fonte única: `icone/duo-icon.svg` (camadas `bg`, `back`, `shadow`, `front`).
+  Tudo é gerado por `icone/export_icons.py`; nunca edite as saídas à mão.
 - **Android**: ícone adaptativo (fundo `#E7E3D9` + `foreground`) com camada
   monocromática (ícones temáticos, Android 13+) e ícone legado; splash pela
   SplashScreen API (`core-splashscreen`), com a arte sobre `cor.splash`.
-- **iOS**: `AppIcon.icon` (Icon Composer, Xcode 26+) com variantes
-  Default/Dark/Clear/Tinted; launch screen por `UILaunchScreen`.
-- Arquivos: `docs/design/icone/` quando a arte for produzida.
+- **Apple** (iPhone, iPad, Mac, Apple Watch): `icone/AppIcon.icon` (Icon
+  Composer, Xcode 26+), com fundo próprio no escuro e uma camada por aparelho
+  (frente, sombra, trás) para a profundidade do vidro; Clear e Tinted saem
+  das camadas. Compilado com `actool` para iOS, macOS e watchOS. O ajuste fino
+  do vidro (specular, sombra) é feito no próprio Icon Composer.
+- **Vision Pro**: pilha de três camadas em `icone/png/visionos/`.
+- **Android e Wear OS**: `icone/android/res/` (adaptativo com `monochrome`,
+  glifo dentro do círculo de 66 dp; PNGs legados) e `play-store-512.png`.
 
 ## Tom de voz
 
