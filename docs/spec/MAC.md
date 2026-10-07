@@ -89,10 +89,10 @@ independente. A imagem de sistema é só leitura e compartilhada por todos.
 
 | Perfil | Imagem | Tela | RAM (hipótese) |
 |---|---|---|---|
-| Celular | `android-37.0;google_apis_playstore;arm64-v8a` | 1080×2400 | 2 GB |
+| Celular | `android-33;google_apis_playstore;arm64-v8a` | 1080×2400 | 2 GB |
 | Tablet | a mesma | 1600×2560 | 3 GB |
 | Dobrável | a mesma, hardware dobrável (`setPosture`) | dobrado/aberto | 3 GB |
-| Relógio | `android-37.0;android-wear-signed;arm64-v8a` | 454×454 redondo | 1 GB |
+| Relógio | `android-33;android-wear;arm64-v8a` | 454×454 redondo | 2 GB (mínimo imposto) |
 
 Ajustes de leveza em todos: `-no-audio` quando não precisa, `-no-boot-anim`,
 `-gpu host`, núcleos limitados (2 por celular, 1 por relógio), Quick Boot.
@@ -156,13 +156,32 @@ faz com os aparelhos sai daqui:
 | 2 celulares + 1 relógio | 3,6 GB para o swap |
 | Relógio (`android-37.0;android-wear-signed`) | **não liga**: `offline` com erros `Failed to find ColorBuffer`, com e sem janela, com GPU do Mac e por software |
 
+Comparação de imagens (`mac/tools/measure-image.sh`, uma por vez, boot a frio,
+pedindo 2 GB ao celular e 1 GB ao relógio, medida após 45 s parado):
+
+| Imagem | Boot | RAM que o emulador impõe | Footprint do processo | CPU parado |
+|---|---|---|---|---|
+| Android 37 Play | 18 s | 4 GB | 7,4 GB | 0,2% |
+| Android 36 Play | 25 s | 2,5 GB | 5,3 GB | 17% |
+| Android 36 `google_apis` | 24 s | 2,5 GB | 5,3 GB | 7% |
+| **Android 13 (API 33) Play** | 22 s | aceita 2 GB | **4,5 GB** | 5,7% |
+| Android 13 ATD (sem Play) | 21 s | aceita 2 GB | 3,8 GB | 0,9% |
+| Wear OS 37 / 36 | — | — | **não liga** | — |
+| **Wear OS 13 (API 33)** | **16 s** | 2 GB | 4,1 GB | 5,2% |
+
 Consequências:
 
-1. Com a imagem Play do Android 37, cabem **2 a 3 celulares** neste Mac sem
-   swap. Longe do "leve". Próximos testes: imagens do Android 36 (Play e
-   `google_apis`) e AOSP, para ver qual aceita 2 GB.
-2. O relógio precisa de outra imagem: testar `android-36;android-wear-signed`.
-3. Frames e entrada estão provados: `MMAP` + escala no emulador é o caminho.
+1. **Imagem padrão: Android 13 (API 33) com Play** para celular, tablet e
+   dobrável, e **Wear OS 13** para o relógio, a única versão de Wear que liga
+   neste emulador.
+2. Tirar a Play Store não muda a memória; quem pesa é o próprio emulador: o
+   processo custa ~2–3 GB **além** da RAM do Android, em todas as imagens
+   (provavelmente o `gfxstream` via Vulkan/Metal). Próximo teste: modos de
+   GPU mais econômicos.
+3. Com 4,5 GB por celular, um Mac de 24 GB comporta ~3–4 aparelhos sem swap,
+   e um de 16 GB ~2. O painel precisa mostrar esse custo antes de ligar
+   (seção 2.6).
+4. Frames e entrada estão provados: `MMAP` + escala no emulador é o caminho.
 
 ## 4. Decisões
 
