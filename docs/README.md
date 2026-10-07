@@ -14,6 +14,7 @@ arquivos direto do disco; mudou aqui, as suítes falham até cada app acompanhar
 | [spec/FUNCIONALIDADES.md](spec/FUNCIONALIDADES.md) | Telas, rotas, fluxos, motores de conta, matriz de paridade, decisões e o que ficou a decidir pelo usuário |
 | [spec/CONTEINERES.md](spec/CONTEINERES.md) | Motor web: isolamento por conta nas duas plataformas — APIs, ciclo de vida, User-Agent, navegação, downloads, permissões, limpeza de dados, limites de memória |
 | [spec/VIRTUALIZACAO.md](spec/VIRTUALIZACAO.md) | Motor nativo (só Android, fase 2): virtualização, motores de código aberto e licença, riscos |
+| [spec/MAC.md](spec/MAC.md) | Duo para Mac: vários aparelhos Android (celular, tablet, dobrável, Wear) lado a lado, sobre o emulador oficial sem janela |
 | [spec/dados/](spec/dados) | Catálogo de serviços (`servicos.json`), aparência/limites (`aparencia.json`), apps nativos (`apps-nativos.json`) |
 | [spec/vetores/](spec/vetores/README.md) | Vetores de teste lidos pelas duas plataformas |
 
