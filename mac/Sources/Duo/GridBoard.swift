@@ -85,7 +85,13 @@ struct GridBoard: View {
     @Environment(AppModel.self) private var model
     let list: [Device]
 
-    private struct Drag { var id: String; var resize: Bool; var start: GridSpot; var translation: CGSize }
+    /// Bordas que o gesto mexe: nenhuma = mover; uma = lado; duas = canto.
+    struct Edges: OptionSet, Hashable {
+        let rawValue: Int
+        static let left = Edges(rawValue: 1), right = Edges(rawValue: 2), top = Edges(rawValue: 4), bottom = Edges(rawValue: 8)
+    }
+
+    private struct Drag { var id: String; var edges: Edges; var start: GridSpot; var translation: CGSize }
     @State private var drag: Drag?
     @State private var preview: [String: GridSpot]?
 
@@ -113,7 +119,7 @@ struct GridBoard: View {
                             let r = liveRect(d.id, s, cell)
                             DeviceTile(device: d)
                                 .overlay(alignment: .top) { moveHandle(d, cell) }
-                                .overlay(alignment: .bottomTrailing) { resizeHandle(d, cell) }
+                                .overlay { resizeHandles(d, cell) }
                                 .frame(width: r.width, height: r.height)
                                 .offset(x: r.minX, y: r.minY)
                                 .zIndex(drag?.id == d.id ? 2 : 0)
@@ -136,33 +142,51 @@ struct GridBoard: View {
     /// Durante o gesto, o quadro segue o mouse; o tracejado mostra onde vai encaixar.
     private func liveRect(_ id: String, _ s: GridSpot, _ cell: CGFloat) -> CGRect {
         guard let drag, drag.id == id else { return rect(s, cell) }
-        let base = rect(drag.start, cell)
-        if drag.resize {
-            return CGRect(x: base.minX, y: base.minY,
-                          width: max(CGFloat(Grid.minW) * cell - gap, base.width + drag.translation.width),
-                          height: max(CGFloat(Grid.minH) * cell - gap, base.height + drag.translation.height))
+        var r = rect(drag.start, cell)
+        let t = drag.translation, e = drag.edges
+        if e.isEmpty { return r.offsetBy(dx: t.width, dy: t.height) }
+        let minW = CGFloat(Grid.minW) * cell - gap, minH = CGFloat(Grid.minH) * cell - gap
+        if e.contains(.right) { r.size.width = max(minW, r.width + t.width) }
+        if e.contains(.bottom) { r.size.height = max(minH, r.height + t.height) }
+        if e.contains(.left) {
+            let w = max(minW, r.width - t.width)
+            r.origin.x = r.maxX - w; r.size.width = w
         }
-        return base.offsetBy(dx: drag.translation.width, dy: drag.translation.height)
+        if e.contains(.top) {
+            let h = max(minH, r.height - t.height)
+            r.origin.y = r.maxY - h; r.size.height = h
+        }
+        return r
     }
 
     private func snapped(_ drag: Drag, _ cell: CGFloat) -> GridSpot {
         var s = drag.start
         let dx = Int((drag.translation.width / cell).rounded()), dy = Int((drag.translation.height / cell).rounded())
-        if drag.resize {
-            s.w = min(max(Grid.minW, s.w + dx), Grid.cols - s.x)
-            s.h = max(Grid.minH, s.h + dy)
-        } else {
+        let e = drag.edges
+        if e.isEmpty {
             s.x = min(max(0, s.x + dx), Grid.cols - s.w)
             s.y = max(0, s.y + dy)
+            return s
+        }
+        let right = s.x + s.w, bottom = s.y + s.h
+        if e.contains(.right) { s.w = min(max(Grid.minW, s.w + dx), Grid.cols - s.x) }
+        if e.contains(.bottom) { s.h = max(Grid.minH, s.h + dy) }
+        if e.contains(.left) {
+            s.x = min(max(0, s.x + dx), right - Grid.minW)
+            s.w = right - s.x
+        }
+        if e.contains(.top) {
+            s.y = min(max(0, s.y + dy), bottom - Grid.minH)
+            s.h = bottom - s.y
         }
         return s
     }
 
-    private func gesture(_ d: Device, resize: Bool, _ cell: CGFloat) -> some Gesture {
+    private func gesture(_ d: Device, edges: Edges, _ cell: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 2, coordinateSpace: .global)
             .onChanged { v in
                 guard let start = model.spots[d.id] else { return }
-                var g = drag ?? Drag(id: d.id, resize: resize, start: start, translation: .zero)
+                var g = drag ?? Drag(id: d.id, edges: edges, start: start, translation: .zero)
                 g.translation = v.translation
                 drag = g
                 let next = Grid.place(d.id, at: snapped(g, cell), in: model.spots)
@@ -178,26 +202,39 @@ struct GridBoard: View {
     /// Faixa do título: arrasta para mover; dois cliques amplia.
     private func moveHandle(_ d: Device, _ cell: CGFloat) -> some View {
         Color.clear
-            .frame(height: MesaLayout.pad + 24)
+            .frame(height: MesaLayout.pad + 24 - edge)
+            .padding(.top, edge)
+            .padding(.horizontal, edge)
             .padding(.trailing, 90)  // deixa o fps e o estado fora da área de pegar
             .contentShape(Rectangle())
-            .onHover { inside in if inside { NSCursor.openHand.push() } else { NSCursor.pop() } }
-            .gesture(gesture(d, resize: false, cell))
+            .pointerStyle(.grabIdle)
+            .gesture(gesture(d, edges: [], cell))
             .onTapGesture(count: 2) { withAnimation(.snappy) { model.focused = d.id } }
     }
 
-    private func resizeHandle(_ d: Device, _ cell: CGFloat) -> some View {
-        Image(systemName: "arrow.up.left.and.arrow.down.right")
-            .font(.system(size: 9, weight: .black))
-            .rotationEffect(.degrees(90))
-            .frame(width: 16, height: 16)
-            .background(Circle().fill(Duo.amarelo))
-            .overlay(Circle().stroke(Color.black, lineWidth: 1.5))
-            .foregroundStyle(Color.black)
-            .offset(x: 6, y: 6)
+    /// Espessura da faixa de redimensionar: cabe na margem do quadro, sem
+    /// cobrir botão nem tela.
+    private let edge: CGFloat = 7
+
+    /// Quatro lados e quatro cantos, cada um com o cursor de redimensionar do macOS.
+    private func resizeHandles(_ d: Device, _ cell: CGFloat) -> some View {
+        let corner: CGFloat = 16
+        return ZStack {
+            strip(d, cell, [.top], .top).frame(height: edge).frame(maxHeight: .infinity, alignment: .top).padding(.horizontal, corner)
+            strip(d, cell, [.bottom], .bottom).frame(height: edge).frame(maxHeight: .infinity, alignment: .bottom).padding(.horizontal, corner)
+            strip(d, cell, [.left], .leading).frame(width: edge).frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, corner)
+            strip(d, cell, [.right], .trailing).frame(width: edge).frame(maxWidth: .infinity, alignment: .trailing).padding(.vertical, corner)
+            strip(d, cell, [.top, .left], .topLeading).frame(width: corner, height: corner).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            strip(d, cell, [.top, .right], .topTrailing).frame(width: corner, height: corner).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            strip(d, cell, [.bottom, .left], .bottomLeading).frame(width: corner, height: corner).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+            strip(d, cell, [.bottom, .right], .bottomTrailing).frame(width: corner, height: corner).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+        }
+    }
+
+    private func strip(_ d: Device, _ cell: CGFloat, _ edges: Edges, _ position: FrameResizePosition) -> some View {
+        Color.clear
             .contentShape(Rectangle())
-            .onHover { inside in if inside { NSCursor.crosshair.push() } else { NSCursor.pop() } }
-            .gesture(gesture(d, resize: true, cell))
-            .help("Arraste para redimensionar")
+            .pointerStyle(.frameResize(position: position))
+            .gesture(gesture(d, edges: edges, cell))
     }
 }

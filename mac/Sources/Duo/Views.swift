@@ -18,6 +18,7 @@ struct RootView: View {
         }
         .background(p.fundo)
         .sheet(isPresented: $creating) { NewDeviceSheet() }
+        .sheet(isPresented: Bindable(model).showImages) { ImagesSheet() }
         .overlay(alignment: .bottom) {
             if let b = model.banner {
                 Text(b)
@@ -51,6 +52,9 @@ struct PanelView: View {
             HStack {
                 Text("Duo").font(.system(size: 26, weight: .black))
                 Spacer()
+                Button { model.showImages = true } label: { Image(systemName: "square.stack.3d.down.right").frame(width: 16, height: 16) }
+                    .buttonStyle(BrutalIconStyle(fill: model.images.ready ? .white : Duo.amarelo))
+                    .help("Imagens e emulador")
                 Button { creating = true } label: { Label("Novo aparelho", systemImage: "plus") }
                     .buttonStyle(BrutalButtonStyle())
             }
@@ -271,7 +275,9 @@ struct GridArea: View {
                     .lineLimit(1)
             }
             .padding(14)
-            if let f = model.focused, let d = model.device(f) {
+            if model.devices.isEmpty {
+                EmptyDesk()
+            } else if let f = model.focused, let d = model.device(f) {
                 mesa([d])
             } else if model.layout == .grade {
                 GridBoard(list: model.ordered)
@@ -561,6 +567,13 @@ struct NewDeviceSheet: View {
             TextField("Grupo (opcional)", text: $group).textFieldStyle(.roundedBorder)
             Text(String(format: "Android 13 · custa cerca de %.1f GB de memória ligado", kind.estimateGB))
                 .font(.system(size: 12, weight: .semibold)).opacity(0.7)
+            if !model.images.hasImage(for: kind) {
+                HStack {
+                    Text("Falta a imagem \(kind.imageLabel).").font(.system(size: 12, weight: .bold))
+                    Spacer()
+                    Button("Abrir Imagens") { dismiss(); model.showImages = true }.buttonStyle(BrutalButtonStyle(fill: Duo.amarelo))
+                }
+            }
             if let error { Text(error).font(.system(size: 12)).foregroundStyle(Duo.vermelho) }
             HStack {
                 Spacer()
@@ -574,7 +587,7 @@ struct NewDeviceSheet: View {
                     }
                 }
                 .buttonStyle(BrutalButtonStyle())
-                .disabled(busy || !valid)
+                .disabled(busy || !valid || !model.images.hasImage(for: kind))
             }
         }
         .padding(24)
@@ -583,5 +596,25 @@ struct NewDeviceSheet: View {
 
     private var valid: Bool {
         !name.isEmpty && name.range(of: "^[A-Za-z0-9._-]+$", options: .regularExpression) != nil && model.device(name) == nil
+    }
+}
+
+/// Primeiro uso: sem aparelho nenhum, mostra o caminho (imagens → aparelho).
+struct EmptyDesk: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "iphone.and.arrow.forward").font(.system(size: 40, weight: .bold)).opacity(0.5)
+            Text(model.images.ready ? "Nenhum aparelho ainda" : "Comece pelas imagens").font(.system(size: 20, weight: .black))
+            Text(model.images.ready
+                 ? "Crie um celular, tablet, dobrável ou relógio em Novo aparelho."
+                 : "O Duo baixa do Google o emulador e o Android que os aparelhos usam: de 1 a 2 GB por imagem, uma vez só.")
+                .font(.system(size: 13, weight: .medium)).opacity(0.7).multilineTextAlignment(.center).frame(maxWidth: 380)
+            if !model.images.ready {
+                Button("Abrir Imagens") { model.showImages = true }.buttonStyle(BrutalButtonStyle(fill: Duo.amarelo))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

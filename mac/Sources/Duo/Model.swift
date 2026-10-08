@@ -71,6 +71,8 @@ final class AppModel {
     var availableGB = 0.0
     var swapGB = 0.0
     var banner: String?
+    var showImages = false
+    let images = ImageStore()
 
     private var metricsTask: Task<Void, Never>?
     private let stateURL: URL
@@ -81,6 +83,8 @@ final class AppModel {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         stateURL = dir.appendingPathComponent("state.json")
         ceilingGB = (Metrics.physicalGB * 0.75).rounded()
+        SDK.prepare()
+        migrateFromStudio()
         loadState()
         refresh()
         // --start A,B: liga aparelhos ao abrir (testes e atalhos).
@@ -93,6 +97,21 @@ final class AppModel {
                 self?.sampleMetrics()
                 try? await Task.sleep(for: .seconds(2))
             }
+        }
+    }
+
+    /// Uma vez só: os aparelhos que versões antigas do Duo criaram no Android
+    /// Studio (nome "Duo-…") vêm para a pasta do Duo, com a imagem que usam
+    /// e o emulador copiados por clonefile (sem baixar, sem ocupar disco).
+    private func migrateFromStudio() {
+        guard Catalog.load().isEmpty else { return }
+        let names = Catalog.studioDevices().filter { $0.hasPrefix("Duo-") && !Catalog.isRunning($0) }
+        guard !names.isEmpty else { return }
+        if images.installed[Images.emulator] == nil, images.studio[Images.emulator] != nil { images.importFromStudio(Images.emulator) }
+        for n in names {
+            guard let img = Catalog.studioImage(n), Images.all.contains(img) else { continue }
+            if images.installed[img] == nil, images.studio[img] != nil { images.importFromStudio(img) }
+            if images.installed[img] != nil { _ = Catalog.importFromStudio(n) }
         }
     }
 
@@ -164,6 +183,7 @@ final class AppModel {
 
     func start(_ d: Device) {
         guard d.state == .off else { return }
+        guard images.ready else { banner = "Baixe o emulador em Imagens antes de ligar"; showImages = true; return }
         let projected = projectedGB(adding: d)
         guard projected <= ceilingGB else {
             banner = String(format: "%@ não liga: os aparelhos passariam de %.0f GB (teto de %.0f GB)", d.id, projected, ceilingGB)
@@ -174,7 +194,8 @@ final class AppModel {
         let grpcPort = 8600 + (console - 5600) / 2
         let p = Process()
         p.executableURL = SDK.emulator
-        p.arguments = ["-avd", d.id, "-no-window", "-no-audio", "-no-boot-anim", "-gpu", "host",
+        p.environment = SDK.environment
+        p.arguments = ["-avd", d.id, "-no-window", "-no-audio", "-no-boot-anim", "-no-metrics", "-gpu", "host",
                        "-cores", "\(d.info.kind.cores)", "-grpc", "\(grpcPort)", "-grpc-use-token", "-port", "\(console)"]
         // Saída do emulador em ~/Library/Logs/Duo/<aparelho>.log, para entender falhas.
         let logs = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/Duo")
@@ -242,10 +263,13 @@ final class AppModel {
         d.screen?.stop()
         let pid = d.pid
         Task {
-            // "emu kill" salva o snapshot: a próxima partida leva segundos.
-            _ = await Task.detached { SDK.run(SDK.adb, ["-s", "emulator-\(console)", "emu", "kill"]) }.value
-            for _ in 0..<60 {
+            // "kill" pelo console salva o estado: a próxima partida leva segundos.
+            // Se o console não responder, SIGTERM (desliga limpo, sem salvar).
+            let asked = await SDK.console(port: console, "kill")
+            if !asked, let pid { kill(pid, SIGTERM) }
+            for i in 0..<60 {
                 if let pid, kill(pid, 0) != 0 { break }
+                if i == 40, let pid { kill(pid, SIGTERM) }
                 try? await Task.sleep(for: .milliseconds(500))
             }
             d.link?.close()

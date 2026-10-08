@@ -43,9 +43,20 @@ enum DeviceKind: String, CaseIterable, Identifiable, Codable {
     var ramMB: Int { 2048 }
     var cores: Int { self == .relogio ? 1 : 2 }
 
-    /// Tela reduzida para o tablet: a fase 0 mostrou que a memória cresce com
-    /// a resolução (8,5 GB a 2560×1600).
-    var lcd: (Int, Int, Int)? { self == .tablet ? (1280, 800, 160) : nil }
+    /// Tela (largura, altura, dpi). O tablet sai reduzido: a fase 0 mostrou
+    /// que a memória cresce com a resolução (8,5 GB a 2560×1600).
+    var lcd: (Int, Int, Int) {
+        switch self {
+        case .celular: (1080, 2424, 420)
+        case .tablet: (1280, 800, 160)
+        case .dobravel: (2076, 2152, 390)
+        case .relogio: (454, 454, 320)
+        }
+    }
+
+    var tag: String { self == .relogio ? "android-wear" : "google_apis_playstore" }
+    var tagDisplay: String { self == .relogio ? "Wear OS 4" : "Google Play" }
+    var imageLabel: String { self == .relogio ? "Wear OS 4 (Android 13)" : "Android 13 com Google Play" }
 
     /// Memória estimada do processo, em GB (medido na fase 0; tablet e
     /// dobrável estimados).
@@ -98,23 +109,68 @@ enum Catalog {
         }.sorted { $0.name < $1.name }
     }
 
-    /// Cria um aparelho do tipo pedido. Bloqueante.
+    /// Cria um aparelho escrevendo os dois arquivos que o emulador lê
+    /// (<nome>.ini e <nome>.avd/config.ini), com os mesmos campos que o
+    /// avdmanager gravaria para esse hardware. O emulador cria o disco do
+    /// usuário a partir da imagem no primeiro boot.
     static func create(name: String, kind: DeviceKind) -> String? {
-        let r = SDK.run(SDK.avdmanager, ["create", "avd", "-n", name, "-k", kind.image, "-d", kind.hardware], stdin: "no\n")
-        guard r.status == 0 else { return r.output.split(separator: "\n").last.map(String.init) ?? "falhou" }
-        let cfgURL = SDK.avdHome.appendingPathComponent("\(name).avd/config.ini")
-        var text = (try? String(contentsOf: cfgURL, encoding: .utf8)) ?? ""
-        func set(_ k: String, _ v: String) {
-            if let r = text.range(of: "(?m)^\(NSRegularExpression.escapedPattern(for: k))=.*$", options: .regularExpression) {
-                text.replaceSubrange(r, with: "\(k)=\(v)")
-            } else { text += "\n\(k)=\(v)" }
+        let fm = FileManager.default
+        let dir = SDK.avdHome.appendingPathComponent("\(name).avd")
+        let ini = SDK.avdHome.appendingPathComponent("\(name).ini")
+        guard !fm.fileExists(atPath: dir.path), !fm.fileExists(atPath: ini.path) else { return "já existe um aparelho com esse nome" }
+        guard Images.installed(kind.image) != nil else { return "baixe antes a imagem \(kind.imageLabel) em Imagens" }
+        do {
+            try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+            try """
+            avd.ini.encoding=UTF-8
+            path=\(dir.path)
+            path.rel=avd/\(name).avd
+            target=android-33
+
+            """.write(to: ini, atomically: true, encoding: .utf8)
+            try config(name: name, kind: kind).write(to: dir.appendingPathComponent("config.ini"), atomically: true, encoding: .utf8)
+        } catch {
+            try? fm.removeItem(at: dir); try? fm.removeItem(at: ini)
+            return error.localizedDescription
         }
-        set("hw.ramSize", "\(kind.ramMB)")
-        set("hw.cpu.ncore", "\(kind.cores)")
-        set("hw.keyboard", "yes")
-        if let (w, h, dpi) = kind.lcd { set("hw.lcd.width", "\(w)"); set("hw.lcd.height", "\(h)"); set("hw.lcd.density", "\(dpi)") }
-        try? text.write(to: cfgURL, atomically: true, encoding: .utf8)
         return nil
+    }
+
+    static func config(name: String, kind: DeviceKind) -> String {
+        let (w, h, dpi) = kind.lcd
+        let wear = kind == .relogio
+        var c: [(String, String)] = [
+            ("avd.ini.encoding", "UTF-8"), ("AvdId", name), ("avd.ini.displayname", name),
+            ("abi.type", "arm64-v8a"), ("hw.cpu.arch", "arm64"), ("hw.cpu.ncore", "\(kind.cores)"),
+            ("hw.ramSize", "\(kind.ramMB)"), ("vm.heapSize", wear ? "48M" : "228M"),
+            ("hw.device.manufacturer", "Google"), ("hw.device.name", kind.hardware),
+            ("hw.lcd.width", "\(w)"), ("hw.lcd.height", "\(h)"), ("hw.lcd.density", "\(dpi)"),
+            ("hw.lcd.depth", "32"), ("hw.lcd.circular", wear ? "true" : "false"),
+            ("hw.initialOrientation", "portrait"), ("hw.keyboard", "yes"), ("hw.mainKeys", wear ? "yes" : "no"),
+            ("hw.gpu.enabled", "yes"), ("hw.gpu.mode", "host"),
+            ("hw.accelerometer", "yes"), ("hw.gyroscope", "yes"), ("hw.battery", "yes"), ("hw.gps", "yes"),
+            ("hw.sensors.proximity", "yes"), ("hw.sensors.light", "yes"), ("hw.sensors.orientation", "yes"),
+            ("hw.camera.back", "emulated"), ("hw.camera.front", "none"),
+            ("hw.audioInput", "no"), ("hw.audioOutput", "no"), ("hw.sdCard", "no"),
+            ("disk.dataPartition.size", wear ? "2G" : "6G"), ("userdata.useQcow2", "no"),
+            ("image.sysdir.1", Images.sysdir(kind.image)),
+            ("tag.id", kind.tag), ("tag.ids", kind.tag), ("tag.display", kind.tagDisplay), ("tag.displaynames", kind.tagDisplay),
+            ("PlayStore.enabled", "no"), ("showDeviceFrame", "no"),
+            ("fastboot.forceColdBoot", "no"), ("fastboot.forceFastBoot", "yes"),
+            ("firstboot.bootFromLocalSnapshot", "yes"), ("firstboot.saveToLocalSnapshot", "yes"),
+        ]
+        if kind == .dobravel {
+            // Dobradiça do Pixel 9 Pro Fold, como o avdmanager descreve.
+            c += [("hw.displayRegion.0.1.width", "1080"), ("hw.displayRegion.0.1.height", "2424"),
+                  ("hw.sensor.hinge", "yes"), ("hw.sensor.hinge.count", "1"), ("hw.sensor.hinge.type", "1"),
+                  ("hw.sensor.hinge.sub_type", "1"), ("hw.sensor.hinge.ranges", "0-180"),
+                  ("hw.sensor.hinge.defaults", "180"), ("hw.sensor.hinge.areas", "1038-0-0-2152"),
+                  ("hw.sensor.hinge_angles_posture_definitions", "0-30, 30-150, 150-180"),
+                  ("hw.sensor.posture_list", "1, 2, 3"),
+                  ("hw.sensor.hinge.fold_to_displayRegion.0.1_at_posture", "1"),
+                  ("hw.sensor.hinge.resizable.config", "1")]
+        }
+        return c.map { "\($0.0)=\($0.1)" }.joined(separator: "\n") + "\n"
     }
 
     /// Duplica com clonefile do APFS: instantâneo e sem custo de disco até divergir.
@@ -139,7 +195,57 @@ enum Catalog {
     }
 
     static func delete(_ d: DeviceInfo) -> String? {
-        let r = SDK.run(SDK.avdmanager, ["delete", "avd", "-n", d.name])
-        return r.status == 0 ? nil : r.output
+        do {
+            try FileManager.default.removeItem(at: d.dir)
+            try? FileManager.default.removeItem(at: SDK.avdHome.appendingPathComponent("\(d.name).ini"))
+            return nil
+        } catch { return error.localizedDescription }
+    }
+}
+
+extension Catalog {
+    /// Aparelhos na pasta do Android Studio (~/.android/avd).
+    static func studioDevices() -> [String] {
+        let files = (try? FileManager.default.contentsOfDirectory(at: SDK.studioAvdHome, includingPropertiesForKeys: nil)) ?? []
+        return files.filter { $0.pathExtension == "ini" }.map { $0.deletingPathExtension().lastPathComponent }.sorted()
+    }
+
+    /// A imagem que um aparelho do Android Studio usa, no formato de pacote.
+    static func studioImage(_ name: String) -> String? {
+        let top = readIni(SDK.studioAvdHome.appendingPathComponent("\(name).ini"))
+        let dir = URL(fileURLWithPath: top["path"] ?? SDK.studioAvdHome.appendingPathComponent("\(name).avd").path)
+        guard let sys = readIni(dir.appendingPathComponent("config.ini"))["image.sysdir.1"] else { return nil }
+        return sys.split(separator: "/").joined(separator: ";")
+    }
+
+    /// Traz um aparelho do Android Studio para a pasta do Duo (move, mesmo
+    /// volume: instantâneo). Leva junto o estado salvo e os apps instalados.
+    static func importFromStudio(_ name: String) -> String? {
+        let fm = FileManager.default
+        let top = readIni(SDK.studioAvdHome.appendingPathComponent("\(name).ini"))
+        let src = URL(fileURLWithPath: top["path"] ?? SDK.studioAvdHome.appendingPathComponent("\(name).avd").path)
+        let dst = SDK.avdHome.appendingPathComponent("\(name).avd")
+        guard !fm.fileExists(atPath: dst.path) else { return "já existe \(name) no Duo" }
+        do {
+            try fm.moveItem(at: src, to: dst)
+            for junk in ["hardware-qemu.ini.lock", "multiinstance.lock", "userdata-qemu.img.lock"] {
+                try? fm.removeItem(at: dst.appendingPathComponent(junk))
+            }
+            try """
+            avd.ini.encoding=UTF-8
+            path=\(dst.path)
+            path.rel=avd/\(name).avd
+            target=\(top["target"] ?? "android-33")
+
+            """.write(to: SDK.avdHome.appendingPathComponent("\(name).ini"), atomically: true, encoding: .utf8)
+            try? fm.removeItem(at: SDK.studioAvdHome.appendingPathComponent("\(name).ini"))
+            return nil
+        } catch { return error.localizedDescription }
+    }
+
+    /// Está rodando fora do Duo? (processo do emulador com -avd <nome>)
+    static func isRunning(_ name: String) -> Bool {
+        let ps = SDK.run(URL(fileURLWithPath: "/bin/ps"), ["-axo", "args="]).output
+        return ps.split(separator: "\n").contains { $0.contains("qemu-system") && $0.contains("-avd \(name) ") }
     }
 }

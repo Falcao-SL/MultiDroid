@@ -1,18 +1,83 @@
+import Darwin
 import Foundation
 
-/// Onde moram o SDK do Android e os aparelhos (AVDs).
+/// Onde moram o emulador, as imagens e os aparelhos. Tudo numa pasta do Duo
+/// (~/Library/Application Support/Duo): o Duo baixa o que precisa direto do
+/// repositório do Google e não usa Android Studio, Java, avdmanager nem adb.
+/// O emulador só exige que exista a pasta platform-tools, mesmo vazia.
 enum SDK {
-    static let root: URL = {
-        if let env = ProcessInfo.processInfo.environment["ANDROID_SDK_ROOT"] { return URL(fileURLWithPath: env) }
-        return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Android/sdk")
-    }()
+    static let home: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("Duo", isDirectory: true)
+    static let root = home.appendingPathComponent("sdk", isDirectory: true)
+    static let avdHome = home.appendingPathComponent("avd", isDirectory: true)
     static let emulator = root.appendingPathComponent("emulator/emulator")
-    static let adb = root.appendingPathComponent("platform-tools/adb")
-    static let avdmanager = root.appendingPathComponent("cmdline-tools/latest/bin/avdmanager")
-    static let avdHome = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".android/avd")
+    static let licenses = root.appendingPathComponent("licenses", isDirectory: true)
+
+    /// O SDK do Android Studio, se houver: só para importar imagens (clonefile,
+    /// sem baixar nem ocupar disco) e aparelhos antigos. O Duo não depende dele.
+    static let studioRoot = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Android/sdk")
+    static let studioAvdHome = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".android/avd")
+
     /// Onde o emulador escreve porta e token gRPC de cada instância (pid_<pid>.ini).
     static let discovery = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Caches/TemporaryItems/avd/running")
+
+    static func prepare() {
+        let fm = FileManager.default
+        for dir in [root, avdHome, licenses, root.appendingPathComponent("platform-tools")] {
+            try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+    }
+
+    /// Ambiente do emulador: aponta para as pastas do Duo e ignora as do Android Studio.
+    static var environment: [String: String] {
+        var env = ProcessInfo.processInfo.environment
+        env["ANDROID_HOME"] = nil
+        env["ANDROID_SDK_ROOT"] = root.path
+        env["ANDROID_AVD_HOME"] = avdHome.path
+        env["ANDROID_EMULATOR_HOME"] = home.path
+        return env
+    }
+
+    /// Manda um comando ao console do emulador (TCP local, com o token de
+    /// ~/.emulator_console_auth_token). É o que "adb emu" faz por baixo.
+    /// "kill" desliga salvando o estado: a próxima partida leva segundos.
+    static func console(port: Int, _ command: String) async -> Bool {
+        await Task.detached {
+            let tokenURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".emulator_console_auth_token")
+            let token = (try? String(contentsOf: tokenURL, encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let fd = socket(AF_INET, SOCK_STREAM, 0)
+            guard fd >= 0 else { return false }
+            defer { close(fd) }
+            var tv = timeval(tv_sec: 3, tv_usec: 0)
+            setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+            var addr = sockaddr_in()
+            addr.sin_family = sa_family_t(AF_INET)
+            addr.sin_port = in_port_t(UInt16(port).bigEndian)
+            addr.sin_addr.s_addr = inet_addr("127.0.0.1")
+            let ok = withUnsafePointer(to: &addr) {
+                $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { connect(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) }
+            }
+            guard ok == 0 else { return false }
+            func readUntilOK() -> String {
+                var text = "", buf = [UInt8](repeating: 0, count: 1024)
+                while !text.contains("OK\r\n") && !text.contains("KO") {
+                    let n = read(fd, &buf, buf.count)
+                    if n <= 0 { break }
+                    text += String(decoding: buf[0..<n], as: UTF8.self)
+                }
+                return text
+            }
+            func send(_ line: String) { _ = line.withCString { write(fd, $0, strlen($0)) } }
+            let banner = readUntilOK()
+            if banner.contains("Authentication required"), let token {
+                send("auth \(token)\r\n")
+                guard readUntilOK().contains("OK") else { return false }
+            }
+            send("\(command)\r\n")
+            return readUntilOK().contains("OK")
+        }.value
+    }
 
     /// Roda um comando e devolve a saída (stdout + stderr). Bloqueante: chame fora da main.
     @discardableResult

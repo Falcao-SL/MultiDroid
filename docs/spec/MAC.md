@@ -114,6 +114,47 @@ faz com os aparelhos sai daqui:
 | Sincronizar | marcar quais aparelhos repetem a entrada do aparelho em foco |
 | Limite de memória | o usuário define um teto; o painel não liga um aparelho que passaria dele |
 
+### 2.7 Independência: o Duo instala o que usa
+
+O Duo não depende de Android Studio, Java, `sdkmanager`, `avdmanager` nem `adb`.
+Tudo mora em `~/Library/Application Support/Duo/` (`sdk/`, `avd/`, `state.json`).
+
+| Antes | Agora | Como |
+|---|---|---|
+| `sdkmanager` | **Imagens** no app | lê `repository2-3.xml` e `sys-img/<tag>/sys-img2-3.xml` em dl.google.com, canal estável, arquivo `macosx`/`aarch64`; baixa, confere o SHA-1 publicado, extrai com o `ditto` do macOS e troca a pasta de uma vez |
+| licença no terminal | folha de licença no app | texto vindo do próprio XML; o aceite fica em `sdk/licenses/<id>` com o SHA-1 do texto (formato do sdkmanager): se o Google mudar o texto, o Duo pede de novo |
+| `avdmanager create` | `Catalog.create` | escreve `<nome>.ini` e `config.ini` com os campos que o avdmanager grava para cada hardware (dobradiça do Pixel 9 Pro Fold incluída); o emulador cria o disco do usuário no primeiro boot |
+| `adb emu kill` | console do emulador | TCP local na porta do console, `auth` com `~/.emulator_console_auth_token`, depois `kill`: desliga salvando o estado. Sem resposta, SIGTERM (desliga limpo, sem salvar) |
+| Android Studio instalado | opcional | se existir, **Copiar do Studio** clona a imagem com `clonefile` (instantâneo, sem disco extra) e **Trazer** move aparelhos de `~/.android/avd` |
+
+O emulador exige uma pasta `platform-tools` dentro do SDK, mas aceita vazia. O
+Duo roda com `-no-metrics` (sem coleta de uso) e aponta `ANDROID_SDK_ROOT`,
+`ANDROID_AVD_HOME` e `ANDROID_EMULATOR_HOME` para a própria pasta.
+
+Medido em 2026-10-07: aparelho escrito à mão liga em 18 s (relógio) e 22,5 s
+(dobrável) a frio; depois do `kill` pelo console, volta em 2 s pelo estado salvo,
+inclusive depois de mover a pasta do aparelho. A licença das imagens Play e
+Wear proíbe redistribuir: o Duo nunca embute imagem; cada usuário aceita e
+baixa do Google (decisão M-5).
+
+### 2.8 Mesa e grade
+
+Três arranjos, no topo da área dos aparelhos:
+
+- **Grade** (padrão): 24 colunas de células quadradas que acompanham a largura
+  da janela. Cada aparelho tem lugar e tamanho em células, salvos em
+  `state.json`. Move pelo título; redimensiona pelos quatro lados e cantos, com
+  o cursor de redimensionar do macOS. Quadro que cai sobre outro empurra o de
+  baixo; um tracejado mostra onde vai encaixar.
+- **Automática**: procura a maior escala em que todos cabem lado a lado na
+  área visível. Só sobrepõe os quadros, como cartas, quando nem na escala
+  mínima cabem; o quadro sob o mouse vem para a frente.
+- **Por grupo**: uma mesa automática por grupo.
+
+Cada quadro tem uma coluna de botões à direita: voltar, início, recentes,
+volume, girar, digitar, captura, pausar e desligar. Em quadro baixo, os extras
+vão para um menu. O painel lateral recolhe com ⌘0.
+
 ## 3. Fases
 
 ### Fase 0 — Provar e medir (1 semana)
@@ -130,8 +171,8 @@ faz com os aparelhos sai daqui:
 - Catálogo de perfis, criação de aparelhos, duplicar por `clonefile`.
 - Grade organizável (arrastar, agrupar por conta, ampliar com dois cliques),
   estados da tabela 2.3.
-- Instalador: baixa emulador e imagens do repositório do Google com
-  `sdkmanager`, mostrando a licença ao usuário.
+- Instalador próprio (2.7): baixa emulador e imagens do repositório do
+  Google, mostrando a licença ao usuário. Feito.
 - **Critério:** criar, duplicar e organizar 4 celulares + 1 relógio em menos de
   5 minutos num Mac limpo.
 
