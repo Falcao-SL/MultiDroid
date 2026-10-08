@@ -55,12 +55,16 @@ final class Device: Identifiable {
 @MainActor
 @Observable
 final class AppModel {
-    enum Layout: String, CaseIterable, Identifiable { case grade = "Grade", grupos = "Por grupo"; var id: String { rawValue } }
+    enum Layout: String, CaseIterable, Identifiable, Codable {
+        case grade = "Grade", auto = "Automática", grupos = "Por grupo"
+        var id: String { rawValue }
+    }
 
     var devices: [Device] = []
     var order: [String] = []
     var groups: [String: String] = [:]          // aparelho → grupo
-    var layout: Layout = .grade
+    var spots: [String: GridSpot] = [:]         // aparelho → lugar na grade livre
+    var layout: Layout = .grade { didSet { save() } }
     var focused: String?
     var panelHidden = false
     var ceilingGB: Double
@@ -94,15 +98,19 @@ final class AppModel {
 
     // MARK: - Estado salvo (grupos, ordem, teto)
 
-    private struct Saved: Codable { var order: [String]; var groups: [String: String]; var ceilingGB: Double }
+    private struct Saved: Codable {
+        var order: [String]; var groups: [String: String]; var ceilingGB: Double
+        var spots: [String: GridSpot]?; var layout: Layout?
+    }
 
     private func loadState() {
         guard let data = try? Data(contentsOf: stateURL), let s = try? JSONDecoder().decode(Saved.self, from: data) else { return }
         order = s.order; groups = s.groups; ceilingGB = s.ceilingGB
+        spots = s.spots ?? [:]; layout = s.layout ?? .grade
     }
 
     func save() {
-        let s = Saved(order: order, groups: groups, ceilingGB: ceilingGB)
+        let s = Saved(order: order, groups: groups, ceilingGB: ceilingGB, spots: spots, layout: layout)
         try? JSONEncoder().encode(s).write(to: stateURL)
     }
 
@@ -264,6 +272,7 @@ final class AppModel {
             let err = await Task.detached { Catalog.delete(info) }.value
             if let err { banner = "não apagou: \(err)" }
             groups[d.id] = nil
+            spots[d.id] = nil
             refresh()
         }
     }

@@ -254,19 +254,28 @@ struct GridArea: View {
                     ForEach(AppModel.Layout.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 220)
+                .frame(width: 300)
+                if model.layout == .grade && model.focused == nil {
+                    Button { withAnimation(.snappy) { model.resetSpots() } } label: {
+                        Image(systemName: "rectangle.3.group").frame(width: 14, height: 14)
+                    }
+                    .buttonStyle(BrutalIconStyle(fill: .white))
+                    .help("Reorganizar a grade")
+                }
                 if model.focused != nil {
                     Button { model.focused = nil } label: { Label("Voltar à mesa", systemImage: "square.grid.2x2") }
                         .buttonStyle(BrutalButtonStyle(fill: Duo.amarelo))
                 }
                 Spacer()
-                Text("Dois cliques amplia · arraste para reordenar").font(.system(size: 11, weight: .semibold)).opacity(0.6)
+                Text(model.layout == .grade ? "Arraste pelo título · redimensione pelo canto" : "Dois cliques amplia · arraste para reordenar").font(.system(size: 11, weight: .semibold)).opacity(0.6)
                     .lineLimit(1)
             }
             .padding(14)
             if let f = model.focused, let d = model.device(f) {
                 mesa([d])
             } else if model.layout == .grade {
+                GridBoard(list: model.ordered)
+            } else if model.layout == .auto {
                 mesa(model.ordered)
             } else {
                 groups
