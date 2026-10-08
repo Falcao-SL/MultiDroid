@@ -151,6 +151,12 @@ Três arranjos, no topo da área dos aparelhos:
   mínima cabem; o quadro sob o mouse vem para a frente.
 - **Por grupo**: uma mesa automática por grupo.
 
+Cada janela é uma **mesa**. A primeira é a principal; ⌘N abre uma mesa vazia,
+e os aparelhos criados nela ficam nela (`workspaceOf` em `state.json`).
+Arranjo, aparelho ampliado e painel recolhido são de cada janela. Fechar a
+janela não desliga os aparelhos; o menu **Mesas** reabre a mesa fechada, e
+mesa vazia fechada some.
+
 Cada quadro tem uma coluna de botões à direita: voltar, início, recentes,
 volume, girar, digitar, captura, pausar e desligar. Em quadro baixo, os extras
 vão para um menu. O painel lateral recolhe com ⌘0.

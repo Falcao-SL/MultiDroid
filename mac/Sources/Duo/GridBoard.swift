@@ -54,35 +54,41 @@ enum Grid {
 }
 
 extension AppModel {
-    /// Lugar de cada aparelho da lista; quem ainda não tem ganha o primeiro livre.
+    /// Lugar de cada aparelho da lista; quem ainda não tem ganha o primeiro
+    /// livre entre os aparelhos da mesma lista (a mesma mesa).
     func ensureSpots(for list: [Device]) {
         var changed = false
         for d in list where spots[d.id] == nil {
             let (w, h) = Grid.defaultSize(d.info.kind)
-            spots[d.id] = Grid.firstFree(w: w, h: h, among: Array(spots.values))
+            let taken = list.compactMap { spots[$0.id] }
+            spots[d.id] = Grid.firstFree(w: w, h: h, among: taken)
             changed = true
         }
         if changed { save() }
     }
 
     func commitSpots(_ next: [String: GridSpot]) {
-        spots = next
+        spots.merge(next) { $1 }
         save()
     }
 
-    /// Volta todos ao tamanho padrão, um ao lado do outro, na ordem do painel.
-    func resetSpots() {
-        var next: [String: GridSpot] = [:]
-        for d in ordered {
+    /// Volta os aparelhos da mesa ao tamanho padrão, um ao lado do outro.
+    func resetSpots(_ list: [Device]) {
+        var next = spots
+        for d in list { next[d.id] = nil }
+        var placed: [String: GridSpot] = [:]
+        for d in list {
             let (w, h) = Grid.defaultSize(d.info.kind)
-            next[d.id] = Grid.firstFree(w: w, h: h, among: Array(next.values))
+            placed[d.id] = Grid.firstFree(w: w, h: h, among: Array(placed.values))
         }
+        next.merge(placed) { $1 }
         commitSpots(next)
     }
 }
 
 struct GridBoard: View {
     @Environment(AppModel.self) private var model
+    @Environment(DuoWindow.self) private var win
     let list: [Device]
 
     /// Bordas que o gesto mexe: nenhuma = mover; uma = lado; duas = canto.
@@ -189,7 +195,9 @@ struct GridBoard: View {
                 var g = drag ?? Drag(id: d.id, edges: edges, start: start, translation: .zero)
                 g.translation = v.translation
                 drag = g
-                let next = Grid.place(d.id, at: snapped(g, cell), in: model.spots)
+                // Só os aparelhos desta mesa se empurram; os das outras janelas ficam onde estão.
+                let ids = Set(list.map(\.id))
+                let next = Grid.place(d.id, at: snapped(g, cell), in: model.spots.filter { ids.contains($0.key) })
                 if next != preview { preview = next }
             }
             .onEnded { _ in
@@ -209,7 +217,7 @@ struct GridBoard: View {
             .contentShape(Rectangle())
             .pointerStyle(.grabIdle)
             .gesture(gesture(d, edges: [], cell))
-            .onTapGesture(count: 2) { withAnimation(.snappy) { model.focused = d.id } }
+            .onTapGesture(count: 2) { withAnimation(.snappy) { win.focused = d.id } }
     }
 
     /// Espessura da faixa de redimensionar: cabe na margem do quadro, sem

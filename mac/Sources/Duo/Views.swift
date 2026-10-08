@@ -2,14 +2,14 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(AppModel.self) private var model
+    @Environment(DuoWindow.self) private var win
     @Environment(\.colorScheme) private var scheme
-    @State private var creating = false
 
     var body: some View {
         let p = DuoPalette.current(scheme)
         HStack(spacing: 0) {
-            if !model.panelHidden {
-                PanelView(creating: $creating)
+            if !win.panelHidden {
+                PanelView()
                     .frame(width: 340)
                     .transition(.move(edge: .leading))
                 Rectangle().fill(p.borda).frame(width: Duo.borda)
@@ -17,8 +17,8 @@ struct RootView: View {
             GridArea()
         }
         .background(p.fundo)
-        .sheet(isPresented: $creating) { NewDeviceSheet() }
-        .sheet(isPresented: Bindable(model).showImages) { ImagesSheet() }
+        .sheet(isPresented: Bindable(win).creating) { NewDeviceSheet().environment(win) }
+        .sheet(isPresented: Bindable(win).showImages) { ImagesSheet() }
         .overlay(alignment: .bottom) {
             if let b = model.banner {
                 Text(b)
@@ -38,8 +38,8 @@ struct RootView: View {
 
 struct PanelView: View {
     @Environment(AppModel.self) private var model
+    @Environment(DuoWindow.self) private var win
     @Environment(\.colorScheme) private var scheme
-    @Binding var creating: Bool
     @State private var selection = Set<String>()
     @State private var confirmDelete: Device?
     @State private var newGroupFor: [String]?
@@ -52,17 +52,17 @@ struct PanelView: View {
             HStack {
                 Text("Duo").font(.system(size: 26, weight: .black))
                 Spacer()
-                Button { model.showImages = true } label: { Image(systemName: "square.stack.3d.down.right").frame(width: 16, height: 16) }
+                Button { win.showImages = true } label: { Image(systemName: "square.stack.3d.down.right").frame(width: 16, height: 16) }
                     .buttonStyle(BrutalIconStyle(fill: model.images.ready ? .white : Duo.amarelo))
                     .help("Imagens e emulador")
-                Button { creating = true } label: { Label("Novo aparelho", systemImage: "plus") }
+                Button { win.creating = true } label: { Label("Novo aparelho", systemImage: "plus") }
                     .buttonStyle(BrutalButtonStyle())
             }
             MemoryCard()
             if !selection.isEmpty { batchBar }
             ScrollView {
                 VStack(spacing: 12) {
-                    ForEach(model.ordered) { d in
+                    ForEach(win.devices) { d in
                         DeviceRow(device: d, selected: selection.contains(d.id))
                             .onTapGesture {
                                 if NSEvent.modifierFlags.contains(.command) {
@@ -110,7 +110,7 @@ struct PanelView: View {
         let names = selection.contains(d.id) ? Array(selection) : [d.id]
         Button("Duplicar") { model.duplicate(d) }.disabled(d.isRunning)
         Menu("Grupo") {
-            ForEach(model.groupNames, id: \.self) { g in Button(g) { model.setGroup(g, for: names) } }
+            ForEach(win.groupNames, id: \.self) { g in Button(g) { model.setGroup(g, for: names) } }
             Divider()
             Button("Novo grupo…") { newGroupFor = names }
             Button("Sem grupo") { model.setGroup(nil, for: names) }
@@ -243,46 +243,48 @@ struct DeviceRow: View {
 
 struct GridArea: View {
     @Environment(AppModel.self) private var model
+    @Environment(DuoWindow.self) private var win
     @State private var hovered: String?
 
     var body: some View {
-        @Bindable var model = model
+        @Bindable var win = win
         VStack(spacing: 0) {
             HStack {
-                Button { withAnimation(.snappy) { model.panelHidden.toggle() } } label: {
+                Button { withAnimation(.snappy) { win.panelHidden.toggle() } } label: {
                     Image(systemName: "sidebar.left").frame(width: 14, height: 14)
                 }
                 .buttonStyle(BrutalIconStyle(fill: .white))
-                .help(model.panelHidden ? "Mostrar painel (⌘0)" : "Esconder painel (⌘0)")
-                Picker("", selection: $model.layout) {
+                .keyboardShortcut("0")
+                .help(win.panelHidden ? "Mostrar painel (⌘0)" : "Esconder painel (⌘0)")
+                Picker("", selection: $win.layout) {
                     ForEach(AppModel.Layout.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 300)
-                if model.layout == .grade && model.focused == nil {
-                    Button { withAnimation(.snappy) { model.resetSpots() } } label: {
+                if win.layout == .grade && win.focused == nil {
+                    Button { withAnimation(.snappy) { model.resetSpots(win.devices) } } label: {
                         Image(systemName: "rectangle.3.group").frame(width: 14, height: 14)
                     }
                     .buttonStyle(BrutalIconStyle(fill: .white))
                     .help("Reorganizar a grade")
                 }
-                if model.focused != nil {
-                    Button { model.focused = nil } label: { Label("Voltar à mesa", systemImage: "square.grid.2x2") }
+                if win.focused != nil {
+                    Button { win.focused = nil } label: { Label("Voltar à mesa", systemImage: "square.grid.2x2") }
                         .buttonStyle(BrutalButtonStyle(fill: Duo.amarelo))
                 }
                 Spacer()
-                Text(model.layout == .grade ? "Arraste pelo título · redimensione pelo canto" : "Dois cliques amplia · arraste para reordenar").font(.system(size: 11, weight: .semibold)).opacity(0.6)
+                Text(win.layout == .grade ? "Arraste pelo título · redimensione pelo canto" : "Dois cliques amplia · arraste para reordenar").font(.system(size: 11, weight: .semibold)).opacity(0.6)
                     .lineLimit(1)
             }
             .padding(14)
-            if model.devices.isEmpty {
+            if win.devices.isEmpty {
                 EmptyDesk()
-            } else if let f = model.focused, let d = model.device(f) {
+            } else if let f = win.focused, let d = model.device(f) {
                 mesa([d])
-            } else if model.layout == .grade {
-                GridBoard(list: model.ordered)
-            } else if model.layout == .auto {
-                mesa(model.ordered)
+            } else if win.layout == .grade {
+                GridBoard(list: win.devices)
+            } else if win.layout == .auto {
+                mesa(win.devices)
             } else {
                 groups
             }
@@ -292,8 +294,8 @@ struct GridArea: View {
     /// Por grupo: cada grupo tem a sua mesa, dividindo a altura; com muitos
     /// grupos, cada um fica com pelo menos 320 pt e a área rola.
     private var groups: some View {
-        let sections = (model.groupNames + [""]).compactMap { g -> (String, [Device])? in
-            let members = model.ordered.filter { (model.groups[$0.id] ?? "") == g }
+        let sections = (win.groupNames + [""]).compactMap { g -> (String, [Device])? in
+            let members = win.devices.filter { (model.groups[$0.id] ?? "") == g }
             return members.isEmpty ? nil : (g, members)
         }
         return GeometryReader { geo in
@@ -326,7 +328,7 @@ struct GridArea: View {
                         return true
                     }
                     .onTapGesture(count: 2) {
-                        withAnimation(.snappy) { model.focused = model.focused == d.id ? nil : d.id }
+                        withAnimation(.snappy) { win.focused = win.focused == d.id ? nil : d.id }
                     }
             }
         }
@@ -541,6 +543,7 @@ struct ScreenView: View {
 
 struct NewDeviceSheet: View {
     @Environment(AppModel.self) private var model
+    @Environment(DuoWindow.self) private var win
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var kind: DeviceKind = .celular
@@ -558,7 +561,7 @@ struct NewDeviceSheet: View {
                             Image(systemName: k.symbol).font(.system(size: 22, weight: .bold))
                             Text(k.label).font(.system(size: 12, weight: .bold))
                         }
-                        .frame(width: 90, height: 70)
+                        .frame(maxWidth: .infinity, minHeight: 64)
                     }
                     .buttonStyle(BrutalButtonStyle(fill: kind == k ? Duo.azul : Color.white))
                 }
@@ -567,21 +570,26 @@ struct NewDeviceSheet: View {
             TextField("Grupo (opcional)", text: $group).textFieldStyle(.roundedBorder)
             Text(String(format: "Android 13 · custa cerca de %.1f GB de memória ligado", kind.estimateGB))
                 .font(.system(size: 12, weight: .semibold)).opacity(0.7)
+                .fixedSize(horizontal: false, vertical: true)
             if !model.images.hasImage(for: kind) {
                 HStack {
                     Text("Falta a imagem \(kind.imageLabel).").font(.system(size: 12, weight: .bold))
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer()
-                    Button("Abrir Imagens") { dismiss(); model.showImages = true }.buttonStyle(BrutalButtonStyle(fill: Duo.amarelo))
+                    Button("Abrir Imagens") { dismiss(); win.showImages = true }.buttonStyle(BrutalButtonStyle(fill: Duo.amarelo))
                 }
             }
-            if let error { Text(error).font(.system(size: 12)).foregroundStyle(Duo.vermelho) }
+            if let error {
+                Text(error).font(.system(size: 12)).foregroundStyle(Duo.vermelho)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack {
                 Spacer()
                 Button("Cancelar") { dismiss() }.buttonStyle(BrutalButtonStyle(fill: .white))
                 Button(busy ? "Criando…" : "Criar") {
                     busy = true
                     Task {
-                        error = await model.create(name: name, kind: kind, group: group)
+                        error = await model.create(name: name, kind: kind, group: group, desk: win.desk)
                         busy = false
                         if error == nil { dismiss() }
                     }
@@ -591,7 +599,7 @@ struct NewDeviceSheet: View {
             }
         }
         .padding(24)
-        .frame(width: 460)
+        .frame(width: 500)
     }
 
     private var valid: Bool {
@@ -602,17 +610,20 @@ struct NewDeviceSheet: View {
 /// Primeiro uso: sem aparelho nenhum, mostra o caminho (imagens → aparelho).
 struct EmptyDesk: View {
     @Environment(AppModel.self) private var model
+    @Environment(DuoWindow.self) private var win
 
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: "iphone.and.arrow.forward").font(.system(size: 40, weight: .bold)).opacity(0.5)
-            Text(model.images.ready ? "Nenhum aparelho ainda" : "Comece pelas imagens").font(.system(size: 20, weight: .black))
+            Text(model.images.ready ? "Mesa vazia" : "Comece pelas imagens").font(.system(size: 20, weight: .black))
             Text(model.images.ready
-                 ? "Crie um celular, tablet, dobrável ou relógio em Novo aparelho."
+                 ? "Os aparelhos criados aqui ficam nesta janela."
                  : "O Duo baixa do Google o emulador e o Android que os aparelhos usam: de 1 a 2 GB por imagem, uma vez só.")
                 .font(.system(size: 13, weight: .medium)).opacity(0.7).multilineTextAlignment(.center).frame(maxWidth: 380)
-            if !model.images.ready {
-                Button("Abrir Imagens") { model.showImages = true }.buttonStyle(BrutalButtonStyle(fill: Duo.amarelo))
+            if model.images.ready {
+                Button { win.creating = true } label: { Label("Novo aparelho", systemImage: "plus") }.buttonStyle(BrutalButtonStyle())
+            } else {
+                Button("Abrir Imagens") { win.showImages = true }.buttonStyle(BrutalButtonStyle(fill: Duo.amarelo))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

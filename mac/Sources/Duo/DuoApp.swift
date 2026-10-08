@@ -2,22 +2,24 @@ import SwiftUI
 
 @main
 struct DuoApp: App {
-    @State private var model = AppModel()
+    @State private var model = AppModel.shared
 
     var body: some Scene {
-        WindowGroup("Duo") {
-            RootView()
+        // Cada janela é uma mesa. ⌘N abre uma mesa vazia; a principal guarda
+        // os aparelhos que já existiam.
+        WindowGroup("Duo", for: String.self) { $desk in
+            WindowRoot(desk: desk ?? AppModel.mainDesk)
                 .environment(model)
                 .frame(minWidth: 1000, minHeight: 640)
+        } defaultValue: {
+            model.newWindowID()
         }
         .defaultSize(width: 1440, height: 900)
         .commands {
             CommandGroup(after: .newItem) {
                 Button("Atualizar lista") { model.refresh() }.keyboardShortcut("r")
-                Button(model.panelHidden ? "Mostrar painel" : "Esconder painel") {
-                    withAnimation(.snappy) { model.panelHidden.toggle() }
-                }.keyboardShortcut("0")
             }
+            CommandMenu("Mesas") { DesksMenu(model: model) }
         }
     }
 }

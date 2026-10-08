@@ -55,6 +55,9 @@ final class Device: Identifiable {
 @MainActor
 @Observable
 final class AppModel {
+    static let shared = AppModel()
+    static let mainDesk = "main"
+
     enum Layout: String, CaseIterable, Identifiable, Codable {
         case grade = "Grade", auto = "Automática", grupos = "Por grupo"
         var id: String { rawValue }
@@ -64,14 +67,14 @@ final class AppModel {
     var order: [String] = []
     var groups: [String: String] = [:]          // aparelho → grupo
     var spots: [String: GridSpot] = [:]         // aparelho → lugar na grade livre
-    var layout: Layout = .grade { didSet { save() } }
-    var focused: String?
-    var panelHidden = false
+    var layouts: [String: Layout] = [:]           // mesa → arranjo
+    var workspaceOf: [String: String] = [:]       // aparelho → mesa (sem entrada = principal)
+    var workspaces: [String] = [AppModel.mainDesk] // mesas, na ordem de criação
+    var openWindows: Set<String> = []
     var ceilingGB: Double
     var availableGB = 0.0
     var swapGB = 0.0
     var banner: String?
-    var showImages = false
     let images = ImageStore()
 
     private var metricsTask: Task<Void, Never>?
@@ -116,21 +119,61 @@ final class AppModel {
         }
     }
 
+    // MARK: - Mesas (uma por janela)
+
+    func desk(of id: String) -> String { workspaceOf[id] ?? Self.mainDesk }
+    func devices(in desk: String) -> [Device] { ordered.filter { self.desk(of: $0.id) == desk } }
+
+    /// Id da janela nova: a principal, se estiver fechada; senão uma mesa vazia.
+    func newWindowID() -> String {
+        if !openWindows.contains(Self.mainDesk) { return Self.mainDesk }
+        var n = 2
+        while workspaces.contains("mesa-\(n)") { n += 1 }
+        let id = "mesa-\(n)"
+        workspaces.append(id)
+        save()
+        return id
+    }
+
+    func title(of desk: String) -> String {
+        desk == Self.mainDesk ? "Duo" : "Duo · Mesa \(desk.replacingOccurrences(of: "mesa-", with: ""))"
+    }
+
+    func windowOpened(_ desk: String) {
+        openWindows.insert(desk)
+        if !workspaces.contains(desk) { workspaces.append(desk); save() }
+    }
+
+    /// Fechar a janela não desliga os aparelhos. Mesa vazia fechada some.
+    func windowClosed(_ desk: String) {
+        openWindows.remove(desk)
+        if desk != Self.mainDesk, devices(in: desk).isEmpty {
+            workspaces.removeAll { $0 == desk }
+            layouts[desk] = nil
+            save()
+        }
+    }
+
     // MARK: - Estado salvo (grupos, ordem, teto)
 
     private struct Saved: Codable {
         var order: [String]; var groups: [String: String]; var ceilingGB: Double
         var spots: [String: GridSpot]?; var layout: Layout?
+        var layouts: [String: Layout]?; var workspaceOf: [String: String]?; var workspaces: [String]?
     }
 
     private func loadState() {
         guard let data = try? Data(contentsOf: stateURL), let s = try? JSONDecoder().decode(Saved.self, from: data) else { return }
         order = s.order; groups = s.groups; ceilingGB = s.ceilingGB
-        spots = s.spots ?? [:]; layout = s.layout ?? .grade
+        spots = s.spots ?? [:]
+        layouts = s.layouts ?? [Self.mainDesk: s.layout ?? .grade]
+        workspaceOf = s.workspaceOf ?? [:]
+        workspaces = s.workspaces ?? [Self.mainDesk]
     }
 
     func save() {
-        let s = Saved(order: order, groups: groups, ceilingGB: ceilingGB, spots: spots, layout: layout)
+        let s = Saved(order: order, groups: groups, ceilingGB: ceilingGB, spots: spots, layout: nil,
+                      layouts: layouts, workspaceOf: workspaceOf, workspaces: workspaces)
         try? JSONEncoder().encode(s).write(to: stateURL)
     }
 
@@ -184,7 +227,7 @@ final class AppModel {
 
     func start(_ d: Device) {
         guard d.state == .off else { return }
-        guard images.ready else { banner = "Baixe o emulador em Imagens antes de ligar"; showImages = true; return }
+        guard images.ready else { banner = "Baixe o emulador em Imagens antes de ligar"; return }
         let projected = projectedGB(adding: d)
         guard projected <= ceilingGB else {
             banner = String(format: "%@ não liga: os aparelhos passariam de %.0f GB (teto de %.0f GB)", d.id, projected, ceilingGB)
@@ -309,6 +352,7 @@ final class AppModel {
         let name = "\(d.id)-\(n)"
         if let err = Catalog.duplicate(d.info, as: name) { banner = "não duplicou: \(err)"; return }
         if let g = groups[d.id] { groups[name] = g }
+        if let w = workspaceOf[d.id] { workspaceOf[name] = w }
         if let i = order.firstIndex(of: d.id) { order.insert(name, at: i + 1) }
         refresh()
     }
@@ -321,13 +365,15 @@ final class AppModel {
             if let err { banner = "não apagou: \(err)" }
             groups[d.id] = nil
             spots[d.id] = nil
+            workspaceOf[d.id] = nil
             refresh()
         }
     }
 
-    func create(name: String, kind: DeviceKind, group: String?) async -> String? {
+    func create(name: String, kind: DeviceKind, group: String?, desk: String) async -> String? {
         let err = await Task.detached { Catalog.create(name: name, kind: kind) }.value
         if err == nil, let group, !group.isEmpty { groups[name] = group }
+        if err == nil, desk != Self.mainDesk { workspaceOf[name] = desk }
         refresh()
         return err
     }

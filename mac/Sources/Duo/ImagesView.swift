@@ -88,10 +88,12 @@ struct ImagesSheet: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(Images.title(path)).font(.system(size: 14, weight: .heavy))
+                    Text(Images.title(path)).font(.system(size: 14, weight: .heavy)).fixedSize(horizontal: false, vertical: true)
                     Text(Images.detail(path)).font(.system(size: 11, weight: .medium)).opacity(0.7)
                     Text(status(have: have, pkg: pkg)).font(.system(size: 11, weight: .bold).monospacedDigit()).opacity(0.85)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .layoutPriority(1)
                 Spacer()
                 if busy {
                     Button("Cancelar") { store.cancel(path) }.buttonStyle(BrutalButtonStyle(fill: .white))
