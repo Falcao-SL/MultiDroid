@@ -83,6 +83,10 @@ final class ImageStore {
     var loading = false
     var error: String?
     private var tasks: [String: Task<Void, Never>] = [:]
+    /// Ligados pelo AppModel: desligar quem usa o pacote antes da troca
+    /// (devolve quem foi desligado) e religar depois.
+    var beforeSwap: (@MainActor (String) async -> [String])?
+    var afterSwap: (@MainActor ([String]) -> Void)?
 
     init() { scan() }
 
@@ -185,6 +189,10 @@ final class ImageStore {
                 phase[path] = "conferindo"
                 let ok = await Task.detached { (try? Self.fileSHA1(zip)) == pkg.sha1 }.value
                 guard ok else { throw InstallError("o arquivo baixado não confere com o SHA-1 do Google") }
+                // O download corre com os aparelhos ligados; só a troca pede desligar.
+                phase[path] = "desligando aparelhos"
+                let paused = await beforeSwap?(path) ?? []
+                defer { scan(); afterSwap?(paused) }
                 phase[path] = "instalando"
                 try await Task.detached { try Self.unpack(zip, as: path) }.value
                 error = nil
@@ -253,26 +261,39 @@ struct InstallError: LocalizedError {
     var errorDescription: String? { message }
 }
 
-/// Download com progresso, para arquivo temporário. Cancela junto com a Task.
+/// Download com progresso, para arquivo temporário. Se a conexão cair, retoma
+/// de onde parou (resume data do URLSession, que usa Range no servidor), até
+/// 10 vezes. Cancela junto com a Task.
 final class Downloader: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
     private let onProgress: @Sendable (Double) -> Void
     private var continuation: CheckedContinuation<URL, Error>?
     private var lastReport = Date.distantPast
+    private var session: URLSession!
+    private var task: URLSessionDownloadTask?
+    private var retries = 0
+    private var cancelled = false
+    private let lock = NSLock()
 
     private init(onProgress: @escaping @Sendable (Double) -> Void) { self.onProgress = onProgress }
 
     static func fetch(_ url: URL, onProgress: @escaping @Sendable (Double) -> Void) async throws -> URL {
         let d = Downloader(onProgress: onProgress)
-        let session = URLSession(configuration: .default, delegate: d, delegateQueue: nil)
-        defer { session.finishTasksAndInvalidate() }
-        let task = session.downloadTask(with: url)
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 60
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 1
+        d.session = URLSession(configuration: config, delegate: d, delegateQueue: queue)
+        defer { d.session.finishTasksAndInvalidate() }
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { c in
-                d.continuation = c
-                task.resume()
+                d.lock.withLock {
+                    d.continuation = c
+                    d.task = d.session.downloadTask(with: url)
+                    d.task?.resume()
+                }
             }
         } onCancel: {
-            task.cancel()
+            d.lock.withLock { d.cancelled = true; d.task?.cancel() }
         }
     }
 
@@ -285,21 +306,42 @@ final class Downloader: NSObject, URLSessionDownloadDelegate, @unchecked Sendabl
     func urlSession(_ s: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         // O arquivo some quando este método volta: move para a pasta do Duo.
         let keep = SDK.home.appendingPathComponent("download-\(UUID().uuidString).zip")
+        let result: Result<URL, Error>
         do {
-            if let http = downloadTask.response as? HTTPURLResponse, http.statusCode != 200 {
+            if let http = downloadTask.response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
                 throw InstallError("o Google respondeu \(http.statusCode)")
             }
             try FileManager.default.moveItem(at: location, to: keep)
-            continuation?.resume(returning: keep)
+            result = .success(keep)
         } catch {
-            continuation?.resume(throwing: error)
+            result = .failure(error)
         }
-        continuation = nil
+        lock.withLock {
+            continuation?.resume(with: result)
+            continuation = nil
+        }
     }
 
     func urlSession(_ s: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        guard let error, let c = continuation else { return }
+        guard let error else { return }
+        lock.lock()
+        defer { lock.unlock() }
+        guard let c = continuation else { return }
+        if cancelled { continuation = nil; c.resume(throwing: CancellationError()); return }
+        let resume = (error as NSError).userInfo[NSURLSessionDownloadTaskResumeData] as? Data
+        if let resume, retries < 10 {
+            retries += 1
+            let delay = Double(min(retries, 5))
+            DispatchQueue.global().asyncAfter(deadline: .now() + delay) { [self] in
+                lock.withLock {
+                    guard !cancelled, continuation != nil else { return }
+                    self.task = session.downloadTask(withResumeData: resume)
+                    self.task?.resume()
+                }
+            }
+            return
+        }
         continuation = nil
-        if (error as? URLError)?.code == .cancelled { c.resume(throwing: CancellationError()) } else { c.resume(throwing: error) }
+        c.resume(throwing: error)
     }
 }

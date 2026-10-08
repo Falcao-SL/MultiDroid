@@ -10,10 +10,24 @@ struct ImagesSheet: View {
     @State private var license: (path: String, pkg: RemotePackage)?
     @State private var studioDevices: [String] = []
     @State private var importError: String?
+    @State private var confirm: (path: String, pkg: RemotePackage, names: [String])?
 
     var body: some View {
+        if let l = license {
+            // Licença na própria folha: folha sobre folha falha no macOS.
+            LicenseSheet(title: Images.title(l.path), text: l.pkg.licenseText) {
+                model.images.accept(l.pkg)
+                license = nil
+                start(l.path, l.pkg)
+            } onDecline: { license = nil }
+        } else {
+            list
+        }
+    }
+
+    private var list: some View {
         let store = model.images
-        VStack(alignment: .leading, spacing: 16) {
+        return VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Imagens").font(.system(size: 22, weight: .black))
                 Spacer()
@@ -54,12 +68,14 @@ struct ImagesSheet: View {
             studioDevices = Catalog.studioDevices()
             if store.remote.isEmpty { await store.refresh() }
         }
-        .sheet(item: Binding(get: { license.map { LicenseItem(path: $0.path, pkg: $0.pkg) } }, set: { if $0 == nil { license = nil } })) { item in
-            LicenseSheet(title: Images.title(item.path), text: item.pkg.licenseText) {
-                store.accept(item.pkg)
-                store.install(item.path)
-                license = nil
-            } onDecline: { license = nil }
+        .alert("Desligar para atualizar?", isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } })) {
+            Button("Cancelar", role: .cancel) { confirm = nil }
+            Button("Atualizar") {
+                if let c = confirm { model.images.install(c.path) }
+                confirm = nil
+            }
+        } message: {
+            Text("O download corre com tudo ligado. Na hora de trocar, o Duo desliga \(confirm?.names.joined(separator: ", ") ?? "") com o estado salvo e liga de novo ao terminar.")
         }
     }
 
@@ -69,7 +85,6 @@ struct ImagesSheet: View {
         let pkg = store.remote[path]
         let busy = store.progress[path] != nil
         let inUse = model.devices.contains { $0.info.kind.image == path } || (path == Images.emulator && !model.devices.isEmpty)
-        let running = model.devices.contains(where: \.isRunning)
         return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
@@ -89,8 +104,6 @@ struct ImagesSheet: View {
                     if let pkg, have == nil || newer(pkg.revision, than: have!) {
                         Button(have == nil ? "Baixar" : "Atualizar") { download(path, pkg) }
                             .buttonStyle(BrutalButtonStyle(fill: Duo.verde))
-                            .disabled(path == Images.emulator && running)
-                            .help(path == Images.emulator && running ? "Desligue os aparelhos para trocar o emulador" : "")
                     }
                     if have != nil {
                         Button { store.remove(path) } label: { Image(systemName: "trash").frame(width: 14, height: 14) }
@@ -152,7 +165,13 @@ struct ImagesSheet: View {
     }
 
     private func download(_ path: String, _ pkg: RemotePackage) {
-        if model.images.accepted(pkg) { model.images.install(path) } else { license = (path, pkg) }
+        if model.images.accepted(pkg) { start(path, pkg) } else { license = (path, pkg) }
+    }
+
+    /// Se há aparelhos usando o pacote, avisa antes que eles vão ser desligados.
+    private func start(_ path: String, _ pkg: RemotePackage) {
+        let names = model.users(of: path).map(\.id)
+        if names.isEmpty { model.images.install(path) } else { confirm = (path, pkg, names) }
     }
 
     private func diskUse() -> String {
@@ -165,12 +184,6 @@ struct ImagesSheet: View {
         }
         return String(format: "%.1f GB na pasta", Double(total) / 1e9)
     }
-}
-
-private struct LicenseItem: Identifiable {
-    let path: String
-    let pkg: RemotePackage
-    var id: String { path }
 }
 
 struct LicenseSheet: View {
@@ -189,7 +202,7 @@ struct LicenseSheet: View {
                 Text(text).font(.system(size: 11)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                     .padding(10)
             }
-            .frame(height: 340)
+            .frame(height: 300)
             .brutal(fill: Color(nsColor: .textBackgroundColor))
             HStack {
                 Spacer()

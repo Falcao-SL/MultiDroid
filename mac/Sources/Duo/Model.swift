@@ -85,6 +85,7 @@ final class AppModel {
         ceilingGB = (Metrics.physicalGB * 0.75).rounded()
         SDK.prepare()
         migrateFromStudio()
+        wireImageSwap()
         loadState()
         refresh()
         // --start A,B: liga aparelhos ao abrir (testes e atalhos).
@@ -258,23 +259,46 @@ final class AppModel {
     }
 
     func stop(_ d: Device) {
-        guard d.isRunning, let console = d.consolePort else { return }
+        Task { await stopAndWait(d) }
+    }
+
+    func stopAndWait(_ d: Device) async {
+        guard d.isRunning, d.state != .stopping, let console = d.consolePort else { return }
         d.state = .stopping
         d.screen?.stop()
         let pid = d.pid
-        Task {
-            // "kill" pelo console salva o estado: a próxima partida leva segundos.
-            // Se o console não responder, SIGTERM (desliga limpo, sem salvar).
-            let asked = await SDK.console(port: console, "kill")
-            if !asked, let pid { kill(pid, SIGTERM) }
-            for i in 0..<60 {
-                if let pid, kill(pid, 0) != 0 { break }
-                if i == 40, let pid { kill(pid, SIGTERM) }
-                try? await Task.sleep(for: .milliseconds(500))
-            }
-            d.link?.close()
-            d.link = nil; d.screen = nil; d.pid = nil; d.consolePort = nil
-            d.footprintGB = 0; d.cpu = 0; d.state = .off; d.message = nil
+        // "kill" pelo console salva o estado: a próxima partida leva segundos.
+        // Se o console não responder, SIGTERM (desliga limpo, sem salvar).
+        let asked = await SDK.console(port: console, "kill")
+        if !asked, let pid { kill(pid, SIGTERM) }
+        for i in 0..<60 {
+            if let pid, kill(pid, 0) != 0 { break }
+            if i == 40, let pid { kill(pid, SIGTERM) }
+            try? await Task.sleep(for: .milliseconds(500))
+        }
+        d.link?.close()
+        d.link = nil; d.screen = nil; d.pid = nil; d.consolePort = nil
+        d.footprintGB = 0; d.cpu = 0; d.state = .off; d.message = nil
+    }
+
+    /// Aparelhos que usam um pacote: todos, para o emulador; os do tipo, para uma imagem.
+    func users(of path: String) -> [Device] {
+        devices.filter { $0.isRunning && (path == Images.emulator || $0.info.kind.image == path) }
+    }
+
+    /// Antes de trocar um pacote em uso: desliga quem o usa (estado salvo).
+    /// Depois: liga de novo os mesmos aparelhos.
+    private func wireImageSwap() {
+        images.beforeSwap = { [weak self] path in
+            guard let self else { return [] }
+            let list = users(of: path)
+            for d in list { d.message = "atualizando…" }
+            await withTaskGroup(of: Void.self) { g in for d in list { g.addTask { await self.stopAndWait(d) } } }
+            return list.map(\.id)
+        }
+        images.afterSwap = { [weak self] names in
+            guard let self else { return }
+            for n in names { if let d = device(n) { start(d) } }
         }
     }
 
