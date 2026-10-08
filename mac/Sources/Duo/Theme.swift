@@ -79,3 +79,18 @@ struct BrutalButtonStyle: ButtonStyle {
             .animation(.linear(duration: 0.07), value: configuration.isPressed)
     }
 }
+
+/// Botão quadrado só com ícone, para a coluna de botões do aparelho.
+struct BrutalIconStyle: ButtonStyle {
+    var fill: Color = .white
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(Duo.tintaSobreAcento)
+            .padding(6)
+            .brutal(fill: fill, shadow: !configuration.isPressed)
+            .offset(x: configuration.isPressed ? 2 : 0, y: configuration.isPressed ? 2 : 0)
+            .animation(.linear(duration: 0.07), value: configuration.isPressed)
+    }
+}

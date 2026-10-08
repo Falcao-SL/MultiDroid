@@ -8,9 +8,12 @@ struct RootView: View {
     var body: some View {
         let p = DuoPalette.current(scheme)
         HStack(spacing: 0) {
-            PanelView(creating: $creating)
-                .frame(width: 340)
-            Rectangle().fill(p.borda).frame(width: Duo.borda)
+            if !model.panelHidden {
+                PanelView(creating: $creating)
+                    .frame(width: 340)
+                    .transition(.move(edge: .leading))
+                Rectangle().fill(p.borda).frame(width: Duo.borda)
+            }
             GridArea()
         }
         .background(p.fundo)
@@ -236,59 +239,83 @@ struct DeviceRow: View {
 
 struct GridArea: View {
     @Environment(AppModel.self) private var model
+    @State private var hovered: String?
 
     var body: some View {
         @Bindable var model = model
         VStack(spacing: 0) {
             HStack {
+                Button { withAnimation(.snappy) { model.panelHidden.toggle() } } label: {
+                    Image(systemName: "sidebar.left").frame(width: 14, height: 14)
+                }
+                .buttonStyle(BrutalIconStyle(fill: .white))
+                .help(model.panelHidden ? "Mostrar painel (⌘0)" : "Esconder painel (⌘0)")
                 Picker("", selection: $model.layout) {
                     ForEach(AppModel.Layout.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 220)
                 if model.focused != nil {
-                    Button { model.focused = nil } label: { Label("Voltar à grade", systemImage: "square.grid.2x2") }
+                    Button { model.focused = nil } label: { Label("Voltar à mesa", systemImage: "square.grid.2x2") }
                         .buttonStyle(BrutalButtonStyle(fill: Duo.amarelo))
                 }
                 Spacer()
                 Text("Dois cliques amplia · arraste para reordenar").font(.system(size: 11, weight: .semibold)).opacity(0.6)
+                    .lineLimit(1)
             }
             .padding(14)
+            if let f = model.focused, let d = model.device(f) {
+                mesa([d])
+            } else if model.layout == .grade {
+                mesa(model.ordered)
+            } else {
+                groups
+            }
+        }
+    }
+
+    /// Por grupo: cada grupo tem a sua mesa, dividindo a altura; com muitos
+    /// grupos, cada um fica com pelo menos 320 pt e a área rola.
+    private var groups: some View {
+        let sections = (model.groupNames + [""]).compactMap { g -> (String, [Device])? in
+            let members = model.ordered.filter { (model.groups[$0.id] ?? "") == g }
+            return members.isEmpty ? nil : (g, members)
+        }
+        return GeometryReader { geo in
             ScrollView {
-                if let f = model.focused, let d = model.device(f) {
-                    DeviceTile(device: d, large: true).padding(20)
-                } else if model.layout == .grade {
-                    tiles(model.ordered)
-                } else {
-                    VStack(alignment: .leading, spacing: 22) {
-                        ForEach(model.groupNames + [""], id: \.self) { g in
-                            let members = model.ordered.filter { (model.groups[$0.id] ?? "") == g }
-                            if !members.isEmpty {
-                                Text(g.isEmpty ? "SEM GRUPO" : g.uppercased()).font(.system(size: 13, weight: .black)).kerning(1)
-                                    .padding(.horizontal, 20)
-                                tiles(members)
-                            }
-                        }
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(sections, id: \.0) { g, members in
+                        Text(g.isEmpty ? "SEM GRUPO" : g.uppercased()).font(.system(size: 13, weight: .black)).kerning(1)
+                            .padding(.horizontal, 20)
+                        mesa(members)
+                            .frame(height: max(320, geo.size.height / CGFloat(sections.count) - 24))
                     }
                 }
             }
         }
     }
 
-    private func tiles(_ list: [Device]) -> some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 230, maximum: 560), spacing: 22, alignment: .top)], spacing: 22) {
+    private func mesa(_ list: [Device]) -> some View {
+        MesaLayout {
             ForEach(list) { d in
-                DeviceTile(device: d, large: false)
+                DeviceTile(device: d)
+                    .tile(base: d.tileBase, toolbar: d.state == .on || d.state == .paused)
+                    .zIndex(hovered == d.id ? 1 : 0)
+                    .onHover { inside in
+                        if inside { hovered = d.id } else if hovered == d.id { hovered = nil }
+                    }
                     .draggable(d.id)
                     .dropDestination(for: String.self) { items, _ in
                         guard let name = items.first else { return false }
                         withAnimation { model.move(name, before: d.id) }
                         return true
                     }
-                    .onTapGesture(count: 2) { model.focused = d.id }
+                    .onTapGesture(count: 2) {
+                        withAnimation(.snappy) { model.focused = model.focused == d.id ? nil : d.id }
+                    }
             }
         }
-        .padding(20)
+        .animation(.snappy, value: list.map(\.id))
     }
 }
 
@@ -296,45 +323,51 @@ struct DeviceTile: View {
     @Environment(AppModel.self) private var model
     @Environment(\.colorScheme) private var scheme
     let device: Device
-    let large: Bool
 
     var body: some View {
         let d = device
         let p = DuoPalette.current(scheme)
         let (fw, fh) = d.frameSize
+        let round = d.info.kind == .relogio
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: d.info.kind.symbol).font(.system(size: 12, weight: .bold))
                 Text(d.id).font(.system(size: 13, weight: .heavy)).lineLimit(1)
-                Spacer()
+                Spacer(minLength: 4)
                 if d.state == .on, let s = d.screen { Text(String(format: "%.0f fps", s.fps)).font(.system(size: 10, weight: .bold).monospacedDigit()).opacity(0.6) }
                 StatusDot(state: d.state)
             }
-            ZStack {
-                RoundedRectangle(cornerRadius: d.info.kind == .relogio ? 999 : 14).fill(Color.black)
-                if let img = d.screen?.image, d.state == .on || d.state == .paused {
-                    ScreenView(device: d, image: img)
-                        .clipShape(RoundedRectangle(cornerRadius: d.info.kind == .relogio ? 999 : 12))
-                        .opacity(d.state == .paused ? 0.45 : 1)
-                } else {
-                    VStack(spacing: 10) {
-                        Text(placeholder(d)).font(.system(size: 12, weight: .bold)).foregroundStyle(.white.opacity(0.75))
-                            .multilineTextAlignment(.center)
-                        if d.state == .off {
-                            Button("Ligar") { model.start(d) }.buttonStyle(BrutalButtonStyle(fill: Duo.verde))
+            .frame(height: 20)
+            HStack(alignment: .top, spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: round ? 999 : 14).fill(Color.black)
+                    if let img = d.screen?.image, d.state == .on || d.state == .paused {
+                        ScreenView(device: d, image: img)
+                            .clipShape(RoundedRectangle(cornerRadius: round ? 999 : 12))
+                            .opacity(d.state == .paused ? 0.45 : 1)
+                    } else {
+                        VStack(spacing: 10) {
+                            Text(placeholder(d)).font(.system(size: 12, weight: .bold)).foregroundStyle(.white.opacity(0.75))
+                                .multilineTextAlignment(.center)
+                            if d.state == .off {
+                                Button("Ligar") { model.start(d) }.buttonStyle(BrutalButtonStyle(fill: Duo.verde))
+                            }
                         }
+                        .padding()
                     }
-                    .padding()
+                    if d.state == .paused {
+                        Button("Retomar") { model.resume(d) }.buttonStyle(BrutalButtonStyle(fill: Duo.verde))
+                    }
                 }
-                if d.state == .paused {
-                    Button("Retomar") { model.resume(d) }.buttonStyle(BrutalButtonStyle(fill: Duo.verde))
+                .aspectRatio(CGFloat(fw) / CGFloat(fh), contentMode: .fit)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                if d.state == .on || d.state == .paused {
+                    DeviceToolbar(device: d).frame(width: MesaLayout.toolbarWidth)
                 }
             }
-            .aspectRatio(CGFloat(fw) / CGFloat(fh), contentMode: .fit)
-            .frame(maxWidth: large ? min(860 * CGFloat(fw) / CGFloat(fh), 1200) : .infinity)
         }
-        .padding(10)
-        .fixedSize(horizontal: false, vertical: true)  // a grade não estica o quadro na altura
+        .padding(MesaLayout.pad)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .brutal()
         .foregroundStyle(p.tinta)
     }
@@ -347,6 +380,115 @@ struct DeviceTile: View {
         case .external: "Aberto fora do Duo.\nDesligue e ligue por aqui para ver a tela."
         default: ""
         }
+    }
+}
+
+/// Os botões do aparelho, numa coluna à direita da tela. Cabendo, mostra todos;
+/// em quadro baixo, os extras vão para o menu "⋯".
+struct DeviceToolbar: View {
+    @Environment(AppModel.self) private var model
+    let device: Device
+    @State private var typing = false
+    @State private var text = ""
+
+    var body: some View {
+        ViewThatFits(in: .vertical) {
+            VStack(spacing: 6) {
+                nav
+                Spacer(minLength: 4).frame(maxHeight: 10)
+                tool("speaker.plus", "Volume +") { await $0.key("AudioVolumeUp") }
+                tool("speaker.minus", "Volume −") { await $0.key("AudioVolumeDown") }
+                if device.info.kind != .relogio { tool("rotate.right", "Girar") { await rotate($0) } }
+                tool("keyboard", "Digitar") { _ in await MainActor.run { typing = true } }
+                tool("camera", "Captura de tela") { await capture($0) }
+                Spacer(minLength: 4).frame(maxHeight: 10)
+                power
+            }
+            VStack(spacing: 6) {
+                nav
+                Menu {
+                    Button("Volume +", systemImage: "speaker.plus") { run { await $0.key("AudioVolumeUp") } }
+                    Button("Volume −", systemImage: "speaker.minus") { run { await $0.key("AudioVolumeDown") } }
+                    if device.info.kind != .relogio { Button("Girar", systemImage: "rotate.right") { run { await rotate($0) } } }
+                    Button("Digitar…", systemImage: "keyboard") { typing = true }
+                    Button("Captura de tela", systemImage: "camera") { run { await capture($0) } }
+                } label: {
+                    Image(systemName: "ellipsis").font(.system(size: 12, weight: .bold)).frame(width: 14, height: 14)
+                }
+                .menuIndicator(.hidden)
+                .buttonStyle(BrutalIconStyle(fill: .white))
+                .disabled(device.state != .on)
+                .help("Mais")
+                power
+            }
+        }
+        .popover(isPresented: $typing, arrowEdge: .trailing) {
+            HStack {
+                TextField("Texto para o aparelho", text: $text).frame(width: 240)
+                    .onSubmit { send() }
+                Button("Enviar") { send() }.buttonStyle(BrutalButtonStyle())
+            }
+            .padding(12)
+        }
+    }
+
+    private var nav: some View {
+        VStack(spacing: 6) {
+            tool("chevron.backward", "Voltar") { await $0.key("GoBack") }
+            tool("circle", "Início") { await $0.key("GoHome") }
+            tool("square.on.square", "Apps recentes") { await $0.key("AppSwitch") }
+        }
+    }
+
+    @ViewBuilder private var power: some View {
+        let d = device
+        if d.state == .on {
+            Button { model.pause(d) } label: { Image(systemName: "pause.fill").frame(width: 14, height: 14) }
+                .buttonStyle(BrutalIconStyle(fill: Duo.azul)).help("Pausar")
+        } else {
+            Button { model.resume(d) } label: { Image(systemName: "play.fill").frame(width: 14, height: 14) }
+                .buttonStyle(BrutalIconStyle(fill: Duo.verde)).help("Retomar")
+        }
+        Button { model.stop(d) } label: { Image(systemName: "stop.fill").frame(width: 14, height: 14) }
+            .buttonStyle(BrutalIconStyle(fill: Duo.vermelho)).help("Desligar")
+    }
+
+    private func rotate(_ link: EmulatorLink) async {
+        let d = device
+        let landscape = await MainActor.run { d.landscape.toggle(); return d.landscape }
+        await link.rotate(z: landscape ? -90 : 0)
+    }
+
+    private func capture(_ link: EmulatorLink) async {
+        guard let png = await link.screenshotPNG() else { return }
+        let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Pictures/Duo")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+        try? png.write(to: dir.appendingPathComponent("\(device.id)-\(stamp).png"))
+        await MainActor.run { model.banner = "Captura salva em Imagens/Duo" }
+    }
+
+    private func run(_ action: @escaping @Sendable (EmulatorLink) async -> Void) {
+        guard let link = device.link else { return }
+        Task { await action(link) }
+    }
+
+    private func send() {
+        guard let link = device.link, !text.isEmpty else { return }
+        let t = text
+        text = ""
+        Task { await link.type(t) }
+    }
+
+    private func tool(_ symbol: String, _ help: String, _ action: @escaping @Sendable (EmulatorLink) async -> Void) -> some View {
+        Button {
+            run(action)
+        } label: {
+            Image(systemName: symbol).font(.system(size: 12, weight: .bold)).frame(width: 14, height: 14)
+        }
+        .buttonStyle(BrutalIconStyle(fill: .white))
+        .help(help)
+        .disabled(device.state != .on)
     }
 }
 

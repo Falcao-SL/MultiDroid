@@ -21,6 +21,7 @@ final class Device: Identifiable {
     var footprintGB = 0.0
     var cpu = 0.0
     var message: String?
+    var landscape = false
     fileprivate var lastCPU: (nanos: UInt64, at: Date)?
 
     nonisolated let id: String
@@ -42,6 +43,12 @@ final class Device: Identifiable {
         let fw = base * 2
         return (fw, max(1, fw * h / w))
     }
+
+    /// Tamanho-base do quadro na mesa, em pontos.
+    var tileBase: CGSize {
+        let (w, h) = frameSize
+        return CGSize(width: CGFloat(w) / 2, height: CGFloat(h) / 2)
+    }
 }
 
 /// Estado do app: aparelhos, grupos, ordem da grade, teto de memória.
@@ -55,6 +62,7 @@ final class AppModel {
     var groups: [String: String] = [:]          // aparelho → grupo
     var layout: Layout = .grade
     var focused: String?
+    var panelHidden = false
     var ceilingGB: Double
     var availableGB = 0.0
     var swapGB = 0.0

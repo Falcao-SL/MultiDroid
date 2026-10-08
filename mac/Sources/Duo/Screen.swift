@@ -42,6 +42,41 @@ final class EmulatorLink: Sendable {
         _ = try? await api.setVmState(s, metadata: metadata)
     }
 
+    /// Tecla do Android pelo nome W3C: GoBack, GoHome, AppSwitch, Power,
+    /// AudioVolumeUp, AudioVolumeDown.
+    func key(_ name: String) async {
+        var k = Android_Emulation_Control_KeyboardEvent()
+        k.eventType = .keypress
+        k.key = name
+        _ = try? await api.sendKey(k, metadata: metadata)
+    }
+
+    /// Texto digitado no Mac vai para o campo em foco no Android.
+    func type(_ text: String) async {
+        var k = Android_Emulation_Control_KeyboardEvent()
+        k.text = text
+        _ = try? await api.sendKey(k, metadata: metadata)
+    }
+
+    /// Gira o aparelho (rotação em torno de z, em graus: 0 retrato, -90 paisagem).
+    func rotate(z: Float) async {
+        var m = Android_Emulation_Control_PhysicalModelValue()
+        m.target = .rotation
+        var p = Android_Emulation_Control_ParameterValue()
+        p.data = [0, 0, z]
+        m.value = p
+        _ = try? await api.setPhysicalModel(m, metadata: metadata)
+    }
+
+    /// Captura em resolução cheia, em PNG.
+    func screenshotPNG() async -> Data? {
+        var f = Android_Emulation_Control_ImageFormat()
+        f.format = .png
+        var opts = CallOptions.defaults
+        opts.maxResponseMessageBytes = 64 << 20  // PNG de tela cheia passa dos 4 MB padrão
+        return try? await api.getScreenshot(f, metadata: metadata, options: opts).image
+    }
+
     /// Toque em coordenadas do aparelho; pressão 0 = dedo levantado.
     func touch(x: Int, y: Int, down: Bool) async {
         var t = Android_Emulation_Control_Touch()

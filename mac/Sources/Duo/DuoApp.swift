@@ -14,6 +14,9 @@ struct DuoApp: App {
         .commands {
             CommandGroup(after: .newItem) {
                 Button("Atualizar lista") { model.refresh() }.keyboardShortcut("r")
+                Button(model.panelHidden ? "Mostrar painel" : "Esconder painel") {
+                    withAnimation(.snappy) { model.panelHidden.toggle() }
+                }.keyboardShortcut("0")
             }
         }
     }
