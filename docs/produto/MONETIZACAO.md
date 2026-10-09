@@ -1,53 +1,40 @@
 # Monetização — Duo
 
-**Modelo: a decidir pelo usuário.** Este documento propõe opções; nenhuma
-está implementada. Na spec, o limite de contas é um parâmetro
-(`dados/aparencia.json → limites`) **sem paywall** nesta fase: `contasGratis`
-= `null` (sem limite de plano), `maxContas` = 50 (teto técnico para todos).
+**Modelo: a decidir pelo dono.** Este documento lista opções; nenhuma está
+implementada. O Duo para Mac hoje não tem compra, assinatura, licença nem
+anúncio.
 
-> Enquanto esta decisão não for tomada, o app não tem compra, assinatura nem
-> anúncio, e a ficha das lojas declara "sem compras no app". Mudar isso é
-> reescrever este arquivo primeiro, com data, e só depois mexer no código.
+> Mudar isso é reescrever este arquivo primeiro, com data, e só depois mexer
+> no código.
 
-## O que o Duo já garante, em qualquer modelo
+## O que vale em qualquer modelo
 
-- Sem anúncios e sem SDK de anúncio (o app não coleta nada; anúncio traria
-  rastreador e quebraria "nenhum dado coletado").
-- Sem servidor: o custo de operação é ~zero, então não há conta recorrente a
-  cobrir.
+- Sem anúncios e sem SDK de anúncio ou analytics (o app não coleta nada).
+- Sem servidor de operação: o custo recorrente é ~zero.
+- Fora da Mac App Store (decisão M-6): não há compra pela loja da Apple;
+  qualquer cobrança precisa de um meio próprio.
+- **Antes de vender**: revisar com advogado a licença das imagens do Google
+  (MAC.md §5). Cobrar pelo Duo não pode significar cobrar pelas imagens, que
+  o usuário sempre baixa do Google.
 
-## Opções propostas
+## Opções
 
 | Modelo | Como | Prós | Contras |
 |--------|------|------|---------|
-| **A. Grátis total** | tudo liberado; `contasGratis = null` | máxima adoção; ficha "sem compras"; reforça a marca Falcao | nenhuma receita |
-| **B. Grátis + assinatura** (recomendada para avaliar) | N contas grátis (ex.: 3); ilimitado (até o teto técnico) e extras (bloqueio por conta, temas) na assinatura | receita recorrente; converte quem usa muitas contas — justamente o público | precisa de billing das lojas; a Apple/Google ficam com a comissão |
-| **C. Compra única** | N contas grátis; desbloqueio vitalício por compra única | simples; sem assinatura a manter | receita não recorre; billing mesmo assim |
-| **D. Fase 2 (motor nativo) como diferencial pago** | motor web grátis; motor nativo (Android, build `completo`) pago fora da Play | monetiza o recurso caro de manter | complexidade; cobrança fora da loja tem atrito |
+| **A. Grátis** | tudo liberado | máxima adoção; nenhum meio de pagamento a manter | nenhuma receita |
+| **B. Grátis + versão paga** | limite de aparelhos ou recursos no grátis (ex.: sincronizar entrada, fase 2) liberados por licença | converte quem usa muitos aparelhos, o público principal | precisa de licença e meio de pagamento fora da loja |
+| **C. Compra única** | uma licença vitalícia por versão maior | simples; comum em apps de Mac fora da loja | receita não recorre |
+| **D. Assinatura** | recursos pagos enquanto assina | receita recorrente | atrito; precisa de verificação de licença |
+
+Valores, limites e meio de pagamento: **a decidir**.
 
 ## Como implementar quando decidir (esqueleto)
 
-- `contasGratis` deixa de ser `null` e vira o número do plano grátis.
-- `podeAdicionar` (FUNCIONALIDADES §5.4, vetores `contas.json`) já devolve o
-  motivo `plano` nesse caso; a tela de plano é especificada junto com a
-  decisão.
-- Contas já criadas acima do limite **nunca** são bloqueadas nem apagadas
-  (regra fixa da spec).
-- Billing: Google Play Billing / StoreKit 2; nenhum SDK de terceiros.
-
-## Consequência para as lojas (por modelo)
-
-| Loja | Campo | Modelo A | Modelos B/C/D |
-|------|-------|----------|----------------|
-| Google Play | Contém compras no app | Não | Sim |
-| Google Play | Contém anúncios | Não | Não |
-| Google Play | Segurança dos dados | Nenhum dado coletado | Nenhum dado coletado |
-| App Store | In-App Purchases | Nenhum | Sim (StoreKit) |
-| App Store | App Privacy | Data Not Collected | Data Not Collected |
+- Ponto único no código que decide o que está liberado (hoje não existe).
+- Aparelhos já criados nunca são apagados por mudança de plano.
+- Verificação de licença sem enviar dados de uso.
 
 ## Recomendação
 
-Lançar a **fase 1 no modelo A ou B**. O modelo B alinha com o objetivo de
-portfólio que gera renda, e o público de "muitas contas" é o que converte;
-mas exige billing. Se a prioridade for adoção e reputação primeiro, começar
-no A e reavaliar. **Decisão é do usuário (U-1).**
+Nenhuma ainda. A decisão depende da revisão jurídica da licença das imagens
+e do público que a fase 1 atrair. **Decisão é do dono.**

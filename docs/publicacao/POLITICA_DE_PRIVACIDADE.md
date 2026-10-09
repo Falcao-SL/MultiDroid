@@ -2,84 +2,74 @@
 
 **Vigente a partir de:** [data da primeira publicação]
 
-O Duo permite usar várias contas do mesmo serviço num só aparelho, cada uma
-isolada. Ele foi construído para não precisar dos seus dados — e não precisa.
+O Duo é um app de Mac que roda vários aparelhos Android lado a lado, sobre o
+Android Emulator oficial. Ele foi construído para não precisar dos seus
+dados — e não precisa.
 
 ## Resumo
 
 - **Não coletamos nenhum dado pessoal.**
 - **Não temos cadastro, login nem conta de usuário do Duo.**
-- **Nada que você faz nas suas contas sai do seu aparelho por causa do Duo.**
 - **Não usamos rastreadores, analytics nem SDK de terceiros.**
 - **O Duo não tem servidor.**
+- A única rede que o Duo usa por conta própria são os **downloads do
+  Google** que você pede (emulador e imagens de sistema).
 
-## Como o Duo funciona
+## O que o Duo baixa
 
-Cada conta que você adiciona é um **contêiner isolado** dentro do próprio
-aparelho:
+Quando você instala ou atualiza o emulador ou uma imagem, o Duo lê o
+catálogo público do Google e baixa os arquivos de
+`https://dl.google.com/android/repository/`. É uma requisição comum ao
+servidor do Google, sem dado seu além do que qualquer download envia (como o
+endereço IP). O Duo confere o SHA-1 publicado pelo Google antes de instalar.
+O uso do repositório e das imagens segue os termos do Google, que o Duo
+mostra para você aceitar antes do download.
 
-- **Motor web**: um perfil de navegador separado (no iOS, `WKWebsiteDataStore`
-  por conta; no Android, um perfil do WebView por conta) que abre a versão web
-  do serviço. Cookies, login, armazenamento e cache de cada conta ficam
-  guardados só no seu aparelho e separados dos das outras contas.
-- **Motor nativo** (somente Android, quando disponível): uma cópia do app que
-  você já instalou, rodando isolada, com dados guardados só no seu aparelho,
-  numa pasta separada por cópia.
+## Dados que ficam no seu Mac
 
-## Dados que o app processa (tudo local)
+| O quê | Onde |
+|-------|------|
+| Emulador, imagens e aceites de licença | `~/Library/Application Support/Duo/sdk/` |
+| Seus aparelhos Android (contas, apps, fotos dentro deles) | `~/Library/Application Support/Duo/avd/` |
+| Preferências do Duo (ordem, grupos, mesas, posições, teto de memória) | `~/Library/Application Support/Duo/state.json` |
+| Capturas de tela que você tira | `~/Pictures/Duo/` |
 
-- **Sua lista de contas e preferências** (apelido, cor, ordem, tema, opções
-  de bloqueio) ficam num armazenamento local no aparelho.
-- **Os dados das suas sessões** (cookies, login, cache) ficam no contêiner de
-  cada conta, no aparelho. Quando você entra numa conta, você entra **no
-  site/app do serviço**, direto do seu aparelho para o serviço — o Duo não
-  fica no meio, não lê o que você digita e não guarda suas senhas.
-- Você pode apagar os dados de uma conta (`Limpar dados`), excluir a conta ou
-  desinstalar o app a qualquer momento.
+Nada disso é enviado a ninguém pelo Duo. Você apaga um aparelho no próprio
+app; apagar a pasta `~/Library/Application Support/Duo/` remove tudo, menos as
+capturas em `~/Pictures/Duo/`.
+
+## Os aparelhos Android
+
+Cada aparelho é um Android de verdade rodando no seu Mac. Dentro dele, você
+entra nas suas contas e usa os apps que quiser, como num celular: a rede que
+esses apps usam é deles, direto do aparelho para o serviço. O Duo não guarda
+o que você digita nem senhas e não lê o conteúdo das suas contas; ele só
+mostra a tela e repassa toques, teclas e texto ao emulador, por uma conexão local
+(localhost, com token) que não sai do Mac.
+
+O Duo liga o emulador com a opção `-no-metrics`, que desliga o envio de
+estatísticas de uso do emulador ao Google. O Android dentro de cada aparelho
+(e os serviços do Google Play, se a imagem os tiver) tem as próprias regras
+de privacidade, que valem entre você e o Google.
 
 ## Dados que NÃO coletamos
 
 Não coletamos, não armazenamos em servidores e não compartilhamos: nome,
 e-mail, telefone, localização, identificadores de dispositivo, contatos,
-conteúdo das suas contas, dados de uso ou qualquer informação pessoal. O Duo
-não faz nenhuma requisição de rede por conta própria; a rede que acontece é a
-dos sites/apps que **você** abre.
-
-## Permissões
-
-- **Câmera / microfone**: pedidas só quando um site que você abriu quer usá-las
-  (ex.: enviar uma foto, uma chamada), e só com a sua autorização. O Duo não
-  usa a câmera nem o microfone por conta própria.
-- **Localização**: o Duo recusa pedidos de localização dos sites e não declara
-  permissão de localização.
-- **Notificações**: no motor web, o Duo não recebe notificações dos serviços
-  (limitação técnica dos navegadores incorporados) e não pede permissão de
-  notificação. No motor nativo (Android), as notificações são as do próprio
-  app clonado.
-- **Ver apps instalados** (Android, só no build completo com motor nativo):
-  usada apenas para listar os apps que você pode clonar; essa lista não sai
-  do aparelho.
+conteúdo dos aparelhos, dados de uso ou qualquer informação pessoal.
 
 ## Sobre os serviços de terceiros
 
-Os serviços que você abre no Duo (redes sociais, mensageiros etc.) têm as
-**próprias políticas de privacidade e termos de uso**, que continuam valendo
-na sua relação com eles. O Duo **não é afiliado, patrocinado nem aprovado**
-por nenhum deles; os nomes citados pertencem aos seus donos e servem só para
-identificar o serviço que você abre. O Duo não automatiza ações nas suas
-contas.
-
-## Segurança
-
-Os dados ficam na área do app protegida pelo sistema operacional. Você pode
-ativar o bloqueio por biometria (do app e/ou por conta). Nada é enviado para
-fora do aparelho pelo Duo, e não há backup em nuvem das suas sessões.
+Os apps e serviços que você usa dentro dos aparelhos têm as **próprias
+políticas de privacidade e termos de uso**. O Duo **não é afiliado,
+patrocinado nem aprovado** pelo Google nem por nenhum desses serviços. O
+Duo não automatiza ações nas suas contas.
 
 ## Seus direitos (LGPD)
 
 Como o Duo **não coleta nem trata dado pessoal algum**, não há nada em nosso
-poder para acessar, corrigir, excluir ou portar: tudo o que o app guarda está
-no seu aparelho, sob seu controle. Dúvidas: o contato abaixo.
+poder para acessar, corrigir, excluir ou portar: tudo o que o app guarda
+está no seu Mac, sob seu controle. Dúvidas: o contato abaixo.
 
 ## Crianças
 
@@ -87,8 +77,8 @@ O app não é direcionado a crianças e não coleta dados de ninguém.
 
 ## Alterações
 
-Podemos atualizar esta política; mudanças relevantes aparecem na data no topo
-e na versão publicada nas lojas.
+Podemos atualizar esta política; mudanças relevantes aparecem na data no
+topo e na versão publicada.
 
 ## Contato
 
@@ -97,5 +87,5 @@ Dúvidas sobre privacidade: **dev@falcaosl.com**
 
 ---
 
-*A publicar em `https://duo.falcaosl.com/privacidade.html` (ou página em
-`falcaosl.com` — U-4); é essa URL que vai nas fichas da Play e da App Store.*
+*Endereço de publicação: a decidir (página do Duo em `falcaosl.com` ou
+domínio próprio), junto com a página de download.*

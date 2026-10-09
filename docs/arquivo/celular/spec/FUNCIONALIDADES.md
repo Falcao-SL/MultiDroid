@@ -5,7 +5,7 @@ Compose) e ao **iOS** (Swift + SwiftUI). Cada plataforma tem seu próprio
 núcleo nativo; a paridade é garantida por este documento, por
 [`CONTEINERES.md`](CONTEINERES.md) (isolamento por conta), pelo catálogo em
 [`dados/`](dados/) e pelos vetores em [`vetores/`](vetores/README.md).
-A identidade visual está em [`../design/IDENTIDADE_VISUAL.md`](../design/IDENTIDADE_VISUAL.md).
+A identidade visual está em [`../design/IDENTIDADE_VISUAL.md`](../../../design/IDENTIDADE_VISUAL.md).
 
 Não há app de referência: os dois apps nascem desta especificação. Onde uma
 escolha poderia ir para um lado ou outro, ela está em [Decisões](#decisões);
@@ -43,7 +43,7 @@ já instalado — está em [VIRTUALIZACAO.md](VIRTUALIZACAO.md).
 - Toda conta tem um motor, escolhido ao criar e **imutável** (os dados de um
   não servem ao outro). No código, os dois implementam a mesma abstração
   `MotorDeConta` (abrir, descartar, limpar dados, excluir, faxina) —
-  [ARQUITETURA.md](../arquitetura/ARQUITETURA.md).
+  [ARQUITETURA.md](../../../arquitetura/ARQUITETURA.md).
 - O iOS só tem o motor `web`: o sistema não permite executar outro app
   dentro de um app (App Store 2.5.2), então "motor nativo" é **não suportado
   pela plataforma**, não uma pendência.
@@ -655,7 +655,7 @@ ser invertido à força).
    `Várias contas do mesmo serviço num só aparelho. Cada conta roda num contêiner web isolado, com login e dados próprios — e nada sai do seu aparelho.`
 2. Caixa sem sombra: `O Duo não é afiliado, patrocinado nem aprovado por nenhum dos serviços do catálogo. Os nomes pertencem aos seus donos e aparecem só para identificar o site que você abre.`
 3. Selo `LINKS`; tile `Política de privacidade` → URL da política
-   ([POLITICA_DE_PRIVACIDADE.md](../publicacao/POLITICA_DE_PRIVACIDADE.md)); tile `Falcao SL` → `https://falcaosl.com`.
+   ([POLITICA_DE_PRIVACIDADE.md](../../../publicacao/POLITICA_DE_PRIVACIDADE.md)); tile `Falcao SL` → `https://falcaosl.com`.
 4. Versão: `Versão <versionName> (<build>)`.
 
 Os links abrem no navegador do sistema.
@@ -667,7 +667,7 @@ Os links abrem no navegador do sistema.
 - Parâmetros em [`dados/aparencia.json → limites`](dados/aparencia.json):
   `maxContas` = 50 (teto técnico, para todos) e `contasGratis` = `null`.
 - **Nesta fase não há paywall, compra no app nem assinatura**. O modelo
-  proposto está em [MONETIZACAO.md](../produto/MONETIZACAO.md) e é
+  proposto está em [MONETIZACAO.md](../../../produto/MONETIZACAO.md) e é
   **a decidir pelo usuário**.
 - Quando `contasGratis` virar número, `podeAdicionar` devolve o motivo
   `plano` e o app mostra a tela de plano (a especificar junto com a decisão).
@@ -806,10 +806,10 @@ Escolhas tomadas ao escrever esta especificação (2026-09-21). Mudar uma delas
 
 | # | Tema | Opções | Onde |
 |---|------|--------|------|
-| U-1 | Monetização | grátis total / 3 contas grátis + assinatura / compra única (proposta em MONETIZACAO.md) | [MONETIZACAO.md](../produto/MONETIZACAO.md) |
-| U-2 | Nome na loja | `Duo: Múltiplas Contas` (recomendado) ou alternativas | [MARKETING_ASO.md](../produto/MARKETING_ASO.md) |
+| U-1 | Monetização | grátis total / 3 contas grátis + assinatura / compra única (proposta em MONETIZACAO.md) | [MONETIZACAO.md](../../../produto/MONETIZACAO.md) |
+| U-2 | Nome na loja | `Duo: Múltiplas Contas` (recomendado) ou alternativas | [MARKETING_ASO.md](../../../produto/MARKETING_ASO.md) |
 | U-3 | Serviços de maior risco no catálogo de lançamento | manter ou tirar Snapchat, WhatsApp Web e Discord (experimentais) | [CONFORMIDADE_LOJAS.md](../publicacao/CONFORMIDADE_LOJAS.md) |
-| U-4 | Domínio da política de privacidade | `duo.falcaosl.com/privacidade.html` ou página em `falcaosl.com` | [POLITICA_DE_PRIVACIDADE.md](../publicacao/POLITICA_DE_PRIVACIDADE.md) |
+| U-4 | Domínio da política de privacidade | `duo.falcaosl.com/privacidade.html` ou página em `falcaosl.com` | [POLITICA_DE_PRIVACIDADE.md](../../../publicacao/POLITICA_DE_PRIVACIDADE.md) |
 | U-6 | Motor nativo: base e licença | abrir o código do Android sob GPL-3.0 / comprar licença comercial / implementação própria / não fazer | [VIRTUALIZACAO.md](VIRTUALIZACAO.md) §3 |
-| U-7 | Distribuição do build `completo` | site próprio (APK) / outras lojas / não distribuir | [DISTRIBUICAO.md](../produto/DISTRIBUICAO.md) |
-| U-5 | Idioma de lançamento | só pt-BR ou pt-BR + en | [DISTRIBUICAO.md](../produto/DISTRIBUICAO.md) |
+| U-7 | Distribuição do build `completo` | site próprio (APK) / outras lojas / não distribuir | [DISTRIBUICAO.md](../../../produto/DISTRIBUICAO.md) |
+| U-5 | Idioma de lançamento | só pt-BR ou pt-BR + en | [DISTRIBUICAO.md](../../../produto/DISTRIBUICAO.md) |

@@ -1,32 +1,42 @@
 # Duo
 
-Várias contas do mesmo serviço — TikTok, Instagram, Snapchat, YouTube e
-outros — num só aparelho. Cada conta abre num contêiner isolado, com
-cookies e sessão próprios, e nada sai do seu aparelho.
+**Vários aparelhos Android lado a lado no seu Mac.** Celular, tablet,
+dobrável e relógio (Wear OS), cada um com as suas contas, organizados numa
+mesa que você arruma do seu jeito. O Duo é um app só para Mac.
 
-| Plataforma | Pasta | Stack |
-|---|---|---|
-| Android | [`android/`](android) | Kotlin + Jetpack Compose |
-| iOS / iPadOS | [`ios/`](ios) | Swift + SwiftUI |
-
-Sem app web. Os dois projetos são independentes; o que os mantém iguais é o
-contrato em [`docs/`](docs) (especificação, catálogo, vetores e tokens), lido
-pelos testes das duas plataformas.
+| | |
+|---|---|
+| **Código** | [`mac/`](mac) — Swift Package (SwiftPM), SwiftUI + gRPC |
+| **Requisitos** | macOS 26, Apple Silicon |
+| **Versão** | 0.1, em construção |
+| **Identificador** | `com.falcaosl.duo.mac` |
+| **Spec** | [`docs/spec/MAC.md`](docs/spec/MAC.md) |
 
 ## Como funciona
 
-Cada conta é um **motor de conta**:
+- Cada aparelho é um **Android Emulator oficial** rodando sem janela
+  (`-no-window`); o Duo fala com ele por **gRPC** em localhost, com token.
+- A tela chega por memória compartilhada (`MMAP`), já escalada pelo emulador
+  para o tamanho do quadro; toque, teclas e texto voltam pelo mesmo canal.
+- **Painel** com a lista de aparelhos, estado, memória e CPU ao vivo, teto de
+  memória, grupos e ações em lote (ligar, pausar, desligar, duplicar).
+- **Mesa**: grade livre de 24 colunas (arrastar, redimensionar), arranjo
+  automático ou por grupo; uma mesa por janela (⌘N).
+- **Duplicar** um aparelho é clonar a pasta com `clonefile` do APFS:
+  instantâneo e sem ocupar disco até divergir.
+- **Instalador próprio**: o Duo baixa o emulador e as imagens do repositório
+  do Google, mostra a licença, confere o SHA-1 e guarda tudo em
+  `~/Library/Application Support/Duo/`. Não precisa de Android Studio, Java
+  nem `adb`. Imagem padrão: Android 13 com Google Play (Wear OS 4 no relógio).
 
-- **Motor web** (Android e iOS): um perfil de navegador isolado que abre a
-  versão web do serviço — iOS `WKWebsiteDataStore(forIdentifier:)`, Android
-  `androidx.webkit` multiperfil (`ProfileStore` + `WebViewCompat.setProfile`).
-  É o motor da versão 1. Detalhes em [`docs/spec/CONTEINERES.md`](docs/spec/CONTEINERES.md).
-- **Motor nativo** (só Android, fase 2): clona por virtualização um app já
-  instalado. Fica num build separado, fora da Play.
-  Detalhes em [`docs/spec/VIRTUALIZACAO.md`](docs/spec/VIRTUALIZACAO.md).
+Não automatiza contas nem burla a verificação de integridade dos apps.
 
-Não é clonagem de APK/IPA no iOS nem automação de contas: o Duo isola
-sessões, o usuário faz o login.
+## Compilar
+
+```sh
+cd mac
+scripts/build-app.sh          # gera build/Duo.app (assinatura ad hoc)
+```
 
 ## Documentação
 
@@ -34,15 +44,11 @@ sessões, o usuário faz o login.
 
 | Documento | Conteúdo |
 |---|---|
-| [docs/spec/FUNCIONALIDADES.md](docs/spec/FUNCIONALIDADES.md) | Telas, fluxos, motores, paridade e decisões |
-| [docs/spec/CONTEINERES.md](docs/spec/CONTEINERES.md) | Isolamento por conta (motor web) |
-| [docs/spec/VIRTUALIZACAO.md](docs/spec/VIRTUALIZACAO.md) | Motor nativo (Android, fase 2) |
-| [docs/design/IDENTIDADE_VISUAL.md](docs/design/IDENTIDADE_VISUAL.md) | Identidade visual e componentes |
-| [docs/produto/STATUS.md](docs/produto/STATUS.md) | Estágio, fases, riscos |
-| [docs/publicacao/CONFORMIDADE_LOJAS.md](docs/publicacao/CONFORMIDADE_LOJAS.md) | Guidelines Apple/Google |
-
-Identificador `com.falcaosl.duo` · deep link `duo://` · Android `minSdk` 26 ·
-iOS 17.0.
+| [docs/spec/MAC.md](docs/spec/MAC.md) | Especificação: arquitetura, painel, mesa, instalador, fases, medições, decisões, riscos |
+| [docs/produto/STATUS.md](docs/produto/STATUS.md) | Estágio, o que existe, o que falta |
+| [docs/produto/PRODUTO.md](docs/produto/PRODUTO.md) | O que é, para quem, o que não faz |
+| [docs/design/IDENTIDADE_VISUAL.md](docs/design/IDENTIDADE_VISUAL.md) | Marca, tokens, ícone |
+| [docs/arquivo/celular/](docs/arquivo/celular/README.md) | Plano antigo dos apps de celular (descontinuado) |
 
 ---
 

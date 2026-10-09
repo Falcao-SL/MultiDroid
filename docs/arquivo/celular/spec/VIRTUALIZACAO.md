@@ -3,10 +3,11 @@
 Especificação do segundo motor de conta do Duo: rodar uma **cópia do app
 oficial já instalado** (TikTok, Instagram…) dentro do próprio processo do
 Duo, com dados separados por cópia e notificações — no estilo Parallel
-Space / Dual Space / Island. É **exclusivo do Android** e da **fase 2**; o
+Space / Dual Space (o Island não virtualiza: usa o perfil de trabalho do
+Android). É **exclusivo do Android** e da **fase 2**; o
 comportamento comum de conta (Início, apelido, ordem, atalhos) está em
 [FUNCIONALIDADES.md](FUNCIONALIDADES.md), e a abstração `MotorDeConta` em
-[ARQUITETURA.md](../arquitetura/ARQUITETURA.md).
+[ARQUITETURA.md](../../../arquitetura/ARQUITETURA.md).
 
 > **Status: proposta técnica, não implementada.** A fase 2 só começa depois
 > de o usuário decidir U-6 (motor base e licença) e U-7 (distribuição), e

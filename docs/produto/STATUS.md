@@ -1,71 +1,52 @@
 # Status — Duo
 
-> Atualizado em **2026-09-21**. Fonte única de "em que pé está".
+> Atualizado em **2026-10-09**. Fonte única de "em que pé está".
 
 | Campo | Valor |
 |---|---|
-| **Estágio** | **Especificação pronta; apps em construção.** Contrato (`docs/`) escrito; nenhum código de app ainda |
-| **Plataformas** | Android (Kotlin + Compose) e iOS (Swift + SwiftUI) |
-| **Identificador** | `com.falcaosl.duo` (Android e iOS) · Apple Team `6EZ89E2F5S` |
-| **SO mínimo** | Android `minSdk` 26 · iOS 17.0 |
-| **Deep link** | `duo://` |
+| **Estágio** | **App de Mac em construção.** Fase 0 medida (2026-10-07); fase 1 quase toda feita; fase 2 não começou |
+| **Plataforma** | só macOS: Duo para Mac em `mac/` (Swift Package, SwiftUI + gRPC), macOS 26, Apple Silicon |
+| **Versão** | 0.1 (build 1), assinatura ad hoc (`scripts/build-app.sh`) |
+| **Identificador** | `com.falcaosl.duo.mac` · Apple Team `6EZ89E2F5S` |
+| **Distribuição** | Developer ID + notarização, fora da Mac App Store (decisão M-6); ainda não configurada |
 | **Monetização** | **A decidir** ([MONETIZACAO.md](MONETIZACAO.md)) |
-| **Publicação** | não iniciada nas lojas |
-| **Próximo marco** | Fase 1: núcleos + motor web nas duas plataformas, passando os vetores |
+| **Próximo marco** | Fechar o critério da fase 1: criar, duplicar e organizar 4 celulares + 1 relógio em menos de 5 minutos num Mac limpo |
 
-## Fases
+Em 2026-10-09 o Duo passou a ser só o app de Mac. O plano dos apps de
+celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 
-| Fase | Escopo | Plataformas |
-|------|--------|-------------|
-| **Fase 1 (v1)** | Motor **web**: contêiner isolado por conta, catálogo + site personalizado, Início, adicionar/editar/excluir, troca rápida, bloqueio, atalhos, downloads/upload, tema, acessibilidade | Android e iOS |
-| **Fase 2** | Motor **nativo** (clonar app instalado por virtualização), build `completo` fora da Play | só Android |
+## Fases (spec/MAC.md §3)
 
-**v1 é só a fase 1.** A fase 2 depende de duas decisões do usuário (motor
-base e licença, U-6; distribuição, U-7) e do resultado da análise de loja
-(CONFORMIDADE_LOJAS).
+| Fase | Escopo | Situação |
+|------|--------|----------|
+| **0 — Provar e medir** | dois emuladores sem janela, telas via `MMAP`, toque; medir memória, CPU, boot, latência | **Feita** (2026-10-07). Android 13 vira o padrão; ~4,5 GB por celular |
+| **1 — O app** | perfis de aparelho, criar, duplicar (`clonefile`), grade organizável, estados (pausar/retomar/desligar), instalador próprio | **Quase toda feita**; falta medir o critério num Mac limpo |
+| **2 — Recursos** | sincronizar entrada, arrastar arquivo do Finder (APK, foto), atalhos por aparelho | não começou |
 
-## O que já existe
+## O que já existe (`mac/`)
 
-- Contrato completo em `docs/spec/` (FUNCIONALIDADES, CONTEINERES,
-  VIRTUALIZACAO), catálogo em `docs/spec/dados/`, 129 vetores comuns + 12 do
-  Android em `docs/spec/vetores/`, identidade em `docs/design/`, arquitetura,
-  produto e publicação.
+| Área | Feito |
+|------|-------|
+| Aparelhos | celular (Pixel 9), tablet (Pixel Tablet), dobrável (Pixel 9 Pro Fold), relógio (Wear OS redondo) |
+| Painel | lista, estado, memória/CPU ao vivo, memória do Mac, teto de memória, grupos, ações em lote, criar, duplicar, apagar (renomear ainda não) |
+| Mesa | grade livre de 24 colunas, arranjo automático e por grupo, uma mesa por janela (⌘N), menu Mesas, painel recolhível (⌘0) |
+| Quadro | voltar, início, recentes, volume, girar, digitar, captura de tela, pausar, desligar |
+| Tela e entrada | `streamScreenshot` por `MMAP` escalado no emulador; toque e teclas por gRPC |
+| Instalador | emulador e imagens baixados de dl.google.com, licença no app, SHA-1, atualizar com aparelhos ligados, importar do Android Studio |
 
 ## O que falta
 
-- **Todo o código dos dois apps** (núcleo, motor web, telas, testes).
-- Confirmar em **aparelho real** vários pontos deixados em aberto na
-  pesquisa:
-  - iOS: se links universais dentro do `WKWebView` respeitam a regra de
-    recarga programática (CONTEINERES §6.4);
-  - iOS: comportamento de backup dos dados de `WKWebsiteDataStore`
-    (CONTEINERES §9.4);
-  - Android: aparelhos onde `MULTI_PROFILE` não existe (tela `sem-suporte`);
-  - fase 2: lista `incompativeis` de apps que não clonam.
-- Decisões do usuário: U-1 a U-7 (ver FUNCIONALIDADES → A decidir).
-- Arte do ícone e capturas.
-- Configurar pipelines e contas de loja (PIPELINES_PUBLICACAO).
+- Medir o critério da fase 1 num Mac limpo.
+- Fase 2 inteira.
+- Desenho por Metal (decisão M-2): hoje a tela é desenhada como imagem no
+  SwiftUI.
+- Assinatura Developer ID, notarização e canal de download (DISTRIBUICAO).
+- Decidir monetização, nome público, idiomas e site.
+- Revisar com advogado a licença das imagens do Google antes de vender
+  (MAC.md §5).
 
-## Riscos e bloqueios
+## Riscos
 
-- **Compatibilidade do motor web por serviço**: alguns serviços empurram o
-  app oficial (TikTok, Reddit) ou só têm web de computador (Snapchat,
-  Discord, WhatsApp). Mitigado pelo selo de compatibilidade no catálogo e
-  pela honestidade na ficha. Serviços experimentais podem sair do catálogo
-  de lançamento (U-3).
-- **Google bloqueia login em WebView**: afeta YouTube e qualquer "entrar com
-  Google". Mitigado por aviso claro; sem contorno (seria burlar segurança).
-- **Motor nativo × Google Play**: alto risco de rejeição; por isso fica em
-  build separado fora da Play (CONFORMIDADE_LOJAS).
-- **Licença do motor nativo**: as bases abertas descendem do VirtualApp
-  (GPL-3.0 / litigioso). Usar a base GPL obrigaria abrir o código do app
-  Android (VIRTUALIZACAO §3). Decisão em aberto.
-- **App Store 4.2 (funcionalidade mínima)**: um app que "só mostra sites"
-  pode ser barrado. Mitigado por ser um gerenciador de várias contas com
-  isolamento, atalhos, bloqueio, troca rápida — não um web clipping
-  (CONFORMIDADE_LOJAS).
-
-## Definição de "pronto para publicar"
-
-Cada versão passa por `docs/publicacao/CONFORMIDADE_LOJAS.md` com as duas
-suítes verdes (vetores + isolamento) antes de subir.
+Os riscos estão em [MAC.md §5](../spec/MAC.md): licença das imagens Play e
+Wear, apps que bloqueiam emulador, termos dos serviços, memória em Macs de
+8–16 GB e mudanças na API do emulador.

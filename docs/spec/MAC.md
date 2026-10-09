@@ -1,6 +1,7 @@
 # Duo para Mac — vários Androids lado a lado
 
-> Especificação escrita em 2026-10-07. Terceiro app do Duo, em `mac/`. Os
+> Especificação escrita em 2026-10-07. É o produto Duo (desde 2026-10-09 o Duo
+> é só para Mac), em `mac/`. Os
 > números marcados **(hipótese)** ainda não foram medidos; a fase 0 existe para
 > medi-los.
 
@@ -8,10 +9,11 @@
 
 Um app de Mac que roda **vários aparelhos Android ao mesmo tempo**, cada um com
 a sua conta, e os mostra organizados numa grade, como os gerenciadores de
-múltiplas instâncias do Windows. É o mesmo problema do Duo no celular (várias
-contas do mesmo serviço, cada uma isolada) resolvido com aparelhos inteiros em
-vez de perfis de navegador: o app nativo do serviço roda de verdade, com
-notificações, câmera virtual e tudo o que a versão web não tem.
+múltiplas instâncias do Windows. Resolve o problema de várias contas do mesmo
+serviço, cada uma isolada, com aparelhos inteiros em vez de perfis de
+navegador: o app nativo do serviço roda de verdade, com notificações, câmera
+virtual e tudo o que a versão web não tem. (O plano antigo de apps de celular
+está em [`../arquivo/celular/`](../arquivo/celular/README.md).)
 
 Tipos de aparelho desde o começo: **celular, tablet, dobrável e relógio (Wear
 OS)**.

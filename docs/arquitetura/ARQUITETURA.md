@@ -1,120 +1,52 @@
 # Arquitetura — Duo
 
-O Duo é **dois aplicativos nativos independentes** que implementam o mesmo
-produto: usar várias contas do mesmo serviço num aparelho. Nenhum código é
-compartilhado entre eles; cada plataforma tem seu núcleo escrito na sua
-linguagem. O que é compartilhado é o **contrato**: uma especificação única,
-um catálogo de dados, vetores de teste e tokens de design, que as duas
-suítes de teste leem e conferem.
+O Duo é **um app de Mac**: um processo SwiftUI que comanda vários Android
+Emulators oficiais sem janela, por gRPC em localhost. O desenho completo
+(frames, estados, duplicar, perfis, painel, instalador, mesa) está em
+[spec/MAC.md §2](../spec/MAC.md#2-arquitetura); aqui fica só o mapa.
 
 ```
 Duo/
-├── android/                 Kotlin + Jetpack Compose        → Google Play (build play) + APK (build completo)
-├── ios/                     Swift + SwiftUI                 → App Store
-├── docs/
-│   ├── spec/                CONTRATO FUNCIONAL (fonte única de comportamento)
-│   │   ├── FUNCIONALIDADES.md   telas, rotas, fluxos, motores, paridade, decisões
-│   │   ├── CONTEINERES.md       motor web: isolamento por conta (APIs, ciclo de vida, navegação…)
-│   │   ├── VIRTUALIZACAO.md     motor nativo (só Android, fase 2)
-│   │   ├── dados/*.json         catálogo de serviços, aparência, apps nativos
-│   │   └── vetores/*.json       casos de teste lidos pelas duas plataformas
-│   ├── design/              CONTRATO VISUAL
-│   │   ├── IDENTIDADE_VISUAL.md princípios, componentes, ícones, tom de voz
-│   │   └── tokens.json          cores, borda, raio, sombra, tipografia, movimento
-│   ├── arquitetura/         esta visão geral
-│   ├── produto/             produto, status, monetização, marketing, distribuição
-│   └── publicacao/          conformidade, privacidade, pipelines
-└── .github/workflows/       android.yml, ios.yml
+├── mac/                        o app
+│   ├── Package.swift           Swift Package, macOS 26; grpc-swift 2 + swift-protobuf
+│   ├── Sources/Duo/            código (abaixo)
+│   │   └── Generated/          cliente gRPC gerado de proto/ (não editar)
+│   ├── proto/                  emulator_controller.proto, copiado do SDK
+│   ├── scripts/                build-app.sh (monta Duo.app), gen-grpc.sh
+│   └── tools/                  measure-image.sh (medições da fase 0)
+└── docs/                       spec, design, produto, publicação, arquivo
 ```
 
-## Dois apps, um contrato
+## Peças do código
 
-Os dois projetos são independentes: cada um abre sozinho no Android Studio ou
-no Xcode e não depende do build do outro. O que os mantém iguais:
+| Arquivo | Papel |
+|---------|-------|
+| `DuoApp.swift` | entrada do app, janelas (uma mesa por janela), menus |
+| `Model.swift` | estado observável: aparelhos, grupos, mesas, teto de memória; liga/pausa/desliga; `state.json` |
+| `Catalog.swift` | perfis de aparelho, criar AVD (`config.ini`), duplicar por `clonefile`, importar do Android Studio |
+| `SDK.swift` | pastas do Duo, ambiente do emulador, console do emulador (desligar salvando) |
+| `Images.swift` / `ImagesView.swift` | instalador: repositório do Google, licença, download, SHA-1, troca da pasta |
+| `Screen.swift` | conexão gRPC por aparelho: status, tela por `MMAP`, toque, teclas, pausa |
+| `Metrics.swift` | memória (physical footprint) e CPU por processo |
+| `Views.swift`, `Desk.swift`, `Mesa.swift`, `GridBoard.swift` | painel, mesa, grade livre, quadro de cada aparelho |
+| `Theme.swift` | cores e componentes Brutal (de `docs/design/tokens.json`) |
 
-| Contrato | Pasta | Conferido por |
-|----------|-------|---------------|
-| Funcionalidades, telas, textos, fluxos | `docs/spec/FUNCIONALIDADES.md` | matriz de paridade (§17) |
-| Isolamento por conta (motor web) | `docs/spec/CONTEINERES.md` | testes instrumentados de isolamento |
-| Catálogo e parâmetros | `docs/spec/dados/*.json` | teste de dados em cada plataforma |
-| Vetores de teste | `docs/spec/vetores/*.json` | suíte de cada plataforma |
-| Identidade e tokens | `docs/design/` | teste de tokens em cada plataforma |
+## Onde ficam os dados
 
-## Regra de mudança
+| O quê | Onde |
+|-------|------|
+| Emulador e imagens | `~/Library/Application Support/Duo/sdk/` |
+| Aparelhos (AVDs) | `~/Library/Application Support/Duo/avd/` |
+| Estado do app (ordem, grupos, mesas, posições, teto) | `~/Library/Application Support/Duo/state.json` |
+| Capturas de tela | `~/Pictures/Duo/` |
 
-1. Atualize `docs/spec/` (texto e/ou dados/vetores em JSON). Mudança visual:
-   `docs/design/`.
-2. Os testes das duas plataformas passam a falhar.
-3. Implemente em `android/` e `ios/` até os dois ficarem verdes.
-4. Atualize a matriz de paridade.
+## Princípios
 
-Mudanças só de interface nativa (um gesto do iOS, um menu do Android) não
-precisam da spec, desde que não mudem o que o usuário vê como funcionalidade.
-
-## Camadas dentro de cada plataforma
-
-| Camada | Android | iOS |
-|--------|---------|-----|
-| Núcleo puro (sem UI) | `android/core` (Kotlin/JVM): URL, navegação, apelido, ordem, busca, deep link, catálogo | `ios/DuoCore` (Swift Package): o mesmo |
-| Design system | `app/.../ui/theme` (Brutal + tokens) | `Duo/DesignSystem` |
-| Telas | `app/.../ui/screens` | `Duo/Features` |
-| Motores de conta | `app/.../motor` (`MotorDeConta` + `MotorWeb`, e `MotorNativo` no flavor `completo`) | `Duo/Motor` (só `MotorWeb`) |
-| Persistência local | Room / DataStore | arquivos + UserDefaults |
-| Testes de paridade | `core/src/test` | `DuoCore/Tests` |
-| Testes de isolamento | `app/src/androidTest` | `DuoTests` (simulador) |
-
-### Núcleo puro × motores
-
-O **núcleo** (`core` / `DuoCore`) não importa nada de UI nem de WebView: é o
-que os vetores testam sem emulador — validação de URL, classificação de
-navegação, apelido, ordem, busca, deep link, leitura do catálogo, e (no
-Android) `classificarClonavel`/`diretorioDaCopia`. É onde vive a lógica
-comum às duas plataformas.
-
-Os **motores** ficam no app (precisam de `WebView`/`WKWebView` e, no motor
-nativo, do sistema), atrás de uma abstração:
-
-```
-MotorDeConta            abrir(conta) → View/UIView ; descartar ; limparDados ; excluir ; faxina
-├── MotorWeb            Android e iOS — CONTEINERES.md
-└── MotorNativo         só Android, flavor "completo", fase 2 — VIRTUALIZACAO.md
-```
-
-- Cada conta guarda seu `motor` (FUNCIONALIDADES §3); o app escolhe a
-  implementação por esse campo.
-- O iOS só tem `MotorWeb`; não há `MotorNativo` (limite da plataforma).
-- A classificação de navegação, apelido etc. usam só o núcleo, então valem
-  para os dois motores.
-
-## Flavors do Android
-
-| Flavor | Motores | `QUERY_ALL_PACKAGES` | Distribuição |
-|--------|---------|:--------------------:|--------------|
-| `play` | só `web` | não | Google Play |
-| `completo` | `web` + `nativo` | sim | APK no site / outras lojas (fase 2) |
-
-O código do `MotorNativo` e as permissões dele existem **só** no source set
-`completo`; o CI confere que o manifesto do `play` não tem
-`QUERY_ALL_PACKAGES` nem o processo `:virtual` (PIPELINES_PUBLICACAO). O iOS
-tem um alvo só.
-
-## Princípios comuns
-
-1. **Núcleo sem UI** — testável sem emulador nem simulador.
-2. **UI fina** — nenhuma regra (validação de URL, classificação, limite) nas
-   telas.
-3. **Isolamento é sagrado** — nunca cair para armazenamento compartilhado
-   (Android sem `MULTI_PROFILE` → tela `sem-suporte`, não WebView comum).
-4. **Nada sai do aparelho** — sem servidor, sem analytics, sem SDK de
-   terceiros, sem rede partindo do código do Duo.
-5. **Sem automação** — o Duo cria o ambiente isolado, não age nas contas.
-
-## Identificadores
-
-| Item | Valor |
-|------|-------|
-| `applicationId` (Android) | `com.falcaosl.duo` |
-| bundle id (iOS) | `com.falcaosl.duo` |
-| Apple Team | `6EZ89E2F5S` |
-| Esquema de deep link | `duo://` |
-| `minSdk` / iOS mínimo | 26 / 17.0 |
+1. **O app não compete por memória** com os Androids: um processo, sem
+   trabalho com o que não está à vista (MAC.md §2.3).
+2. **Emulador oficial, não motor próprio** (M-1); a API gRPC é fixada por
+   versão do emulador (`proto/`, `gen-grpc.sh`).
+3. **Independente**: nada de Android Studio, Java, `sdkmanager` ou `adb`
+   (MAC.md §2.7).
+4. **Nada sai do Mac por causa do Duo**: só downloads do Google que o
+   usuário pede; o emulador roda com `-no-metrics`.

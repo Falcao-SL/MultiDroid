@@ -1,60 +1,69 @@
 # Produto — Duo
 
-**Várias contas do mesmo serviço num só aparelho — cada uma isolada, e nada sai do seu aparelho.**
+**Vários aparelhos Android lado a lado no seu Mac — cada um com as suas
+contas, organizados numa mesa.**
 
 | | |
 |---|---|
-| **Plataformas** | Android (Kotlin) e iOS (Swift) — dois apps nativos com as mesmas funcionalidades e a mesma identidade |
-| **Idioma** | Português do Brasil (preparado para inglês) |
+| **Plataforma** | macOS 26, Apple Silicon — só Mac ([spec/MAC.md](../spec/MAC.md)) |
+| **Idioma** | Português do Brasil (a interface hoje); outros idiomas a decidir |
 | **Preço** | A decidir ([`MONETIZACAO.md`](MONETIZACAO.md)) |
 | **Estado** | ver [`STATUS.md`](STATUS.md) |
 
 ## O problema
 
-Muita gente tem mais de uma conta no mesmo serviço: a pessoal e a da loja no
-Instagram, dois TikToks, o WhatsApp do trabalho. Os apps oficiais deixam
-alternar mal e porcamente (ou nem deixam), e ficar saindo e entrando perde a
-sessão e o contexto. As soluções existentes ou são sites cheios de anúncio,
-ou "clonadores" que pedem permissões demais e mandam dados para fora.
+Quem precisa de várias contas do mesmo serviço, ou de vários aparelhos
+Android ao mesmo tempo, hoje empilha celulares na mesa ou abre emuladores um
+a um no Android Studio, cada um numa janela solta, sem visão do que está
+ligado nem de quanta memória sobra. No Windows existem gerenciadores de
+múltiplas instâncias; no Mac com Apple Silicon, não há um equivalente leve.
 
 ## Para quem é
 
-- Quem tem conta pessoal e profissional no mesmo serviço.
-- Social media e criadores que gerenciam várias contas.
-- Quem quer separar trabalho e vida pessoal no mesmo aparelho.
+- Quem gerencia várias contas do mesmo app (social media, criadores, lojas).
+- Quem testa um app em vários formatos ao mesmo tempo (celular, tablet,
+  dobrável, relógio).
+- Quem quer o app oficial do serviço, com notificações, em vez da versão web.
 
 ## O que ele faz
 
-- Cada conta abre num **contêiner web isolado**: a versão web do serviço com
-  cookies, login e dados próprios. Duas contas do mesmo serviço não se veem.
-- Catálogo com 14 serviços (TikTok, Instagram, X, YouTube, Telegram Web,
-  WhatsApp Web e mais) + qualquer site por endereço.
-- Troca rápida entre contas, atalho por conta na tela inicial, bloqueio por
-  biometria, tema claro/escuro.
-- **No Android (fase 2)**, além do contêiner web, dá para **clonar o app
-  nativo** já instalado, para quem quer o app oficial com notificações.
-- Funciona sem servidor, sem conta Duo, sem coletar nada.
+- Roda **celular, tablet, dobrável e relógio (Wear OS)** sobre o Android
+  Emulator oficial, sem janela, nativo em Apple Silicon.
+- **Painel**: lista de aparelhos, estado, memória e CPU ao vivo, teto de
+  memória, grupos, ações em lote.
+- **Mesa**: grade livre (arrastar, redimensionar), arranjo automático ou por
+  grupo, uma mesa por janela, aparelho ampliado.
+- **Duplicar** um aparelho na hora, sem gastar disco (`clonefile`).
+- **Pausar** um aparelho: CPU zero, memória mantida; desligar salva o estado
+  e ele volta em segundos.
+- **Instala sozinho** o emulador e as imagens, direto do Google, mostrando a
+  licença; não precisa de Android Studio.
+- Sem servidor, sem conta Duo, sem coleta de uso.
 
 ## Por que este e não outro
 
-- **Privacidade real**: nada sai do aparelho, sem analytics, sem SDK de
-  terceiros. Diferente dos clonadores que vivem de dados.
-- **Honesto**: diz o que não funciona (login do Google em WebView,
-  notificações web) em vez de prometer o impossível.
-- **Duas plataformas** com a mesma cara e o mesmo comportamento.
+- **Nativo de Mac**: SwiftUI, um processo, feito para não competir por
+  memória com os Androids.
+- **Emulador oficial**: GPU do Mac, imagens arm64 sem tradução, Play Store e
+  Wear OS.
+- **Organização**: painel e mesa são o diferencial, não a virtualização
+  (decisão M-1).
 
 ## O que ele deliberadamente não faz
 
-- Não automatiza nada nas contas (não posta, não curte, não segue por você).
-- Não recebe notificação push dos serviços no motor web (limite técnico, §11
-  da spec).
-- Não esconde o IP nem finge ser outro aparelho.
-- Não contorna bloqueio de login nem atestação de segurança de apps.
-- Não tem app web nem versão para computador.
+- Não automatiza nada nas contas; sincronizar entrada (fase 2) será manual e
+  visível.
+- Não embute nem redistribui imagens do Google: cada usuário baixa e aceita
+  a licença (decisão M-5).
+- Não burla a verificação de integridade dos apps (bancos e alguns apps não
+  abrem em emulador).
+- Não roda em Mac com Intel nem em outros sistemas.
 
 ## Princípios de produto
 
-1. **Isolamento é a promessa.** Se duas contas se misturam, o produto falhou.
-2. **Nada sai do aparelho.** Sem servidor a manter, sem dado a vazar.
-3. **Honestidade sobre limites.** É melhor avisar do que decepcionar na
-   revisão da loja e na avaliação do usuário.
+1. **Leve acima de tudo.** O Duo gasta só com o que está à vista.
+2. **Tudo num painel.** Nenhuma ação exige terminal ou Android Studio.
+3. **Nada sai do Mac por causa do Duo.** Só baixa do Google o que o usuário
+   pede.
+4. **Honestidade sobre limites.** Dizer quanto de memória cada aparelho
+   custa e o que não funciona em emulador.

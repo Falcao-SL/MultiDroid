@@ -1,85 +1,60 @@
-# Marketing e ASO — Duo
+# Marketing — Duo
+
+O Duo é distribuído fora da Mac App Store (DISTRIBUICAO), então não há ASO de
+loja: a descoberta vem da página de download, de busca na web e de
+comunidades. O nome do arquivo ficou por histórico.
 
 ## Posicionamento
 
-**"Várias contas, um aparelho — sem misturar, sem vazar."** Um gerenciador
-de múltiplas contas do mesmo serviço em que cada conta é isolada e nada sai
-do aparelho. O contraste é com os sites de anúncio e os clonadores que pedem
-permissões demais e coletam dados.
+**"Vários Androids lado a lado no seu Mac."** Um gerenciador de múltiplos
+aparelhos Android para Mac com Apple Silicon: painel para ver e controlar
+tudo, mesa para organizar, e leve o bastante para rodar vários ao mesmo
+tempo. O contraste é com abrir emuladores um a um no Android Studio e com os
+gerenciadores de múltiplas instâncias que só existem no Windows.
 
 Diferenciais a martelar:
 
-1. **Isolamento de verdade** — cada conta tem login e dados próprios.
-2. **Privacidade** — sem servidor, sem analytics, sem SDK de terceiros;
-   ficha "nenhum dado coletado".
-3. **Honesto** — diz o que funciona e o que não funciona por conta.
-4. **Duas plataformas**, mesma experiência.
+1. **Vários ao mesmo tempo, organizados** — painel, grupos, mesa livre.
+2. **Todos os formatos** — celular, tablet, dobrável e relógio.
+3. **Instala sozinho** — sem Android Studio, sem terminal.
+4. **Leve e honesto** — mostra quanto cada aparelho custa de memória antes
+   de ligar.
+5. **Privacidade** — sem servidor, sem coleta de uso.
 
-## Nome na loja (U-2)
+## Nome (a decidir)
 
-O nome "Duo" tem **conflitos de marca óbvios**: **Google Duo** (app de
-vídeo, descontinuado, mas marca da Google), **Duolingo** ("Duo" é o mascote
-e marca deles) e vários apps chamados "Duo". Usar "Duo" sozinho no título da
-loja é arriscado (busca poluída e possível reclamação de marca).
+"Duo" tem **conflitos de marca óbvios**: **Google Duo** (marca da Google),
+**Duolingo** ("Duo" é o mascote) e vários apps chamados "Duo". Na página e
+na busca, usar com qualificador descritivo. O nome público é **a decidir**;
+o app hoje se chama "Duo" (`CFBundleName`).
 
-Recomendação: título com qualificador descritivo, que também ajuda no ASO:
+Regras: **nunca** usar nome ou logo de serviço (TikTok, Instagram…) nem de
+marcas do Google no nome, no ícone ou nas capturas, nem sugerir afiliação
+com o Google ou com o Android Emulator.
 
-- **`Duo: Múltiplas Contas`** (recomendado)
-- alternativas: `Duo — Contas Paralelas`, `Duo: Duplicar Contas`,
-  `Duo Multi Contas`
-
-Regras (ver CONFORMIDADE_LOJAS): **nunca** usar nome ou logo de serviço
-(TikTok, Instagram…) no nome, ícone ou screenshots do app, nem sugerir
-afiliação. Descrever por categoria ("redes sociais e mensageiros"), não por
-marca; no máximo citar nomes em texto corrido como "funciona com a versão web
-de serviços como…", sem logos.
-
-## Público-alvo (Brasil)
+## Público-alvo
 
 | Persona | Dor | Mensagem |
 |---------|-----|----------|
-| Pessoal + profissional | duas contas do mesmo app | "sua conta pessoal e a da loja, lado a lado" |
-| Social media | gerencia várias contas | "troque de conta em um toque, sem deslogar" |
-| Trabalho × vida | quer separar | "cada conta isolada, com bloqueio por digital" |
-| Privacidade | desconfia de clonador | "nada sai do seu aparelho — sem servidor, sem rastreador" |
+| Social media / criadores | várias contas do mesmo app | "cada conta no seu aparelho, todas à vista" |
+| Quem testa apps | ver o app em vários formatos | "celular, tablet, dobrável e relógio na mesma mesa" |
+| Usuário de Mac vindo do Windows | sente falta do gerenciador de instâncias | "o gerenciador de múltiplos Androids que faltava no Mac" |
 
-## ASO
+## Palavras-chave (busca na web, pt-BR)
 
-### Palavras-chave (pt-BR)
+- **Cabeça**: emulador android mac, vários emuladores, múltiplas instâncias
+  android mac
+- **Cauda**: android no mac m1/m4, várias contas mesmo app no mac, wear os
+  no mac
 
-- **Cabeça**: múltiplas contas, duas contas, clonar app, duplicar app,
-  contas paralelas
-- **Cauda**: duas contas whatsapp, dois instagram, várias contas mesmo app,
-  espaço paralelo, gerenciar contas
+Inglês e outros idiomas: a decidir.
 
-### Play Store
+## Canais
 
-- Título (30) e descrição curta (80): fonte única na ficha (a criar).
-- Descrição longa: primeira linha com as keywords cabeça; bullets por
-  benefício (isolamento, troca rápida, privacidade); parágrafo de
-  privacidade; **aviso de honestidade** (o que exige app oficial, login do
-  Google). Sem citar marcas com logo.
-- Categoria: **Ferramentas** (ou Redes Sociais). O motor nativo, se for para
-  a Play, seria alto risco — por isso fica no build `completo` fora da Play.
+| Etapa | Ação |
+|-------|------|
+| Antes do lançamento | página de download com capturas e a política de privacidade |
+| Lançamento | comunidades de Mac, de desenvolvedores Android e de social media; vídeo curto mostrando a mesa |
+| Depois | responder retorno; avaliar fase 2 |
 
-### App Store
-
-- Subtitle (30) e keywords (100): a criar.
-- Categoria: **Utilities** (enquadra como ferramenta, ajuda na revisão).
-- Notas ao revisor: explicar que é um gerenciador de contas via **WebKit**
-  (2.5.6 ok), com funcionalidade além de "mostrar site" (isolamento por
-  conta, troca rápida, bloqueio, atalhos), para não bater em 4.2.
-
-### Avaliações
-
-Pedir avaliação após um "momento de sucesso" (3ª troca de conta), via API
-nativa, no máximo 1x por versão.
-
-## Canais (primeiros 90 dias)
-
-| Semana | Ação |
-|--------|------|
-| 1–2 | Landing simples + fichas; beta fechado (Play) |
-| 3–4 | Lançamento Android (Play); posts em comunidades de social media e de privacidade |
-| 5–8 | Vídeos curtos ("duas contas em um toque"); responder avaliações |
-| 9–12 | Lançamento iOS; avaliar fase 2 (motor nativo) fora da Play |
+Datas: a decidir.

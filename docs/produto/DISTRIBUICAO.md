@@ -1,68 +1,59 @@
 # Distribuição — Duo
 
-Público-alvo: usuário brasileiro de várias contas. No Brasil o Android é
-~85% do mercado, então a Play é o canal principal. O app é gratuito nesta
-fase (monetização a decidir, [MONETIZACAO.md](MONETIZACAO.md)).
+O Duo é um app de Mac distribuído **fora da Mac App Store**, assinado com
+**Developer ID** e **notarizado** pela Apple (decisão M-6, [spec/MAC.md §4](../spec/MAC.md)).
+O preço está a decidir ([MONETIZACAO.md](MONETIZACAO.md)).
 
-## 1. Google Play — build `play` (prioridade)
+## Por que fora da Mac App Store
 
-- **Conta**: US$ 25 única. Ficha em pt-BR; distribuição inicial só Brasil.
-- **Build `play`**: só o motor **web**, sem `QUERY_ALL_PACKAGES`, sem o
-  código do motor nativo (ARQUITETURA → flavors). É o build de menor risco.
-- **Teste fechado obrigatório**: contas novas precisam de 14 dias com
-  testadores antes da produção. Recrutar em comunidades de social media/QA.
-- **Data safety**: nenhum dado coletado nem compartilhado. Anúncios: Não.
-  Compras no app: conforme a decisão de monetização.
-- **Classificação**: Livre. Categoria: Ferramentas.
-- **AAB** assinado com Play App Signing; `minSdk` 26; `targetSdk` o exigido
-  pela Play no envio.
+O Duo baixa e executa imagens de sistema Android e roda o emulador, que usa
+o Hypervisor.framework. A Mac App Store não aceita esse tipo de app (MAC.md
+M-6). Developer ID + notarização deixa o Gatekeeper abrir o app sem aviso de
+desenvolvedor desconhecido.
 
-## 2. App Store — iOS
+## O que precisa
 
-- **Conta**: US$ 99/ano; Team `6EZ89E2F5S`. Criar o App ID
-  `com.falcaosl.duo` sem capabilities extras.
-- Só o motor **web** (o nativo é impossível no iOS).
-- **Risco de revisão**: 4.2 (funcionalidade mínima) e 4.3 (spam) — mitigado
-  por ser um gerenciador de contas com isolamento, troca rápida, bloqueio e
-  atalhos, não um web clipping. Notas ao revisor explicam.
-- Categoria: **Utilities**.
+| Item | Situação |
+|------|----------|
+| Conta Apple Developer (Team `6EZ89E2F5S`) | existe |
+| Certificado **Developer ID Application** | a configurar |
+| Assinatura com hardened runtime e entitlements necessários | a definir (hoje `build-app.sh` assina ad hoc) |
+| Notarização (`notarytool`) e grampo (`stapler`) | a configurar |
+| Embalagem (`.dmg` ou `.zip`) | a decidir |
+| Página de download | a decidir (site próprio, ex.: `falcaosl.com`) |
+| Atualização automática | a decidir |
+| Pipeline de build e release | a criar |
 
-## 3. Build `completo` (motor nativo, fase 2) — fora da Play (U-7)
+## O que nunca vai no pacote
 
-O build `completo` (web + nativo) **não** vai para a Google Play (risco de
-política e de licença, CONFORMIDADE_LOJAS / VIRTUALIZACAO). Opções de
-distribuição, a decidir:
+- **Imagens de sistema do Google** (Play e Wear): a licença proíbe
+  redistribuir. O usuário baixa e aceita dentro do app (decisão M-5).
+- **O próprio emulador**: também vem do repositório do Google pelo
+  instalador do app (MAC.md §2.7).
 
-| Canal | Prós | Contras |
-|-------|------|---------|
-| **APK no site próprio** (`duo.falcaosl.com`) | controle total; sem revisão | usuário precisa permitir "fontes desconhecidas"; sem atualização automática (ou usar um updater próprio) |
-| **Outras lojas** (Aptoide, APKPure, Samsung, F-Droid*) | alcance; atualização | políticas próprias; *F-Droid exige build reproduzível e **licença livre** — se o motor for GPL, combina; se for comercial, não entra |
-| **Não distribuir o `completo`** | zero risco | perde o diferencial do motor nativo |
+## Requisitos para o usuário
 
-Recomendação: se a fase 2 acontecer, **APK no site** como canal primário,
-mais uma loja alternativa; F-Droid só se o motor for aberto (GPL). A decisão
-de fazer a fase 2 depende de U-6 (licença) e do apetite de risco.
+- macOS 26 ou mais novo, Mac com Apple Silicon.
+- Memória: cada celular custa ~4,5 GB (medido na fase 0); um Mac de 16 GB
+  comporta ~2 aparelhos sem swap, um de 24 GB ~3–4 (MAC.md §3).
+- Disco para o emulador e as imagens baixadas.
 
-## Legal (Brasil)
+## Legal
 
-- **LGPD**: o Duo não coleta dado pessoal; ainda assim as lojas exigem
-  política de privacidade publicada ([POLITICA_DE_PRIVACIDADE.md](../publicacao/POLITICA_DE_PRIVACIDADE.md)).
-- **Termos dos serviços**: o Duo não automatiza nem raspa; isola sessões que
-  o usuário abre. Ainda assim, alguns serviços restringem múltiplas contas ou
-  clientes não oficiais — documentado em CONFORMIDADE_LOJAS. O disclaimer na
-  tela Sobre deixa claro que o Duo não é afiliado a nenhum serviço.
-
-## Idioma de lançamento (U-5)
-
-pt-BR garantido; en preparado (strings em recurso). Lançar en junto amplia o
-alcance mas dobra o trabalho de ficha e suporte — decisão do usuário.
+- **Licença das imagens do Google**: produto de consumo em área cinzenta;
+  revisar com advogado antes de vender (MAC.md §5).
+- **LGPD**: o Duo não coleta dado pessoal; mesmo assim, publicar a
+  [política de privacidade](../publicacao/POLITICA_DE_PRIVACIDADE.md) na
+  página de download.
+- **Termos dos serviços**: o Duo não automatiza contas; dizer na página que
+  alguns apps (bancos, por exemplo) não abrem em emulador.
 
 ## Cronograma resumido
 
-| Fase | Situação | Entrega |
-|------|----------|---------|
-| Especificação | **Feito** | `docs/` completo |
-| Fase 1 código | Próximo | motor web nas duas plataformas |
-| Play (build `play`) | Depois | beta fechado → produção BR |
-| App Store | Depois | revisão (Utilities) |
-| Fase 2 (nativo) | Condicional | build `completo` fora da Play, se U-6/U-7 |
+| Etapa | Situação |
+|-------|----------|
+| Fase 0 (medir) | **Feito** |
+| Fase 1 (o app) | quase feito |
+| Developer ID + notarização | a fazer |
+| Página de download e política publicada | a fazer |
+| Lançamento | a decidir |
