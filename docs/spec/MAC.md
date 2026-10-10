@@ -55,8 +55,9 @@ emulator -avd <clone> -no-window -grpc <porta> -grpc-use-token -no-audio …   �
 Alternativa mais leve, estudada e adiada: vários Androids em contêiner (Redroid)
 dentro de uma única VM Linux do Virtualization.framework. Gasta menos memória
 por instância, mas o Linux convidado não tem GPU acelerada nesse framework
-(vídeo pesa na CPU), e não há Wear OS nem Play Store. Fica para depois, como
-"modo econômico", se a fase 0 mostrar que o emulador não cabe em Macs de 8 GB.
+(vídeo pesa na CPU), e não há Wear OS nem Play Store. A fase 0 do emulador
+mostrou ~4,5 GB por celular; por isso o modo leve ganhou a sua própria fase 0
+(seção 3, "Fase 0 do modo leve").
 
 ### 2.2 Frames: o caminho mais barato possível
 
@@ -232,6 +233,101 @@ Consequências:
    (seção 2.6).
 4. Frames e entrada estão provados: `MMAP` + escala no emulador é o caminho.
 
+### Fase 0 do modo leve — Androids em contêiner (aberta em 2026-10-09)
+
+**Pergunta:** quanto custa cada aparelho quando vários Androids dividem uma
+só VM Linux, em vez de um emulador inteiro por aparelho? Se o custo cair
+para perto de 1 GB, o Duo ganha um segundo tipo de aparelho, **Leve**, ao lado
+do **Completo** (o emulador de hoje).
+
+**Arquitetura medida**
+
+```
+Mac ── Virtualization.framework ── 1 VM Linux arm64 (Ubuntu 24.04, kernel 6.8, páginas de 4 KB)
+                                     ├── binder_linux (módulo do kernel; binderfs montado pelo Redroid)
+                                     ├── Docker
+                                     ├── Redroid Android 13 (64 bits) nº 1 ┐ mesmo kernel, mesma
+                                     ├── Redroid Android 13 (64 bits) nº 2 ├ imagem do sistema em
+                                     └── …                                 ┘ cache, uma vez só
+```
+
+- **Por que uma VM com vários contêineres**, e não o framework
+  Containerization da Apple: o da Apple roda uma VM leve **por contêiner**, o
+  que desfaz justamente o que se quer medir — kernel, cache da imagem e
+  páginas iguais compartilhados entre aparelhos.
+- **Por que Lima no protótipo:** ele cria a VM com o mesmo
+  Virtualization.framework (`--vm-type=vz`) que o Duo embutiria; o protótipo
+  troca só quem liga a VM, não o hipervisor. Embutir a VM no app fica para
+  depois, se o modo leve passar.
+- **Imagem:** `redroid/redroid:13.0.0_64only-latest` (AOSP + Redroid,
+  Apache 2.0). Ao contrário das imagens do Google, **pode ser embutida e
+  redistribuída** pelo Duo — o modo leve não tem o risco de licença da seção 5.
+- **GPU:** só software (`androidboot.redroid_gpu_mode=guest`). O Linux
+  convidado do Virtualization.framework não tem aceleração 3D.
+- **Tela e toque no protótipo:** `scrcpy` pelo adb do contêiner, só para
+  olhar. No app, o caminho provável é o mesmo protocolo do scrcpy (vídeo
+  H.264 decodificado pelo VideoToolbox), a decidir depois da medição.
+
+**Ferramenta:** `mac/tools/leve.sh` (`setup`, `up <N> [ksm]`, `medir`,
+`rolar <i>`, `tela <i>`, `down`, `destruir`). VM com 6 núcleos e 12 GB; cada
+Android a 720×1600, 320 dpi, 30 fps.
+
+**O que medir** (no mesmo M4 de 24 GB da fase 0 do emulador, 45 s depois do
+boot, como no `measure-image.sh`):
+
+| # | Medida | Como |
+|---|---|---|
+| L-1 | Custo da VM vazia | `medir` sem nenhum Android ligado |
+| L-2 | Custo de 1, 4 e 8 Androids | footprint do processo da VM no Mac e memória usada dentro da VM; o custo por aparelho é a diferença dividida por N |
+| L-3 | Ganho da fusão de páginas (KSM) | repetir L-2 com `up <N> ksm`: o `ksm-exec` liga `PR_SET_MEMORY_MERGE` antes do `/init` do Android |
+| L-4 | Boot | segundos até `sys.boot_completed` |
+| L-5 | Fluidez com GPU em software | `rolar`: 20 rolagens em Configurações, quadros com atraso e percentis do `gfxinfo`; um feed de vídeo olhado no `scrcpy` |
+| L-6 | Memória devolvida ao Mac | desligar os Androids e ver se o footprint da VM cai (a VM do Lima não tem balão de memória; o app teria de ter) |
+
+**Critério para seguir:** com 8 Androids ligados, **≤ 1,5 GB por aparelho**
+no footprint do Mac e rolagem sem atraso perceptível (menos de 10% de
+quadros com atraso). Passando, o modo leve entra no plano como tipo de
+aparelho **Leve**: só celular e tablet, sem Play Store (apps por APK), sem Wear,
+GPU em software. Não passando, fica registrado aqui e o Duo segue só com o
+emulador e com a hibernação de quem está fora de foco.
+
+### Resultado da fase 0 do modo leve (2026-10-09, M4 de 24 GB)
+
+O kernel genérico do Ubuntu 24.04 arm64 traz o binder como módulo
+(`linux-modules-extra`), e ele carrega dentro da VM do Virtualization.framework.
+O Redroid Android 13 sobe com a tela inicial, e o adb do Mac chega nele pela
+porta encaminhada. Cada rodada começou com a VM reiniciada (`leve.sh reiniciar`).
+
+| # | Medida | Resultado |
+|---|---|---|
+| L-1 | VM vazia | **1,2 GB** de footprint no Mac (0,4 GB usados dentro da VM) |
+| L-2 | 1 Android | 3,0 GB no Mac; +0,7 GB usados na VM, +1,1 GB de cache da imagem |
+| L-2 | 4 Androids | 5,2 GB no Mac → **~1,0 GB por aparelho**; 3,2 GB usados na VM, cache 1,7 GB (a imagem fica uma vez só) |
+| L-2 | **8 Androids** | 8,0 GB no Mac → **~0,85 GB por aparelho**; ~0,6 GB por contêiner dentro da VM |
+| L-3 | 8 Androids com KSM | o KSM funde **~1,1 GB** de páginas iguais dentro da VM (o `ksm-exec` funciona), mas o footprint no Mac não cai (8,1 GB): ver L-6 |
+| L-4 | Boot | **4–7 s** por Android, contra 18–22 s do emulador (não há kernel para ligar) |
+| L-5 | Rolagem com GPU em software | 0,74% de quadros com atraso; mediana de 34–36 ms por quadro (~29 fps, no limite de 30 fps configurado), igual com 4 e com 8 ligados. Feed de vídeo ainda não olhado |
+| — | CPU com 8 parados | 31% de um núcleo no total (~4% por aparelho; o emulador fica em 5,7%) |
+| L-6 | Desligar os 8 | o footprint **continua em 8,1 GB**: a VM não devolve ao macOS a memória que já tocou |
+
+Consequências:
+
+1. **O critério passou.** ~0,85 GB por aparelho contra ~4,5 GB do emulador:
+   **cerca de 5 vezes menos**. Um Mac de 24 GB comporta uns 15–18 aparelhos
+   leves ligados em vez de 3–4; um de 16 GB, uns 8–10 em vez de 2.
+2. **A VM do app precisa de balão de memória**
+   (`VZVirtioTraditionalMemoryBalloonDevice`). Sem ele, desligar aparelhos
+   não devolve nada ao Mac, e o ganho do KSM fica preso dentro da VM. O Duo
+   encolhe a VM pelo balão quando aparelhos desligam; com isso, o KSM deve
+   levar o custo para perto de 0,7 GB (a medir depois do balão).
+3. **A rolagem simples está boa, mas sem folga**: a GPU em software segura
+   30 fps e não 60. Falta olhar um feed de vídeo (`leve.sh tela`) antes de
+   prometer redes sociais no modo leve.
+4. **O que falta provar:** apps reais por APK sem os serviços do Google
+   (testar Instagram, TikTok, WhatsApp; microG como opção), vídeo, e o caminho
+   de tela e toque no app (protocolo do scrcpy com VideoToolbox) — próxima
+   rodada antes de entrar no plano como tipo **Leve**.
+
 ## 4. Decisões
 
 | # | Decisão | Por quê |
@@ -250,5 +346,5 @@ Consequências:
 | **Licença das imagens do Google** (Play e Wear): o SDK é licenciado "somente para desenvolver aplicativos" e não pode ser redistribuído | produto de consumo em área cinzenta | o Duo **nunca** embute nem redistribui imagens: o usuário as baixa do Google pelo instalador, aceitando a licença; oferecer imagens AOSP (sem Google) como opção; revisar com advogado antes de vender |
 | Apps que bloqueiam emulador (integridade do Play) | bancos e alguns apps não abrem | dizer na ficha; não tentar burlar a verificação |
 | Termos dos serviços (várias contas, automação) | conta do usuário suspensa | o Duo isola contas; a sincronização de entrada é manual e visível, sem roteiro automático |
-| Memória em Macs de 8 GB | poucas instâncias | medir na fase 0; modo econômico (Redroid) como plano B |
+| Memória: ~4,5 GB por celular no emulador | 2 aparelhos num Mac de 16 GB | hibernar quem está fora de foco; modo leve em contêiner (fase 0 do modo leve) |
 | Mudanças no emulador | quebra da API gRPC | fixar a versão do emulador por release do Duo; testes contra o proto |

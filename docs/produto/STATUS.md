@@ -33,11 +33,13 @@ celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 | Quadro | voltar, início, recentes, volume, girar, digitar, captura de tela, pausar, desligar |
 | Tela e entrada | `streamScreenshot` por `MMAP` escalado no emulador; toque e teclas por gRPC |
 | Instalador | emulador e imagens baixados de dl.google.com, licença no app, SHA-1, atualizar com aparelhos ligados, importar do Android Studio |
+| Modo leve (fase 0) | protótipo `mac/tools/leve.sh`: Redroid em contêiner numa VM do Virtualization.framework; medido em 2026-10-09, ~0,85 GB por aparelho com 8 ligados contra ~4,5 GB do emulador (MAC.md §3) |
 
 ## O que falta
 
 - Medir o critério da fase 1 num Mac limpo.
 - Fase 2 inteira.
+- Modo leve: balão de memória na VM, apps reais por APK sem serviços do Google, feed de vídeo, tela e toque pelo protocolo do scrcpy.
 - Desenho por Metal (decisão M-2): hoje a tela é desenhada como imagem no
   SwiftUI.
 - Assinatura Developer ID, notarização e canal de download (DISTRIBUICAO).
