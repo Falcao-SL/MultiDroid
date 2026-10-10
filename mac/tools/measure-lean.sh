@@ -8,11 +8,17 @@
 #   mac/tools/measure-lean.sh sw   swiftshader 1080x2424 420 2048
 #
 # gpu: host | swiftshader | swangle | lavapipe | software (emulator -help-gpu)
+# Outra imagem ou outro SDK (por exemplo o do Android Studio):
+#   MD_LEAN_IMG=system-images/android-36/google_apis_playstore/arm64-v8a/ \
+#   MD_LEAN_SDK=~/Library/Android/sdk mac/tools/measure-lean.sh a36 host 1080x2424 420 2048
 set -u
 NAME=$1; GPU=$2; RES=$3; DPI=$4; RAM=$5
 W=${RES%x*}; H=${RES#*x}
 MD="$HOME/Library/Application Support/MultiDroid"
-SDK="$MD/sdk"
+SDK=${MD_LEAN_SDK:-"$MD/sdk"}
+IMG=${MD_LEAN_IMG:-system-images/android-33/google_apis_playstore/arm64-v8a/}
+TAG=$(basename "$(dirname "$IMG")")
+API=$(basename "$(dirname "$(dirname "$IMG")")")
 ADB=${ADB:-$HOME/Library/Android/sdk/platform-tools/adb}
 WORK=${TMPDIR:-/tmp}/multidroid-lean
 AVD=$WORK/avd
@@ -27,7 +33,7 @@ mkdir -p "$AVD"
 # Aparelho de teste: os mesmos campos que o Catalog.config do app grava para o celular.
 rm -rf "$AVD/$NAME.avd" "$AVD/$NAME.ini"
 mkdir -p "$AVD/$NAME.avd"
-printf 'avd.ini.encoding=UTF-8\npath=%s\ntarget=android-33\n' "$AVD/$NAME.avd" > "$AVD/$NAME.ini"
+printf 'avd.ini.encoding=UTF-8\npath=%s\ntarget=%s\n' "$AVD/$NAME.avd" "$API" > "$AVD/$NAME.ini"
 cat > "$AVD/$NAME.avd/config.ini" <<EOF
 avd.ini.encoding=UTF-8
 AvdId=$NAME
@@ -51,8 +57,8 @@ hw.sdCard=no
 hw.camera.back=none
 hw.camera.front=none
 disk.dataPartition.size=6G
-image.sysdir.1=system-images/android-33/google_apis_playstore/arm64-v8a/
-tag.id=google_apis_playstore
+image.sysdir.1=$IMG
+tag.id=$TAG
 PlayStore.enabled=no
 EOF
 

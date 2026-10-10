@@ -83,12 +83,25 @@ enum Images {
         return "\(uso) · API \(api)\(extra)"
     }
 
+    static let play36 = "system-images;android-36;google_apis_playstore;arm64-v8a"
+
+    /// As que levam o selo de recomendada, com o motivo: leves (o emulador
+    /// pede pouca RAM), completas (com Play Store) e as mais novas nessas
+    /// condições. Medido no MAC.md §3: o emulador força 2 GB no Android 13,
+    /// 2,5 GB do 14 ao 16 e 4 GB no 17.
+    static let recommended: [String: String] = [
+        play33: "Recomendada: a mais leve, com Play Store (o emulador usa 2 GB de RAM; ~4,6 GB por celular).",
+        play36: "Recomendada: a mais nova que ainda é leve, com Play Store (2,5 GB de RAM; ~5,3 GB por celular).",
+        wear33: "Recomendada: a única versão do Wear OS que liga neste emulador.",
+    ]
+
     /// O que a fase 0 mediu (MAC.md §3) e vale avisar antes de baixar.
     static func note(_ path: String) -> String? {
-        if path == play33 || path == wear33 { return "Recomendada: a mais leve que o MultiDroid mediu." }
+        if let why = recommended[path] { return why }
         guard let (api, tag) = parts(path), let n = Int(api.split(separator: ".").first ?? "") else { return nil }
         if tag.hasPrefix("android-wear"), n > 33 { return "Não ligou neste emulador nos testes do MultiDroid." }
-        if n >= 37 { return "O emulador força 4 GB de RAM nesta versão: custa mais memória." }
+        if n >= 37 { return "O emulador força 4 GB de RAM nesta versão: ~6,5 GB por celular." }
+        if n >= 34 { return "O emulador força 2,5 GB de RAM nesta versão: ~0,7 GB a mais por celular que o Android 13." }
         return nil
     }
 

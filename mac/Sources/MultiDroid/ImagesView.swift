@@ -129,7 +129,10 @@ struct ImagesSheet: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(Images.title(path)).font(.system(size: 14, weight: .heavy)).fixedSize(horizontal: false, vertical: true)
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(Images.title(path)).font(.system(size: 14, weight: .heavy)).fixedSize(horizontal: false, vertical: true)
+                        if Images.recommended[path] != nil { RecommendedBadge() }
+                    }
                     Text(Images.detail(path)).font(.system(size: 11, weight: .medium)).opacity(0.7)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(status(have: have, pkg: pkg)).font(.system(size: 11, weight: .bold).monospacedDigit()).opacity(0.85)
@@ -142,8 +145,9 @@ struct ImagesSheet: View {
                         Text(n).font(.system(size: 11, weight: .semibold)).opacity(0.65).fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                .layoutPriority(1)
-                Spacer()
+                Spacer(minLength: 12)
+                // Os botões nunca quebram o nome: o texto da esquerda é que se ajusta.
+                HStack(spacing: 8) {
                 if busy {
                     Button("Cancelar") { store.cancel(path) }.buttonStyle(BrutalButtonStyle(fill: .white))
                 } else {
@@ -165,6 +169,8 @@ struct ImagesSheet: View {
                             .help(running.isEmpty ? "Remover" : "Em uso: desligue \(running.joined(separator: ", ")) antes")
                     }
                 }
+                }
+                .fixedSize()
             }
             if let f = store.progress[path] {
                 HStack(spacing: 8) {
@@ -268,5 +274,19 @@ struct LicenseSheet: View {
         }
         .padding(24)
         .frame(width: 600)
+    }
+}
+
+/// Selo das imagens que o MultiDroid indica (Images.recommended); o motivo
+/// aparece na nota da linha.
+struct RecommendedBadge: View {
+    var body: some View {
+        Text("RECOMENDADA")
+            .font(.system(size: 9, weight: .black)).tracking(0.8)
+            .foregroundStyle(Tema.tintaSobreAcento)
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(Tema.amarelo, in: RoundedRectangle(cornerRadius: 4))
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Tema.tintaSobreAcento, lineWidth: 1.5))
+            .fixedSize()
     }
 }

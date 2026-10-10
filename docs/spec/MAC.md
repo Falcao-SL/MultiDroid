@@ -122,7 +122,7 @@ faz com os aparelhos sai daqui:
 | Ações em lote | selecionar vários e ligar/pausar/hibernar/desligar/duplicar de uma vez; ligar um grupo inteiro |
 | Grupos | agrupar aparelhos por conta ou projeto; a grade segue os grupos |
 | Criar aparelho | escolher perfil (2.5), **imagem** (entre as instaladas que servem para o tipo; sugere a padrão), nome, grupo; mostra quanto de memória vai custar antes de criar |
-| Imagens | emulador; **instaladas** (com os aparelhos que usam cada uma) e **disponíveis no Google**: todas as imagens arm64 do canal estável a partir do Android 11 — com Google Play, com APIs do Google e Wear OS (sem as variantes `-ext`, beta, canary e 16 KB). Baixar, copiar do Android Studio, atualizar e remover; remover pede confirmação, diz quanto libera e quais aparelhos deixam de ligar, e só é bloqueado com um deles ligado. Avisos do que a fase 0 mediu (Wear acima do 13 não liga; Android 17 força 4 GB) |
+| Imagens | emulador; **instaladas** (com os aparelhos que usam cada uma) e **disponíveis no Google**: todas as imagens arm64 do canal estável a partir do Android 11 — com Google Play, com APIs do Google e Wear OS (sem as variantes `-ext`, beta, canary e 16 KB). Baixar, copiar do Android Studio, atualizar e remover; remover pede confirmação, diz quanto libera e quais aparelhos deixam de ligar, e só é bloqueado com um deles ligado. Selo **Recomendada** e avisos do que foi medido (Wear acima do 13 não liga; Android 14–16 forçam 2,5 GB e o 17, 4 GB) |
 | Sincronizar | marcar quais aparelhos repetem a entrada do aparelho em foco |
 | Limite de memória | o teto fica no cartão de memória, no topo do painel: valor em destaque, − e +, controle deslizante e quantos celulares cabem acordados; avisa ao mudar e quando os ligados já passam dele. Ao passar do teto, o MultiDroid hiberna quem está há mais tempo sem uso (2.3); a folha Novo aparelho avisa antes se ligar vai hibernar alguém |
 
@@ -275,6 +275,22 @@ Consequências:
    em ~4,4 GB, e um Mac de 24 GB continua com 4–5 acordados. Para mais que
    isso, só o modo leve (abaixo) ou um Mac com mais memória; para muitas
    contas em alternância, a hibernação (2.3).
+
+**Por versão do Android** (mesma medição, imagens com Play, tela e RAM da
+base; `MD_LEAN_IMG`/`MD_LEAN_SDK` escolhem a imagem):
+
+| Android | RAM que o emulador força | Memória parado | Rolagem com atraso | Vídeo |
+|---|---|---|---|---|
+| 13 (API 33) | 2 GB | 4,6–4,7 GB | 0,4–4,8% | toca |
+| 14 (API 34) | 2,5 GB | 5,3 GB (2,8 GB) | 1,1% | toca |
+| 15 (API 35) | 2,5 GB | 5,2 GB (2,8 GB) | 0,4% | toca |
+| 16 (API 36) | 2,5 GB | 5,4 GB (2,9 GB) | 2,3% | toca |
+| 16 com APIs do Google (sem Play) | 2,5 GB | 5,2 GB (2,7 GB) | 2,8% | toca |
+| 17 (API 37) | 4 GB | 6,4–7,4 GB | — | — |
+
+Daí o selo **Recomendada** na tela Imagens: Android 13 com Play (a mais
+leve), Android 16 com Play (a mais nova que fica em 2,5 GB) e Wear OS 13 (a
+única que liga). As demais mostram quanto custam a mais.
 
 ### Fase 0 do modo leve — Androids em contêiner (aberta em 2026-10-09)
 

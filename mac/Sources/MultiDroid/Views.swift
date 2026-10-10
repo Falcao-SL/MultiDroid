@@ -632,7 +632,7 @@ struct NewDeviceSheet: View {
             let options = model.images.installedImages(for: kind)
             if !options.isEmpty {
                 Picker("Imagem", selection: $image) {
-                    ForEach(options, id: \.self) { Text(Images.title($0)).tag(Optional($0)) }
+                    ForEach(options, id: \.self) { Text(Images.title($0) + (Images.recommended[$0] != nil ? "  ★ recomendada" : "")).tag(Optional($0)) }
                 }
                 .font(.system(size: 13, weight: .semibold))
                 if let image {
@@ -690,11 +690,12 @@ struct NewDeviceSheet: View {
         .onChange(of: kind) { pickImage() }
     }
 
-    /// Ao abrir e ao trocar o tipo: a imagem sugerida, se instalada; senão a
-    /// mais nova instalada que sirva.
+    /// Ao abrir e ao trocar o tipo: a imagem sugerida, se instalada; senão uma
+    /// recomendada; senão a mais nova instalada que sirva.
     private func pickImage() {
         let options = model.images.installedImages(for: kind)
-        image = options.contains(kind.defaultImage) ? kind.defaultImage : options.first
+        image = options.contains(kind.defaultImage) ? kind.defaultImage
+            : options.first { Images.recommended[$0] != nil } ?? options.first
     }
 
     /// O emulador só aceita letras sem acento, números, ponto, _ e - no nome do
