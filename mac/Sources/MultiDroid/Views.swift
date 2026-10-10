@@ -690,16 +690,16 @@ struct NewDeviceSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             HStack {
-                Spacer()
-                Button("Cancelar") { dismiss() }.buttonStyle(BrutalButtonStyle(fill: .white))
                 if busy, let image, let f = model.images.progress[image] {
-                    Button("Cancelar download") { model.images.cancel(image) }.buttonStyle(BrutalButtonStyle(fill: .white))
-                    Text(model.images.phase[image] == "baixando" ? "Baixando \(Int(f * 100))%" : (model.images.phase[image] ?? "…"))
+                    Text(model.images.phase[image] == "baixando" ? "Baixando \(Int(f * 100))%" : (model.images.phase[image] ?? "…").capitalized)
                         .font(.system(size: 12, weight: .bold).monospacedDigit())
+                    Spacer()
+                    Button("Cancelar download") { model.images.cancel(image) }.buttonStyle(BrutalButtonStyle(fill: .white))
                 } else {
+                    Spacer()
                     Button("Cancelar") { dismiss() }.buttonStyle(BrutalButtonStyle(fill: .white))
                 }
-                Button(busy ? "Criando…" : needsDownload ? "Baixar e criar" : "Criar") { create() }
+                Button(busy ? (needsDownload ? "Baixando…" : "Criando…") : needsDownload ? "Baixar e criar" : "Criar") { create() }
                     .buttonStyle(BrutalButtonStyle())
                     .disabled(busy || !valid || image == nil)
             }
