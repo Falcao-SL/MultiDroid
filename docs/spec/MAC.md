@@ -307,7 +307,7 @@ porta encaminhada. Cada rodada começou com a VM reiniciada (`leve.sh reiniciar`
 | L-3 | 8 Androids com KSM | o KSM funde **~1,1 GB** de páginas iguais dentro da VM (o `ksm-exec` funciona), mas o footprint no Mac não cai (8,1 GB): ver L-6 |
 | L-4 | Boot | **4–7 s** por Android, contra 18–22 s do emulador (não há kernel para ligar) |
 | L-5 | Rolagem com GPU em software | 0,74% de quadros com atraso; mediana de 34–36 ms por quadro (~29 fps, no limite de 30 fps configurado), igual com 4 e com 8 ligados |
-| L-5 | **Vídeo** (H.264 720×1280, Galeria) | **não toca**: tela preta. O decodificador de software (`c2.android.avc.decoder`) falha com `graphic view map failed 14` e o NuPlayer desiste. Testado sem sucesso: `androidboot.use_memfd=true` (o kernel 6.8 não tem ashmem; o parâmetro ficou no script por ser o recomendado), placa `virtio-gpu` na VM (`/dev/dri` aparece, nada muda) e gralloc `gbm` (o init do Redroid fixa `ro.hardware.gralloc=redroid`). |
+| L-5 | **Vídeo** (H.264 720×1280, Galeria) | **não toca**: tela preta. O decodificador de software (`c2.android.avc.decoder`) falha com `graphic view map failed 14` e o NuPlayer desiste. Testado sem sucesso: `androidboot.use_memfd=true` (o kernel 6.8 não tem ashmem; o parâmetro ficou no script por ser o recomendado), placa `virtio-gpu` na VM (`/dev/dri` aparece, nada muda) e gralloc `gbm` (o init do Redroid fixa `ro.hardware.gralloc=redroid`). **Redroid 12 e 14 falham igual** (`leve.sh video`), então não é a versão: é o gralloc do Redroid com GPU em software nesta VM. |
 | — | CPU com 8 parados | 31% de um núcleo no total (~4% por aparelho; o emulador fica em 5,7%) |
 | L-6 | Desligar os 8 | o footprint **continua em 8,1 GB**: a VM não devolve ao macOS a memória que já tocou |
 
@@ -324,9 +324,9 @@ Consequências:
 3. **A rolagem simples está boa, mas sem folga**: a GPU em software segura
    30 fps e não 60.
 4. **Vídeo é o bloqueio.** Sem vídeo não há rede social no modo leve. Próximas
-   tentativas, em ordem: outra versão do Redroid (12 e 14 têm gralloc e
-   codecs diferentes); decodificar em memória comum em vez de buffer gráfico
-   (exige mexer na imagem); por fim, imagem própria a partir do AOSP. Até
+   tentativas, em ordem: ~~outra versão do Redroid~~ (12 e 14 testados em
+   2026-10-10, falham igual); decodificar em memória comum em vez de buffer
+   gráfico (exige mexer na imagem); por fim, imagem própria a partir do AOSP. Até
    lá, o critério da fase 0 **não** está fechado.
 5. **O que falta provar:** apps reais por APK sem os serviços do Google
    (testar Instagram, TikTok, WhatsApp; microG como opção), vídeo, e o caminho

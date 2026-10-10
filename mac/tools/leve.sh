@@ -9,6 +9,7 @@
 #   mac/tools/leve.sh up <N> [ksm]          liga N Androids (ksm: liga a fusão de páginas)
 #   mac/tools/leve.sh medir                 uma linha com memória do Mac, da VM e de cada Android
 #   mac/tools/leve.sh rolar <i>             rola Configurações no Android i e mede quadros com atraso
+#   mac/tools/leve.sh video <i>             toca um vídeo de feed no Android i e conta erros do decodificador
 #   mac/tools/leve.sh tela <i>              mostra o Android i com o scrcpy (brew install scrcpy)
 #   mac/tools/leve.sh down                  desliga os Androids (a VM continua)
 #   mac/tools/leve.sh reiniciar             reinicia a VM, para cada rodada começar do zero
@@ -109,6 +110,22 @@ rolar)
     grep -E 'Total frames rendered|Janky frames:|50th percentile|90th percentile|99th percentile' | sed 's/^ *//'
   ;;
 
+video)   # toca um vídeo vertical H.264 (feed) e diz se o decodificador deu conta
+  i=${2:-1}; s=127.0.0.1:$((PORTA0+i)); dir=${TMPDIR:-/tmp}/duo-leve; mkdir -p "$dir"
+  [ -f "$dir/feed.mp4" ] || ffmpeg -loglevel error -y -f lavfi -i "testsrc2=size=720x1280:rate=30,format=yuv420p" \
+    -f lavfi -i "sine=frequency=440" -t 60 -c:v libx264 -profile:v high -b:v 3M -c:a aac -shortest "$dir/feed.mp4"
+  "$ADB" connect $s >/dev/null
+  "$ADB" -s $s logcat -c
+  "$ADB" -s $s push -q "$dir/feed.mp4" /data/local/tmp/feed.mp4
+  "$ADB" -s $s shell 'chmod 644 /data/local/tmp/feed.mp4; settings put secure immersive_mode_confirmations confirmed
+    am start -W -a android.intent.action.VIEW -d file:///data/local/tmp/feed.mp4 -t video/mp4' >/dev/null
+  sleep 12
+  "$ADB" -s $s exec-out screencap -p > "$dir/video-$i.png"
+  erros=$("$ADB" -s $s logcat -d | grep -cE 'graphic view map failed|NuPlayer.*error')
+  cpu=$("$ADB" -s $s shell top -b -n1 | awk '/%cpu/{print $2, $4; exit}')
+  echo "Android $i: $(sdo docker inspect -f '{{.Config.Image}}' duo-leve-$i) | erros do decodificador: $erros | CPU do Android: ${cpu:-?} | tela: $dir/video-$i.png"
+  ;;
+
 tela)
   i=${2:-1}
   command -v scrcpy >/dev/null || { echo "instale: brew install scrcpy"; exit 1; }
@@ -131,5 +148,5 @@ reiniciar)   # zera o footprint no Mac: a VM não devolve ao macOS a memória qu
   ;;
 
 *)
-  sed -n '2,20p' "$0"; exit 1 ;;
+  sed -n '2,22p' "$0"; exit 1 ;;
 esac
