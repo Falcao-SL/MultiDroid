@@ -7,7 +7,7 @@ contas, organizados numa mesa.**
 |---|---|
 | **Plataforma** | macOS 26, Apple Silicon — só Mac ([spec/MAC.md](../spec/MAC.md)) |
 | **Idioma** | Português do Brasil (a interface hoje); outros idiomas a decidir |
-| **Preço** | A decidir ([`MONETIZACAO.md`](MONETIZACAO.md)) |
+| **Preço** | Grátis, código aberto (GPL-3.0); sem monetização ([`MONETIZACAO.md`](MONETIZACAO.md)) |
 | **Estado** | ver [`STATUS.md`](STATUS.md) |
 
 ## O problema

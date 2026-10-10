@@ -31,7 +31,7 @@ Emulator oficial sem janela.
 | [produto/PRODUTO.md](produto/PRODUTO.md) | O que é, para quem, o que não faz |
 | [produto/STATUS.md](produto/STATUS.md) | Estágio, o que existe, o que falta, riscos |
 | [produto/DISTRIBUICAO.md](produto/DISTRIBUICAO.md) | Developer ID + notarização, fora da Mac App Store |
-| [produto/MONETIZACAO.md](produto/MONETIZACAO.md) | Opções — a decidir |
+| [produto/MONETIZACAO.md](produto/MONETIZACAO.md) | Sem monetização: código aberto, GPL-3.0 |
 | [produto/MARKETING_ASO.md](produto/MARKETING_ASO.md) | Posicionamento, nome, público, canais |
 
 ## Publicação — [`publicacao/`](publicacao)

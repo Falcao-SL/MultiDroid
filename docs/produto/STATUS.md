@@ -9,7 +9,7 @@
 | **Versão** | 0.1 (build 1), assinatura ad hoc (`scripts/build-app.sh`) |
 | **Identificador** | `com.falcaosl.duo.mac` · Apple Team `6EZ89E2F5S` |
 | **Distribuição** | Developer ID + notarização, fora da Mac App Store (decisão M-6); ainda não configurada |
-| **Monetização** | **A decidir** ([MONETIZACAO.md](MONETIZACAO.md)) |
+| **Monetização** | **Nenhuma: código aberto, GPL-3.0** (2026-10-10; [MONETIZACAO.md](MONETIZACAO.md)) |
 | **Próximo marco** | Fechar o critério da fase 1: criar, duplicar e organizar 4 celulares + 1 relógio em menos de 5 minutos num Mac limpo |
 
 Em 2026-10-09 o Duo passou a ser só o app de Mac. O plano dos apps de
@@ -44,9 +44,9 @@ celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 - Desenho por Metal (decisão M-2): hoje a tela é desenhada como imagem no
   SwiftUI.
 - Assinatura Developer ID, notarização e canal de download (DISTRIBUICAO).
-- Decidir monetização, nome público, idiomas e site.
-- Revisar com advogado a licença das imagens do Google antes de vender
-  (MAC.md §5).
+- Decidir nome público, idiomas e site; revisar o histórico do git antes de tornar o repositório público.
+- Revisar com advogado a licença das imagens do Google antes de tornar o
+  repositório público (MAC.md §5).
 
 ## Riscos
 

@@ -2,7 +2,7 @@
 
 O Duo é um app de Mac distribuído **fora da Mac App Store**, assinado com
 **Developer ID** e **notarizado** pela Apple (decisão M-6, [spec/MAC.md §4](../spec/MAC.md)).
-O preço está a decidir ([MONETIZACAO.md](MONETIZACAO.md)).
+É **grátis e de código aberto**, sob a GPL-3.0 ([MONETIZACAO.md](MONETIZACAO.md)).
 
 ## Por que fora da Mac App Store
 
@@ -20,9 +20,10 @@ desenvolvedor desconhecido.
 | Assinatura com hardened runtime e entitlements necessários | a definir (hoje `build-app.sh` assina ad hoc) |
 | Notarização (`notarytool`) e grampo (`stapler`) | a configurar |
 | Embalagem (`.dmg` ou `.zip`) | a decidir |
-| Página de download | a decidir (site próprio, ex.: `falcaosl.com`) |
+| Página de download | GitHub Releases do repositório (público quando o dono decidir); página no `falcaosl.com` apontando para lá |
+| Homebrew cask | depois da primeira release notarizada |
 | Atualização automática | a decidir |
-| Pipeline de build e release | a criar |
+| Pipeline de build e release | a criar (GitHub Actions: compilar, assinar, notarizar, anexar à release) |
 
 ## O que nunca vai no pacote
 
@@ -40,8 +41,11 @@ desenvolvedor desconhecido.
 
 ## Legal
 
-- **Licença das imagens do Google**: produto de consumo em área cinzenta;
-  revisar com advogado antes de vender (MAC.md §5).
+- **Licença do Duo**: GPL-3.0 ([LICENSE](../../LICENSE)); cada release publica o
+  código-fonte junto.
+- **Licença das imagens do Google**: o Duo não vende nada nem redistribui as
+  imagens, mas um app de uso geral que as baixa continua em área cinzenta;
+  revisar com advogado antes de tornar o repositório público (MAC.md §5).
 - **LGPD**: o Duo não coleta dado pessoal; mesmo assim, publicar a
   [política de privacidade](../publicacao/POLITICA_DE_PRIVACIDADE.md) na
   página de download.

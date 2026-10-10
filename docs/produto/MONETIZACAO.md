@@ -1,40 +1,28 @@
 # Monetização — Duo
 
-**Modelo: a decidir pelo dono.** Este documento lista opções; nenhuma está
-implementada. O Duo para Mac hoje não tem compra, assinatura, licença nem
-anúncio.
+**Sem monetização. O Duo é código aberto, sob a [GPL-3.0](../../LICENSE)**
+(decisão do dono, 2026-10-10). Grátis, sem versão paga, sem compra, sem
+assinatura, sem anúncio e sem pedido de doação dentro do app.
 
 > Mudar isso é reescrever este arquivo primeiro, com data, e só depois mexer
 > no código.
 
-## O que vale em qualquer modelo
+## Por que GPL-3.0
 
-- Sem anúncios e sem SDK de anúncio ou analytics (o app não coleta nada).
+Quem distribuir uma versão modificada do Duo tem de distribuir também o
+código-fonte, sob a mesma licença. Ninguém pode fechar o Duo e vendê-lo
+como produto próprio. As dependências são compatíveis: gRPC Swift e
+SwiftProtobuf (Apache 2.0) e o `.proto` do Android Emulator (Apache 2.0).
+
+## O que vale
+
+- Sem SDK de anúncio ou analytics; o app não coleta nada.
 - Sem servidor de operação: o custo recorrente é ~zero.
-- Fora da Mac App Store (decisão M-6): não há compra pela loja da Apple;
-  qualquer cobrança precisa de um meio próprio.
-- **Antes de vender**: revisar com advogado a licença das imagens do Google
-  (MAC.md §5). Cobrar pelo Duo não pode significar cobrar pelas imagens, que
-  o usuário sempre baixa do Google.
+- As imagens do Google continuam fora do pacote: o usuário as baixa do
+  Google pelo instalador do app e aceita a licença delas (MAC.md §5). A GPL
+  vale para o código do Duo, não para as imagens nem para o emulador.
 
-## Opções
+## Histórico
 
-| Modelo | Como | Prós | Contras |
-|--------|------|------|---------|
-| **A. Grátis** | tudo liberado | máxima adoção; nenhum meio de pagamento a manter | nenhuma receita |
-| **B. Grátis + versão paga** | limite de aparelhos ou recursos no grátis (ex.: sincronizar entrada, fase 2) liberados por licença | converte quem usa muitos aparelhos, o público principal | precisa de licença e meio de pagamento fora da loja |
-| **C. Compra única** | uma licença vitalícia por versão maior | simples; comum em apps de Mac fora da loja | receita não recorre |
-| **D. Assinatura** | recursos pagos enquanto assina | receita recorrente | atrito; precisa de verificação de licença |
-
-Valores, limites e meio de pagamento: **a decidir**.
-
-## Como implementar quando decidir (esqueleto)
-
-- Ponto único no código que decide o que está liberado (hoje não existe).
-- Aparelhos já criados nunca são apagados por mudança de plano.
-- Verificação de licença sem enviar dados de uso.
-
-## Recomendação
-
-Nenhuma ainda. A decisão depende da revisão jurídica da licença das imagens
-e do público que a fase 1 atrair. **Decisão é do dono.**
+Até 2026-10-10 este arquivo listava opções (grátis, grátis + paga, compra
+única, assinatura), todas a decidir. Ficam no histórico do git.

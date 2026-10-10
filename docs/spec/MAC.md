@@ -389,12 +389,13 @@ Consequências:
 | M-4 | Duplicar com `clonefile` do APFS | instantâneo e sem custo de disco |
 | M-5 | Todos os tipos de aparelho desde o começo, com imagens Google Play e Wear (2026-10-07) | decisão do dono, ciente do risco de licença abaixo |
 | M-6 | Distribuição fora da Mac App Store (Developer ID, notarizado) | o app baixa e executa imagens de sistema e usa o hypervisor; a MAS não aceita |
+| M-7 | Código aberto sob GPL-3.0, sem monetização (2026-10-10) | decisão do dono; a GPL impede que uma versão modificada seja fechada e vendida |
 
 ## 5. Riscos
 
 | Risco | Efeito | O que fazer |
 |---|---|---|
-| **Licença das imagens do Google** (Play e Wear): o SDK é licenciado "somente para desenvolver aplicativos" e não pode ser redistribuído | produto de consumo em área cinzenta | o Duo **nunca** embute nem redistribui imagens: o usuário as baixa do Google pelo instalador, aceitando a licença; oferecer imagens AOSP (sem Google) como opção; revisar com advogado antes de vender |
+| **Licença das imagens do Google** (Play e Wear): o SDK é licenciado "somente para desenvolver aplicativos" e não pode ser redistribuído | produto de consumo em área cinzenta | o Duo **nunca** embute nem redistribui imagens: o usuário as baixa do Google pelo instalador, aceitando a licença; oferecer imagens AOSP (sem Google) como opção; revisar com advogado antes de tornar o repositório público |
 | Apps que bloqueiam emulador (integridade do Play) | bancos e alguns apps não abrem | dizer na ficha; não tentar burlar a verificação |
 | Termos dos serviços (várias contas, automação) | conta do usuário suspensa | o Duo isola contas; a sincronização de entrada é manual e visível, sem roteiro automático |
 | Memória: ~4,5 GB por celular no emulador | 2 aparelhos num Mac de 16 GB | hibernar quem está fora de foco; modo leve em contêiner (fase 0 do modo leve) |

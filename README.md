@@ -11,6 +11,7 @@ mesa que você arruma do seu jeito. O Duo é um app só para Mac.
 | **Versão** | 0.1, em construção |
 | **Identificador** | `com.falcaosl.duo.mac` |
 | **Spec** | [`docs/spec/MAC.md`](docs/spec/MAC.md) |
+| **Licença** | código aberto, [GPL-3.0](LICENSE); grátis, sem monetização |
 
 ## Como funciona
 
