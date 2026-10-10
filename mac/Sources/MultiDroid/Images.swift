@@ -20,6 +20,9 @@ enum Images {
     /// repositório do Google. Só arm64-v8a (nativas no Apple Silicon), canal
     /// estável, do Android 11 (API 30) em diante.
     static let tags = ["google_apis_playstore", "google_apis", "default", "android-wear"]
+    /// Pasta de cada lista no repositório: a das imagens sem Google (tag
+    /// "default") fica em sys-img/android, não em sys-img/default.
+    static func listDir(_ tag: String) -> String { tag == "default" ? "android" : tag }
     static let minAPI = 30
 
     /// "system-images;android-34;google_apis;arm64-v8a" → ("34", "google_apis");
@@ -100,7 +103,7 @@ enum Images {
         }
     }
 
-    static func tagListURL(_ tag: String) -> URL { repo.appendingPathComponent("sys-img/\(tag)/sys-img2-3.xml") }
+    static func tagListURL(_ tag: String) -> URL { repo.appendingPathComponent("sys-img/\(listDir(tag))/sys-img2-3.xml") }
 
     /// Imagens instaladas numa pasta de SDK (a do MultiDroid ou a do Android Studio).
     static func scanInstalled(root: URL = SDK.root) -> [String: String] {
@@ -183,27 +186,35 @@ final class ImageStore {
     func refresh() async {
         loading = true
         defer { loading = false }
+        var out: [String: RemotePackage] = [:]
+        var failures: [String] = []
+        // Cada lista é independente: uma que falhe não esconde as outras.
+        let main = Images.repo.appendingPathComponent("repository2-3.xml")
         do {
-            var out: [String: RemotePackage] = [:]
-            let main = Images.repo.appendingPathComponent("repository2-3.xml")
-            let (data, _) = try await URLSession.shared.data(from: main)
-            if let pkg = try Self.parse(try XMLDocument(data: data), path: Images.emulator, base: Images.repo) {
+            if let pkg = try Self.parse(try await Self.xml(main), path: Images.emulator, base: Images.repo) {
                 out[Images.emulator] = pkg
             }
-            for tag in Images.tags {
-                let u = Images.tagListURL(tag)
-                let (data, _) = try await URLSession.shared.data(from: u)
-                let doc = try XMLDocument(data: data)
+        } catch { failures.append("emulador (\(error.localizedDescription))") }
+        for tag in Images.tags {
+            let u = Images.tagListURL(tag)
+            do {
+                let doc = try await Self.xml(u)
                 let paths = try doc.nodes(forXPath: "//remotePackage/@path").compactMap(\.stringValue)
                 for p in Set(paths) where Images.parts(p) != nil && Images.apiNumber(p) >= Double(Images.minAPI) {
                     if let pkg = try Self.parse(doc, path: p, base: u.deletingLastPathComponent()) { out[p] = pkg }
                 }
-            }
-            remote = out
-            error = nil
-        } catch {
-            self.error = "Sem acesso ao repositório do Google: \(error.localizedDescription)"
+            } catch { failures.append("\(tag) (\(error.localizedDescription))") }
         }
+        remote = out
+        error = failures.isEmpty ? nil : "Não li do Google: " + failures.joined(separator: "; ")
+    }
+
+    private static func xml(_ url: URL) async throws -> XMLDocument {
+        let (data, response) = try await URLSession.shared.data(from: url)
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+            throw InstallError("o Google respondeu \(http.statusCode)")
+        }
+        return try XMLDocument(data: data)
     }
 
     nonisolated static func parse(_ doc: XMLDocument, path: String, base: URL) throws -> RemotePackage? {

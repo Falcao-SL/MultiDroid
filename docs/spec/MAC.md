@@ -133,7 +133,7 @@ Tudo mora em `~/Library/Application Support/MultiDroid/` (`sdk/`, `avd/`, `state
 
 | Antes | Agora | Como |
 |---|---|---|
-| `sdkmanager` | **Imagens** no app | lê `repository2-3.xml` e `sys-img/<tag>/sys-img2-3.xml` em dl.google.com, canal estável, arquivo `macosx`/`aarch64`; baixa, confere o SHA-1 publicado, extrai com o `ditto` do macOS e troca a pasta de uma vez |
+| `sdkmanager` | **Imagens** no app | lê `repository2-3.xml` e `sys-img/<lista>/sys-img2-3.xml` em dl.google.com (listas `google_apis_playstore`, `google_apis`, `android` para as sem Google e `android-wear`; uma lista que falhe não esconde as outras), canal estável, arquivo `macosx`/`aarch64`; baixa, confere o SHA-1 publicado, extrai com o `ditto` do macOS e troca a pasta de uma vez |
 | licença no terminal | folha de licença no app | texto vindo do próprio XML; o aceite fica em `sdk/licenses/<id>` com o SHA-1 do texto (formato do sdkmanager): se o Google mudar o texto, o MultiDroid pede de novo |
 | `avdmanager create` | `Catalog.create` | escreve `<nome>.ini` e `config.ini` com os campos que o avdmanager grava para cada hardware (dobradiça do Pixel 9 Pro Fold incluída); o emulador cria o disco do usuário no primeiro boot |
 | `adb emu kill` | console do emulador | TCP local na porta do console, `auth` com `~/.emulator_console_auth_token`, depois `kill`: desliga salvando o estado. Sem resposta, SIGTERM (desliga limpo, sem salvar) |
