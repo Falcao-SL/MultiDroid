@@ -7,7 +7,7 @@ import SwiftProtobuf
 
 typealias EC = Android_Emulation_Control_EmulatorController
 
-/// Conexão gRPC com um emulador (localhost, com token). Tudo o que o Duo pede
+/// Conexão gRPC com um emulador (localhost, com token). Tudo o que o MultiDroid pede
 /// ao aparelho passa por aqui: status, tela, toque, pausa.
 final class EmulatorLink: Sendable {
     let client: GRPCClient<HTTP2ClientTransport.Posix>
@@ -103,7 +103,7 @@ final class ScreenStream {
     init(width: Int, height: Int, tag: String) {
         self.width = width
         self.height = height
-        self.path = NSTemporaryDirectory() + "duo-screen-\(tag).raw"
+        self.path = NSTemporaryDirectory() + "multidroid-screen-\(tag).raw"
     }
 
     func start(_ link: EmulatorLink) {

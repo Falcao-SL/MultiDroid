@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Imagens e emulador (MAC.md §2.7): o que está instalado na pasta do Duo, o
+/// Imagens e emulador (MAC.md §2.7): o que está instalado na pasta do MultiDroid, o
 /// que o Google oferece, baixar, atualizar, remover. A licença do Google
 /// aparece antes do primeiro download de cada pacote.
 struct ImagesSheet: View {
@@ -35,7 +35,7 @@ struct ImagesSheet: View {
                 Button { Task { await store.refresh() } } label: { Image(systemName: "arrow.clockwise").frame(width: 14, height: 14) }
                     .buttonStyle(BrutalIconStyle()).help("Procurar versões novas")
             }
-            Text("O Duo baixa o emulador e as imagens do Android direto do Google (dl.google.com) para a própria pasta. Não precisa de Android Studio, Java nem adb.")
+            Text("O MultiDroid baixa o emulador e as imagens do Android direto do Google (dl.google.com) para a própria pasta. Não precisa de Android Studio, Java nem adb.")
                 .font(.system(size: 12, weight: .medium)).opacity(0.75)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -45,13 +45,13 @@ struct ImagesSheet: View {
 
             if !studioDevices.isEmpty {
                 Text("APARELHOS DO ANDROID STUDIO").font(.system(size: 12, weight: .black)).kerning(1).padding(.top, 4)
-                Text("Trazer move o aparelho para a pasta do Duo, com apps e dados. Ele some do Android Studio.")
+                Text("Trazer move o aparelho para a pasta do MultiDroid, com apps e dados. Ele some do Android Studio.")
                     .font(.system(size: 11, weight: .medium)).opacity(0.7)
                 ForEach(studioDevices, id: \.self) { name in studioRow(name) }
             }
 
             if let e = store.error ?? importError {
-                Text(e).font(.system(size: 12, weight: .semibold)).foregroundStyle(Duo.vermelho)
+                Text(e).font(.system(size: 12, weight: .semibold)).foregroundStyle(Tema.vermelho)
                     .fixedSize(horizontal: false, vertical: true)
             }
             HStack {
@@ -75,7 +75,7 @@ struct ImagesSheet: View {
                 confirm = nil
             }
         } message: {
-            Text("O download corre com tudo ligado. Na hora de trocar, o Duo desliga \(confirm?.names.joined(separator: ", ") ?? "") com o estado salvo e liga de novo ao terminar.")
+            Text("O download corre com tudo ligado. Na hora de trocar, o MultiDroid desliga \(confirm?.names.joined(separator: ", ") ?? "") com o estado salvo e liga de novo ao terminar.")
         }
     }
 
@@ -105,13 +105,13 @@ struct ImagesSheet: View {
                     }
                     if let pkg, have == nil || newer(pkg.revision, than: have!) {
                         Button(have == nil ? "Baixar" : "Atualizar") { download(path, pkg) }
-                            .buttonStyle(BrutalButtonStyle(fill: Duo.verde))
+                            .buttonStyle(BrutalButtonStyle(fill: Tema.verde))
                     }
                     if have != nil {
                         Button { store.remove(path) } label: { Image(systemName: "trash").frame(width: 14, height: 14) }
                             .buttonStyle(BrutalIconStyle(fill: .white))
                             .disabled(inUse)
-                            .help(inUse ? "Em uso por aparelhos do Duo" : "Remover")
+                            .help(inUse ? "Em uso por aparelhos do MultiDroid" : "Remover")
                     }
                 }
             }
@@ -143,7 +143,7 @@ struct ImagesSheet: View {
             }
             .buttonStyle(BrutalButtonStyle(fill: .white))
             .disabled(!supported || !ready)
-            .help(!supported ? "Imagem que o Duo ainda não gerencia" : !ready ? "Instale antes a imagem que ele usa" : "")
+            .help(!supported ? "Imagem que o MultiDroid ainda não gerencia" : !ready ? "Instale antes a imagem que ele usa" : "")
         }
     }
 
@@ -197,7 +197,7 @@ struct LicenseSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Licença do Google").font(.system(size: 20, weight: .black))
-            Text("Para baixar \(title), aceite os termos do Google. O Duo só baixa depois do seu aceite e guarda o registro na pasta dele.")
+            Text("Para baixar \(title), aceite os termos do Google. O MultiDroid só baixa depois do seu aceite e guarda o registro na pasta dele.")
                 .font(.system(size: 12, weight: .medium)).opacity(0.8)
                 .fixedSize(horizontal: false, vertical: true)
             ScrollView {
@@ -209,7 +209,7 @@ struct LicenseSheet: View {
             HStack {
                 Spacer()
                 Button("Recusar", action: onDecline).buttonStyle(BrutalButtonStyle(fill: .white))
-                Button("Aceito", action: onAccept).buttonStyle(BrutalButtonStyle(fill: Duo.verde))
+                Button("Aceito", action: onAccept).buttonStyle(BrutalButtonStyle(fill: Tema.verde))
             }
         }
         .padding(24)

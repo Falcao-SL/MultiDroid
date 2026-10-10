@@ -1,6 +1,6 @@
-# Documentação — Duo
+# Documentação — MultiDroid
 
-Tudo o que não é código mora aqui. O Duo é um app só para Mac, em
+Tudo o que não é código mora aqui. O MultiDroid é um app só para Mac, em
 [`mac/`](../mac): vários aparelhos Android lado a lado, sobre o Android
 Emulator oficial sem janela.
 
@@ -16,7 +16,7 @@ Emulator oficial sem janela.
 |-----------|----------|
 | [design/IDENTIDADE_VISUAL.md](design/IDENTIDADE_VISUAL.md) | Falcao Neo-Brutalism: princípios, tokens, ícone do app, tom de voz |
 | [design/tokens.json](design/tokens.json) | Tokens (cores, borda, raio, sombra, tipografia, movimento) |
-| [design/icone/](design/icone) | Fonte do ícone (`duo-icon.svg`, `AppIcon.icon`) e exportador |
+| [design/icone/](design/icone) | Fonte do ícone (`multidroid-icon.svg`, `AppIcon.icon`) e exportador |
 
 ## Arquitetura — [`arquitetura/`](arquitetura)
 

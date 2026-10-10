@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <title>Duo — ícone do app (fonte única; gerar com export_icons.py)</title>
+  <title>MultiDroid — ícone do app (fonte única; gerar com export_icons.py)</title>
   <g id="bg"><rect width="1024" height="1024" fill="#14161B"/></g>
   <g id="back"><path d="M330.0,179.0 H520.0 A36,36 0 0 1 556.0,215.0 V635.0 A36,36 0 0 1 520.0,671.0 H330.0 A36,36 0 0 1 294.0,635.0 V215.0 A36,36 0 0 1 330.0,179.0 Z" fill="#A78BFA"/><path d="M330.0,145.0 H520.0 A70,70 0 0 1 590.0,215.0 V635.0 A70,70 0 0 1 520.0,705.0 H330.0 A70,70 0 0 1 260.0,635.0 V215.0 A70,70 0 0 1 330.0,145.0 Z M330.0,179.0 H520.0 A36,36 0 0 1 556.0,215.0 V635.0 A36,36 0 0 1 520.0,671.0 H330.0 A36,36 0 0 1 294.0,635.0 V215.0 A36,36 0 0 1 330.0,179.0 Z" fill="#EFEDE6" fill-rule="evenodd"/></g>
   <g id="shadow"><path d="M504.0,319.0 H694.0 A70,70 0 0 1 764.0,389.0 V809.0 A70,70 0 0 1 694.0,879.0 H504.0 A70,70 0 0 1 434.0,809.0 V389.0 A70,70 0 0 1 504.0,319.0 Z" fill="#A78BFA"/></g>

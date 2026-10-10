@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gera todos os ícones do Duo a partir de duo-icon.svg (fonte única).
+"""Gera todos os ícones do MultiDroid a partir de multidroid-icon.svg (fonte única).
 
 Camadas do SVG: bg (fundo), back (aparelho de trás), shadow (sombra dura),
 front (aparelho da frente). Saídas, todas em docs/design/icone/:
@@ -28,7 +28,7 @@ import cairosvg
 from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = open(os.path.join(HERE, "duo-icon.svg")).read()
+SRC = open(os.path.join(HERE, "multidroid-icon.svg")).read()
 HEAD = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">'
 BG_DARK = "#0B0C10"  # fundo do modo escuro (o claro está no SVG)
 
@@ -178,4 +178,4 @@ for dens, px in (("mdpi", 48), ("hdpi", 72), ("xhdpi", 96), ("xxhdpi", 144), ("x
     rnd = sq.copy(); rnd.putalpha(circle.resize((px, px), Image.LANCZOS))
     rnd.save(out("android", "res", f"mipmap-{dens}", "ic_launcher_round.png"))
 
-print("ícones do Duo gerados a partir de duo-icon.svg")
+print("ícones do MultiDroid gerados a partir de multidroid-icon.svg")

@@ -1,12 +1,12 @@
-# Distribuição — Duo
+# Distribuição — MultiDroid
 
-O Duo é um app de Mac distribuído **fora da Mac App Store**, assinado com
+O MultiDroid é um app de Mac distribuído **fora da Mac App Store**, assinado com
 **Developer ID** e **notarizado** pela Apple (decisão M-6, [spec/MAC.md §4](../spec/MAC.md)).
 É **grátis e de código aberto**, sob a GPL-3.0 ([MONETIZACAO.md](MONETIZACAO.md)).
 
 ## Por que fora da Mac App Store
 
-O Duo baixa e executa imagens de sistema Android e roda o emulador, que usa
+O MultiDroid baixa e executa imagens de sistema Android e roda o emulador, que usa
 o Hypervisor.framework. A Mac App Store não aceita esse tipo de app (MAC.md
 M-6). Developer ID + notarização deixa o Gatekeeper abrir o app sem aviso de
 desenvolvedor desconhecido.
@@ -41,15 +41,15 @@ desenvolvedor desconhecido.
 
 ## Legal
 
-- **Licença do Duo**: GPL-3.0 ([LICENSE](../../LICENSE)); cada release publica o
+- **Licença do MultiDroid**: GPL-3.0 ([LICENSE](../../LICENSE)); cada release publica o
   código-fonte junto.
-- **Licença das imagens do Google**: o Duo não vende nada nem redistribui as
+- **Licença das imagens do Google**: o MultiDroid não vende nada nem redistribui as
   imagens, mas um app de uso geral que as baixa continua em área cinzenta;
   revisar com advogado antes de tornar o repositório público (MAC.md §5).
-- **LGPD**: o Duo não coleta dado pessoal; mesmo assim, publicar a
+- **LGPD**: o MultiDroid não coleta dado pessoal; mesmo assim, publicar a
   [política de privacidade](../publicacao/POLITICA_DE_PRIVACIDADE.md) na
   página de download.
-- **Termos dos serviços**: o Duo não automatiza contas; dizer na página que
+- **Termos dos serviços**: o MultiDroid não automatiza contas; dizer na página que
   alguns apps (bancos, por exemplo) não abrem em emulador.
 
 ## Cronograma resumido

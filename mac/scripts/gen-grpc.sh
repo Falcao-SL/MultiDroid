@@ -8,7 +8,7 @@ swift build -c release --product protoc-gen-grpc-swift-2 >/dev/null
 protoc -I proto \
   --plugin=protoc-gen-swift=.build/release/protoc-gen-swift \
   --plugin=protoc-gen-grpc-swift-2=.build/release/protoc-gen-grpc-swift-2 \
-  --swift_out=Visibility=Internal:Sources/Duo/Generated \
-  --grpc-swift-2_out=Client=true,Server=false,Visibility=Internal:Sources/Duo/Generated \
+  --swift_out=Visibility=Internal:Sources/MultiDroid/Generated \
+  --grpc-swift-2_out=Client=true,Server=false,Visibility=Internal:Sources/MultiDroid/Generated \
   proto/emulator_controller.proto
-echo "gerado em Sources/Duo/Generated"
+echo "gerado em Sources/MultiDroid/Generated"

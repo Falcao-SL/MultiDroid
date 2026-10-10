@@ -1,13 +1,13 @@
 import SwiftUI
 
 @main
-struct DuoApp: App {
+struct MultiDroidApp: App {
     @State private var model = AppModel.shared
 
     var body: some Scene {
         // Cada janela é uma mesa. ⌘N abre uma mesa vazia; a principal guarda
         // os aparelhos que já existiam.
-        WindowGroup("Duo", for: String.self) { $desk in
+        WindowGroup("MultiDroid", for: String.self) { $desk in
             WindowRoot(desk: desk ?? AppModel.mainDesk)
                 .environment(model)
                 .frame(minWidth: 1000, minHeight: 640)

@@ -7,3 +7,6 @@ Descontinuado em 2026-10-09, quando o Duo passou a ser só o app de Mac
 para consulta; **não é o produto**. Links destes arquivos para `produto/`,
 `design/` e `publicacao/` apontam para documentos que hoje descrevem o app de
 Mac.
+
+O produto se chamava **Duo** na época destes documentos; desde 2026-10-10
+se chama **MultiDroid** e é só para Mac.

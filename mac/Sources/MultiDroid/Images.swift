@@ -2,10 +2,10 @@ import CryptoKit
 import Darwin
 import Foundation
 
-/// Os pacotes que o Duo instala sozinho: o emulador e as imagens de sistema.
+/// Os pacotes que o MultiDroid instala sozinho: o emulador e as imagens de sistema.
 /// Vêm do repositório público do Google (os mesmos arquivos que o sdkmanager
-/// baixa), conferidos pelo SHA-1 publicado e extraídos na pasta do Duo.
-/// O Duo nunca embute nem redistribui imagem: cada usuário aceita a licença
+/// baixa), conferidos pelo SHA-1 publicado e extraídos na pasta do MultiDroid.
+/// O MultiDroid nunca embute nem redistribui imagem: cada usuário aceita a licença
 /// do Google e baixa direto de dl.google.com.
 enum Images {
     static let emulator = "emulator"
@@ -304,7 +304,7 @@ final class Downloader: NSObject, URLSessionDownloadDelegate, @unchecked Sendabl
     }
 
     func urlSession(_ s: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
-        // O arquivo some quando este método volta: move para a pasta do Duo.
+        // O arquivo some quando este método volta: move para a pasta do MultiDroid.
         let keep = SDK.home.appendingPathComponent("download-\(UUID().uuidString).zip")
         let result: Result<URL, Error>
         do {

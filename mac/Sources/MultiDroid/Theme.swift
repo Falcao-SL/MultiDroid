@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Falcao Neo-Brutalism (docs/design/tokens.json): bordas grossas, sombra dura,
 /// cor chapada. Os valores repetem tokens.json; mudou lá, muda aqui.
-enum Duo {
+enum Tema {
     static func hex(_ v: UInt32) -> Color {
         Color(red: Double((v >> 16) & 0xFF) / 255, green: Double((v >> 8) & 0xFF) / 255, blue: Double(v & 0xFF) / 255)
     }
@@ -24,15 +24,15 @@ enum Duo {
 }
 
 /// Cores que mudam com o tema (claro/escuro).
-struct DuoPalette {
+struct Paleta {
     let fundo, superficie, borda, sombra, tinta: Color
 
-    static func current(_ scheme: ColorScheme) -> DuoPalette {
+    static func current(_ scheme: ColorScheme) -> Paleta {
         scheme == .dark
-            ? DuoPalette(fundo: Duo.hex(0x17171C), superficie: Duo.hex(0x23232B), borda: Duo.hex(0xEFEDE6),
-                         sombra: Duo.hex(0x000000), tinta: Duo.hex(0xEFEDE6))
-            : DuoPalette(fundo: Duo.hex(0xF2EFE9), superficie: Duo.hex(0xFFFFFF), borda: Duo.hex(0x141414),
-                         sombra: Duo.hex(0x141414), tinta: Duo.hex(0x141414))
+            ? Paleta(fundo: Tema.hex(0x17171C), superficie: Tema.hex(0x23232B), borda: Tema.hex(0xEFEDE6),
+                         sombra: Tema.hex(0x000000), tinta: Tema.hex(0xEFEDE6))
+            : Paleta(fundo: Tema.hex(0xF2EFE9), superficie: Tema.hex(0xFFFFFF), borda: Tema.hex(0x141414),
+                         sombra: Tema.hex(0x141414), tinta: Tema.hex(0x141414))
     }
 }
 
@@ -43,17 +43,17 @@ struct BrutalBox: ViewModifier {
     var shadow = true
 
     func body(content: Content) -> some View {
-        let p = DuoPalette.current(scheme)
+        let p = Paleta.current(scheme)
         content
             .background(
-                RoundedRectangle(cornerRadius: Duo.raio)
+                RoundedRectangle(cornerRadius: Tema.raio)
                     .fill(fill ?? p.superficie)
-                    .overlay(RoundedRectangle(cornerRadius: Duo.raio).stroke(p.borda, lineWidth: Duo.borda))
+                    .overlay(RoundedRectangle(cornerRadius: Tema.raio).stroke(p.borda, lineWidth: Tema.borda))
             )
             .background(
-                RoundedRectangle(cornerRadius: Duo.raio)
+                RoundedRectangle(cornerRadius: Tema.raio)
                     .fill(p.sombra)
-                    .offset(x: shadow ? Duo.sombra : 0, y: shadow ? Duo.sombra : 0)
+                    .offset(x: shadow ? Tema.sombra : 0, y: shadow ? Tema.sombra : 0)
             )
     }
 }
@@ -66,18 +66,18 @@ extension View {
 
 /// Botão que afunda na própria sombra ao ser pressionado (70 ms).
 struct BrutalButtonStyle: ButtonStyle {
-    var fill: Color = Duo.azul
+    var fill: Color = Tema.azul
 
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 13, weight: .bold))
-            .foregroundStyle(Duo.tintaSobreAcento)
+            .foregroundStyle(Tema.tintaSobreAcento)
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
             .brutal(fill: fill, shadow: !configuration.isPressed)
-            .offset(x: configuration.isPressed ? Duo.sombra : 0, y: configuration.isPressed ? Duo.sombra : 0)
+            .offset(x: configuration.isPressed ? Tema.sombra : 0, y: configuration.isPressed ? Tema.sombra : 0)
             .opacity(isEnabled ? 1 : 0.4)  // desativado precisa parecer desativado
             .animation(.linear(duration: 0.07), value: configuration.isPressed)
     }
@@ -92,7 +92,7 @@ struct BrutalIconStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 12, weight: .bold))
-            .foregroundStyle(Duo.tintaSobreAcento)
+            .foregroundStyle(Tema.tintaSobreAcento)
             .padding(6)
             .brutal(fill: fill, shadow: !configuration.isPressed)
             .offset(x: configuration.isPressed ? 2 : 0, y: configuration.isPressed ? 2 : 0)

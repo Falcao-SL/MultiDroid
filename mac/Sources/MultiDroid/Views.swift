@@ -2,17 +2,17 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(AppModel.self) private var model
-    @Environment(DuoWindow.self) private var win
+    @Environment(DeskWindow.self) private var win
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let p = DuoPalette.current(scheme)
+        let p = Paleta.current(scheme)
         HStack(spacing: 0) {
             if !win.panelHidden {
                 PanelView()
                     .frame(width: 340)
                     .transition(.move(edge: .leading))
-                Rectangle().fill(p.borda).frame(width: Duo.borda)
+                Rectangle().fill(p.borda).frame(width: Tema.borda)
             }
             GridArea()
         }
@@ -23,9 +23,9 @@ struct RootView: View {
             if let b = model.banner {
                 Text(b)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Duo.tintaSobreAcento)
+                    .foregroundStyle(Tema.tintaSobreAcento)
                     .padding(12)
-                    .brutal(fill: Duo.amarelo)
+                    .brutal(fill: Tema.amarelo)
                     .padding(20)
                     .onTapGesture { model.banner = nil }
                     .task(id: b) { try? await Task.sleep(for: .seconds(5)); model.banner = nil }
@@ -38,7 +38,7 @@ struct RootView: View {
 
 struct PanelView: View {
     @Environment(AppModel.self) private var model
-    @Environment(DuoWindow.self) private var win
+    @Environment(DeskWindow.self) private var win
     @Environment(\.colorScheme) private var scheme
     @State private var selection = Set<String>()
     @State private var confirmDelete: Device?
@@ -47,13 +47,13 @@ struct PanelView: View {
 
     var body: some View {
         @Bindable var model = model
-        let p = DuoPalette.current(scheme)
+        let p = Paleta.current(scheme)
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("Duo").font(.system(size: 26, weight: .black))
+                Text("MultiDroid").font(.system(size: 26, weight: .black))
                 Spacer()
                 Button { win.showImages = true } label: { Image(systemName: "square.stack.3d.down.right").frame(width: 16, height: 16) }
-                    .buttonStyle(BrutalIconStyle(fill: model.images.ready ? .white : Duo.amarelo))
+                    .buttonStyle(BrutalIconStyle(fill: model.images.ready ? .white : Tema.amarelo))
                     .help("Imagens e emulador")
                 Button { win.creating = true } label: { Label("Novo aparelho", systemImage: "plus") }
                     .buttonStyle(BrutalButtonStyle())
@@ -98,7 +98,7 @@ struct PanelView: View {
             Button("Hibernar") { for n in selection { if let d = model.device(n) { model.hibernate(d) } } }
             Button("Desligar") { for n in selection { if let d = model.device(n) { model.stop(d) } } }
         }
-        .buttonStyle(BrutalButtonStyle(fill: Duo.ciano))
+        .buttonStyle(BrutalButtonStyle(fill: Tema.ciano))
     }
 
     @ViewBuilder
@@ -134,11 +134,11 @@ struct MemoryCard: View {
                 let w = geo.size.width
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4).fill(Color.gray.opacity(0.25))
-                    RoundedRectangle(cornerRadius: 4).fill(used / total > 0.85 ? Duo.vermelho : Duo.verde)
+                    RoundedRectangle(cornerRadius: 4).fill(used / total > 0.85 ? Tema.vermelho : Tema.verde)
                         .frame(width: w * min(1, used / total))
-                    RoundedRectangle(cornerRadius: 4).fill(Duo.azul)
+                    RoundedRectangle(cornerRadius: 4).fill(Tema.azul)
                         .frame(width: w * min(1, model.runningGB / total))
-                    Rectangle().fill(Duo.tintaSobreAcento).frame(width: 2).offset(x: w * min(1, model.ceilingGB / total))
+                    Rectangle().fill(Tema.tintaSobreAcento).frame(width: 2).offset(x: w * min(1, model.ceilingGB / total))
                 }
             }
             .frame(height: 14)
@@ -147,7 +147,7 @@ struct MemoryCard: View {
                 .font(.system(size: 11, weight: .semibold)).opacity(0.7)
             Divider().padding(.vertical, 2)
             // O teto: até quanto os aparelhos ligados podem gastar. Acima dele,
-            // o Duo hiberna quem está há mais tempo sem uso (MAC.md §2.3).
+            // o MultiDroid hiberna quem está há mais tempo sem uso (MAC.md §2.3).
             HStack(spacing: 6) {
                 Text("Teto dos aparelhos").font(.system(size: 12, weight: .bold))
                 Spacer()
@@ -160,7 +160,7 @@ struct MemoryCard: View {
             }
             Slider(value: $model.ceilingGB, in: 4...max, step: 1) { editing in if !editing { setCeiling(model.ceilingGB) } }
             Text(capacity).font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(model.runningGB > model.ceilingGB ? Duo.vermelho : Color.primary.opacity(0.7))
+                .foregroundStyle(model.runningGB > model.ceilingGB ? Tema.vermelho : Color.primary.opacity(0.7))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)
@@ -175,7 +175,7 @@ struct MemoryCard: View {
         }
         return fit == 0
             ? "Nenhum celular cabe neste teto. Aumente para ligar."
-            : "Cabem ~\(fit) celular\(fit == 1 ? "" : "es") acordado\(fit == 1 ? "" : "s"). Acima disso, o Duo hiberna quem está sem uso."
+            : "Cabem ~\(fit) celular\(fit == 1 ? "" : "es") acordado\(fit == 1 ? "" : "s"). Acima disso, o MultiDroid hiberna quem está sem uso."
     }
 
     private func setCeiling(_ gb: Double) {
@@ -192,12 +192,12 @@ struct StatusDot: View {
     var body: some View {
         let (c, t): (Color, String) = switch state {
         case .off: (.gray, "desligado")
-        case .starting: (Duo.amarelo, "ligando")
-        case .on: (Duo.verde, "ligado")
-        case .paused: (Duo.azul, "pausado")
-        case .stopping: (Duo.laranja, "desligando")
-        case .external: (Duo.roxo, "aberto fora do Duo")
-        case .asleep: (Duo.ciano, "hibernando")
+        case .starting: (Tema.amarelo, "ligando")
+        case .on: (Tema.verde, "ligado")
+        case .paused: (Tema.azul, "pausado")
+        case .stopping: (Tema.laranja, "desligando")
+        case .external: (Tema.roxo, "aberto fora do MultiDroid")
+        case .asleep: (Tema.ciano, "hibernando")
         }
         HStack(spacing: 5) {
             Circle().fill(c).frame(width: 9, height: 9).overlay(Circle().stroke(.black.opacity(0.6), lineWidth: 1))
@@ -218,7 +218,7 @@ struct DeviceRow: View {
                 .font(.system(size: 18, weight: .bold))
                 .frame(width: 34, height: 34)
                 .brutal(fill: color(for: d), shadow: false)
-                .foregroundStyle(Duo.tintaSobreAcento)
+                .foregroundStyle(Tema.tintaSobreAcento)
             VStack(alignment: .leading, spacing: 3) {
                 Text(d.id).font(.system(size: 14, weight: .heavy)).lineLimit(1)
                 HStack(spacing: 6) {
@@ -233,20 +233,20 @@ struct DeviceRow: View {
                 if let g = model.groups[d.id] {
                     Text(g.uppercased()).font(.system(size: 9, weight: .black)).kerning(0.8)
                         .padding(.horizontal, 5).padding(.vertical, 2)
-                        .brutal(fill: Duo.amarelo, shadow: false)
-                        .foregroundStyle(Duo.tintaSobreAcento)
+                        .brutal(fill: Tema.amarelo, shadow: false)
+                        .foregroundStyle(Tema.tintaSobreAcento)
                 }
             }
             Spacer()
             controls(d)
         }
         .padding(10)
-        .brutal(fill: selected ? Duo.azul.opacity(0.35) : nil)
+        .brutal(fill: selected ? Tema.azul.opacity(0.35) : nil)
     }
 
     private func color(for d: Device) -> Color {
         let i = model.order.firstIndex(of: d.id) ?? 0
-        return Duo.ciclo[i % Duo.ciclo.count]
+        return Tema.ciclo[i % Tema.ciclo.count]
     }
 
     @ViewBuilder
@@ -254,19 +254,19 @@ struct DeviceRow: View {
         HStack(spacing: 6) {
             switch d.state {
             case .off:
-                iconButton("play.fill", Duo.verde) { model.start(d) }
+                iconButton("play.fill", Tema.verde) { model.start(d) }
             case .asleep:
-                if d.waking { ProgressView().controlSize(.small) } else { iconButton("play.fill", Duo.verde) { model.start(d) } }
+                if d.waking { ProgressView().controlSize(.small) } else { iconButton("play.fill", Tema.verde) { model.start(d) } }
             case .on:
-                iconButton("pause.fill", Duo.azul) { model.pause(d) }
-                iconButton("moon.zzz.fill", Duo.ciano) { model.hibernate(d) }
-                iconButton("stop.fill", Duo.vermelho) { model.stop(d) }
+                iconButton("pause.fill", Tema.azul) { model.pause(d) }
+                iconButton("moon.zzz.fill", Tema.ciano) { model.hibernate(d) }
+                iconButton("stop.fill", Tema.vermelho) { model.stop(d) }
             case .paused:
-                iconButton("play.fill", Duo.verde) { model.resume(d) }
-                iconButton("moon.zzz.fill", Duo.ciano) { model.hibernate(d) }
-                iconButton("stop.fill", Duo.vermelho) { model.stop(d) }
+                iconButton("play.fill", Tema.verde) { model.resume(d) }
+                iconButton("moon.zzz.fill", Tema.ciano) { model.hibernate(d) }
+                iconButton("stop.fill", Tema.vermelho) { model.stop(d) }
             case .external:
-                iconButton("stop.fill", Duo.vermelho) { model.stop(d) }
+                iconButton("stop.fill", Tema.vermelho) { model.stop(d) }
             case .starting, .stopping:
                 ProgressView().controlSize(.small)
             }
@@ -283,7 +283,7 @@ struct DeviceRow: View {
 
 struct GridArea: View {
     @Environment(AppModel.self) private var model
-    @Environment(DuoWindow.self) private var win
+    @Environment(DeskWindow.self) private var win
     @State private var hovered: String?
 
     var body: some View {
@@ -310,7 +310,7 @@ struct GridArea: View {
                 }
                 if win.focused != nil {
                     Button { win.focused = nil } label: { Label("Voltar à mesa", systemImage: "square.grid.2x2") }
-                        .buttonStyle(BrutalButtonStyle(fill: Duo.amarelo))
+                        .buttonStyle(BrutalButtonStyle(fill: Tema.amarelo))
                 }
                 Spacer()
                 Text(win.layout == .grade ? "Arraste pelo título · redimensione pelo canto" : "Dois cliques amplia · arraste para reordenar").font(.system(size: 11, weight: .semibold)).opacity(0.6)
@@ -384,7 +384,7 @@ struct DeviceTile: View {
 
     var body: some View {
         let d = device
-        let p = DuoPalette.current(scheme)
+        let p = Paleta.current(scheme)
         let (fw, fh) = d.frameSize
         let round = d.info.kind == .relogio
         VStack(alignment: .leading, spacing: 8) {
@@ -416,19 +416,19 @@ struct DeviceTile: View {
                             Text(placeholder(d)).font(.system(size: 12, weight: .bold)).foregroundStyle(.white.opacity(0.75))
                                 .multilineTextAlignment(.center)
                             if d.state == .off {
-                                Button("Ligar") { model.start(d) }.buttonStyle(BrutalButtonStyle(fill: Duo.verde))
+                                Button("Ligar") { model.start(d) }.buttonStyle(BrutalButtonStyle(fill: Tema.verde))
                             }
                             if d.state == .asleep, !d.waking {
-                                Button("Acordar") { model.start(d) }.buttonStyle(BrutalButtonStyle(fill: Duo.ciano))
+                                Button("Acordar") { model.start(d) }.buttonStyle(BrutalButtonStyle(fill: Tema.ciano))
                             }
                         }
                         .padding()
                     }
                     if d.state == .paused {
-                        Button("Retomar") { model.resume(d) }.buttonStyle(BrutalButtonStyle(fill: Duo.verde))
+                        Button("Retomar") { model.resume(d) }.buttonStyle(BrutalButtonStyle(fill: Tema.verde))
                     }
                     if d.state == .asleep, !d.waking, d.lastFrame != nil {
-                        Button("Acordar") { model.start(d) }.buttonStyle(BrutalButtonStyle(fill: Duo.ciano))
+                        Button("Acordar") { model.start(d) }.buttonStyle(BrutalButtonStyle(fill: Tema.ciano))
                     }
                 }
                 .aspectRatio(CGFloat(fw) / CGFloat(fh), contentMode: .fit)
@@ -449,7 +449,7 @@ struct DeviceTile: View {
         case .off: "\(d.info.kind.label) · \(d.info.android)\n\(d.info.screen)"
         case .starting: d.message ?? "ligando…"
         case .stopping: "desligando…"
-        case .external: "Aberto fora do Duo.\nDesligue e ligue por aqui para ver a tela."
+        case .external: "Aberto fora do MultiDroid.\nDesligue e ligue por aqui para ver a tela."
         case .asleep: d.message ?? "Hibernando: não gasta memória.\nVolta em segundos."
         default: ""
         }
@@ -517,15 +517,15 @@ struct DeviceToolbar: View {
         let d = device
         if d.state == .on {
             Button { model.pause(d) } label: { Image(systemName: "pause.fill").frame(width: 14, height: 14) }
-                .buttonStyle(BrutalIconStyle(fill: Duo.azul)).help("Pausar")
+                .buttonStyle(BrutalIconStyle(fill: Tema.azul)).help("Pausar")
         } else {
             Button { model.resume(d) } label: { Image(systemName: "play.fill").frame(width: 14, height: 14) }
-                .buttonStyle(BrutalIconStyle(fill: Duo.verde)).help("Retomar")
+                .buttonStyle(BrutalIconStyle(fill: Tema.verde)).help("Retomar")
         }
         Button { model.hibernate(d) } label: { Image(systemName: "moon.zzz.fill").frame(width: 14, height: 14) }
-            .buttonStyle(BrutalIconStyle(fill: Duo.ciano)).help("Hibernar: libera a memória e guarda o estado")
+            .buttonStyle(BrutalIconStyle(fill: Tema.ciano)).help("Hibernar: libera a memória e guarda o estado")
         Button { model.stop(d) } label: { Image(systemName: "stop.fill").frame(width: 14, height: 14) }
-            .buttonStyle(BrutalIconStyle(fill: Duo.vermelho)).help("Desligar")
+            .buttonStyle(BrutalIconStyle(fill: Tema.vermelho)).help("Desligar")
     }
 
     private func rotate(_ link: EmulatorLink) async {
@@ -536,11 +536,11 @@ struct DeviceToolbar: View {
 
     private func capture(_ link: EmulatorLink) async {
         guard let png = await link.screenshotPNG() else { return }
-        let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Pictures/Duo")
+        let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Pictures/MultiDroid")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
         try? png.write(to: dir.appendingPathComponent("\(device.id)-\(stamp).png"))
-        await MainActor.run { model.banner = "Captura salva em Imagens/Duo" }
+        await MainActor.run { model.banner = "Captura salva em Imagens/MultiDroid" }
     }
 
     private func run(_ action: @escaping @Sendable (EmulatorLink) async -> Void) {
@@ -605,7 +605,7 @@ struct ScreenView: View {
 
 struct NewDeviceSheet: View {
     @Environment(AppModel.self) private var model
-    @Environment(DuoWindow.self) private var win
+    @Environment(DeskWindow.self) private var win
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var kind: DeviceKind = .celular
@@ -625,7 +625,7 @@ struct NewDeviceSheet: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: 64)
                     }
-                    .buttonStyle(BrutalButtonStyle(fill: kind == k ? Duo.azul : Color.white))
+                    .buttonStyle(BrutalButtonStyle(fill: kind == k ? Tema.azul : Color.white))
                 }
             }
             TextField("Nome (ex.: Conta Trabalho)", text: $name).textFieldStyle(.roundedBorder)
@@ -635,7 +635,7 @@ struct NewDeviceSheet: View {
                 .fixedSize(horizontal: false, vertical: true)
             if let fit = ceilingNote {
                 Text(fit).font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(kind.estimateGB > model.ceilingGB ? Duo.vermelho : Color.primary.opacity(0.7))
+                    .foregroundStyle(kind.estimateGB > model.ceilingGB ? Tema.vermelho : Color.primary.opacity(0.7))
                     .fixedSize(horizontal: false, vertical: true)
             }
             if !model.images.hasImage(for: kind) {
@@ -643,16 +643,16 @@ struct NewDeviceSheet: View {
                     Text("Falta a imagem \(kind.imageLabel).").font(.system(size: 12, weight: .bold))
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer()
-                    Button("Abrir Imagens") { dismiss(); win.showImages = true }.buttonStyle(BrutalButtonStyle(fill: Duo.amarelo))
+                    Button("Abrir Imagens") { dismiss(); win.showImages = true }.buttonStyle(BrutalButtonStyle(fill: Tema.amarelo))
                 }
             }
             if let hint = nameHint {
                 Text(hint).font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(valid ? Color.primary.opacity(0.7) : Duo.vermelho)
+                    .foregroundStyle(valid ? Color.primary.opacity(0.7) : Tema.vermelho)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let error {
-                Text(error).font(.system(size: 12)).foregroundStyle(Duo.vermelho)
+                Text(error).font(.system(size: 12)).foregroundStyle(Tema.vermelho)
                     .fixedSize(horizontal: false, vertical: true)
             }
             HStack {
@@ -713,7 +713,7 @@ struct NewDeviceSheet: View {
 /// Primeiro uso: sem aparelho nenhum, mostra o caminho (imagens → aparelho).
 struct EmptyDesk: View {
     @Environment(AppModel.self) private var model
-    @Environment(DuoWindow.self) private var win
+    @Environment(DeskWindow.self) private var win
 
     var body: some View {
         VStack(spacing: 14) {
@@ -721,12 +721,12 @@ struct EmptyDesk: View {
             Text(model.images.ready ? "Mesa vazia" : "Comece pelas imagens").font(.system(size: 20, weight: .black))
             Text(model.images.ready
                  ? "Os aparelhos criados aqui ficam nesta janela."
-                 : "O Duo baixa do Google o emulador e o Android que os aparelhos usam: de 1 a 2 GB por imagem, uma vez só.")
+                 : "O MultiDroid baixa do Google o emulador e o Android que os aparelhos usam: de 1 a 2 GB por imagem, uma vez só.")
                 .font(.system(size: 13, weight: .medium)).opacity(0.7).multilineTextAlignment(.center).frame(maxWidth: 380)
             if model.images.ready {
                 Button { win.creating = true } label: { Label("Novo aparelho", systemImage: "plus") }.buttonStyle(BrutalButtonStyle())
             } else {
-                Button("Abrir Imagens") { win.showImages = true }.buttonStyle(BrutalButtonStyle(fill: Duo.amarelo))
+                Button("Abrir Imagens") { win.showImages = true }.buttonStyle(BrutalButtonStyle(fill: Tema.amarelo))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

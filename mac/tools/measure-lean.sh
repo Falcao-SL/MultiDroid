@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Emulador enxuto: quanto cada ajuste tira da memória de um celular sem perder
 # o que importa (rolagem fluida e vídeo tocando). Um aparelho por vez, boot a
-# frio, no SDK do próprio Duo; o aparelho de teste vive numa pasta temporária.
+# frio, no SDK do próprio MultiDroid; o aparelho de teste vive numa pasta temporária.
 #
 #   mac/tools/measure-lean.sh <nome> <gpu> <largura>x<altura> <dpi> <RAM MB>
 #   mac/tools/measure-lean.sh base host 1080x2424 420 2048
@@ -11,10 +11,10 @@
 set -u
 NAME=$1; GPU=$2; RES=$3; DPI=$4; RAM=$5
 W=${RES%x*}; H=${RES#*x}
-DUO="$HOME/Library/Application Support/Duo"
-SDK="$DUO/sdk"
+MD="$HOME/Library/Application Support/MultiDroid"
+SDK="$MD/sdk"
 ADB=${ADB:-$HOME/Library/Android/sdk/platform-tools/adb}
-WORK=${TMPDIR:-/tmp}/duo-lean
+WORK=${TMPDIR:-/tmp}/multidroid-lean
 AVD=$WORK/avd
 PORT=5570
 S=emulator-$PORT

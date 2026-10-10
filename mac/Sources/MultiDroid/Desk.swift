@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// O que é de cada janela do Duo: a mesa (quais aparelhos ela mostra), o
+/// O que é de cada janela do MultiDroid: a mesa (quais aparelhos ela mostra), o
 /// arranjo, o aparelho ampliado, o painel recolhido e as folhas abertas.
 /// Os aparelhos e o resto do estado continuam no AppModel, um só para o app.
 @MainActor
 @Observable
-final class DuoWindow {
+final class DeskWindow {
     let desk: String
     let model: AppModel
     var focused: String?
@@ -32,7 +32,7 @@ final class DuoWindow {
 struct WindowRoot: View {
     @Environment(AppModel.self) private var model
     let desk: String
-    @State private var win: DuoWindow?
+    @State private var win: DeskWindow?
 
     var body: some View {
         Group {
@@ -40,7 +40,7 @@ struct WindowRoot: View {
         }
         .navigationTitle(model.title(of: desk))
         .onAppear {
-            if win == nil { win = DuoWindow(desk: desk, model: model) }
+            if win == nil { win = DeskWindow(desk: desk, model: model) }
             model.windowOpened(desk)
         }
         .onDisappear { model.windowClosed(desk) }

@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 
-/// Os tipos de aparelho do Duo (MAC.md §2.5). A imagem padrão é o Android 13
+/// Os tipos de aparelho do MultiDroid (MAC.md §2.5). A imagem padrão é o Android 13
 /// (API 33): a mais leve que a fase 0 mediu e a única com Wear OS que liga.
 enum DeviceKind: String, CaseIterable, Identifiable, Codable {
     case celular, tablet, dobravel, relogio
@@ -218,14 +218,14 @@ extension Catalog {
         return sys.split(separator: "/").joined(separator: ";")
     }
 
-    /// Traz um aparelho do Android Studio para a pasta do Duo (move, mesmo
+    /// Traz um aparelho do Android Studio para a pasta do MultiDroid (move, mesmo
     /// volume: instantâneo). Leva junto o estado salvo e os apps instalados.
     static func importFromStudio(_ name: String) -> String? {
         let fm = FileManager.default
         let top = readIni(SDK.studioAvdHome.appendingPathComponent("\(name).ini"))
         let src = URL(fileURLWithPath: top["path"] ?? SDK.studioAvdHome.appendingPathComponent("\(name).avd").path)
         let dst = SDK.avdHome.appendingPathComponent("\(name).avd")
-        guard !fm.fileExists(atPath: dst.path) else { return "já existe \(name) no Duo" }
+        guard !fm.fileExists(atPath: dst.path) else { return "já existe \(name) no MultiDroid" }
         do {
             try fm.moveItem(at: src, to: dst)
             for junk in ["hardware-qemu.ini.lock", "multiinstance.lock", "userdata-qemu.img.lock"] {
@@ -243,7 +243,7 @@ extension Catalog {
         } catch { return error.localizedDescription }
     }
 
-    /// Está rodando fora do Duo? (processo do emulador com -avd <nome>)
+    /// Está rodando fora do MultiDroid? (processo do emulador com -avd <nome>)
     static func isRunning(_ name: String) -> Bool {
         let ps = SDK.run(URL(fileURLWithPath: "/bin/ps"), ["-axo", "args="]).output
         return ps.split(separator: "\n").contains { $0.contains("qemu-system") && $0.contains("-avd \(name) ") }

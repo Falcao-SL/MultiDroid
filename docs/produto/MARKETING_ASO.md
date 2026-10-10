@@ -1,6 +1,6 @@
-# Marketing — Duo
+# Marketing — MultiDroid
 
-O Duo é distribuído fora da Mac App Store (DISTRIBUICAO), então não há ASO de
+O MultiDroid é distribuído fora da Mac App Store (DISTRIBUICAO), então não há ASO de
 loja: a descoberta vem da página de download, de busca na web e de
 comunidades. O nome do arquivo ficou por histórico.
 
@@ -21,12 +21,15 @@ Diferenciais a martelar:
    de ligar.
 5. **Privacidade** — sem servidor, sem coleta de uso.
 
-## Nome (a decidir)
+## Nome
 
-"Duo" tem **conflitos de marca óbvios**: **Google Duo** (marca da Google),
-**Duolingo** ("Duo" é o mascote) e vários apps chamados "Duo". Na página e
-na busca, usar com qualificador descritivo. O nome público é **a decidir**;
-o app hoje se chama "Duo" (`CFBundleName`).
+**MultiDroid** (decisão do dono, 2026-10-10; antes se chamava Duo). Descrição
+curta: *um ambiente para rodar várias contas e aparelhos Android ao mesmo
+tempo*. O nome trocado resolve os conflitos do Duo (Google Duo, Duolingo).
+Atenção: **"Droid" é marca registrada da Lucasfilm**, licenciada à Motorola e
+à Verizon. Muitos projetos abertos usam o termo (F-Droid, DroidCam), e o
+risco é baixo para um app grátis e de código aberto, mas existe; nunca usar
+a grafia "DROID" isolada nem arte de robô que lembre Star Wars.
 
 Regras: **nunca** usar nome ou logo de serviço (TikTok, Instagram…) nem de
 marcas do Google no nome, no ícone ou nas capturas, nem sugerir afiliação

@@ -1,7 +1,7 @@
-# Duo para Mac — vários Androids lado a lado
+# MultiDroid — várias contas e aparelhos Android ao mesmo tempo
 
-> Especificação escrita em 2026-10-07. É o produto Duo (desde 2026-10-09 o Duo
-> é só para Mac), em `mac/`. Os
+> Especificação escrita em 2026-10-07. É o produto MultiDroid, em `mac/`:
+> só para Mac desde 2026-10-09, chamado **Duo** até 2026-10-10. Os
 > números marcados **(hipótese)** ainda não foram medidos; a fase 0 existe para
 > medi-los.
 
@@ -24,7 +24,7 @@ para gerenciar tudo** (seção 2.6).
 ## 2. Arquitetura
 
 ```
-Duo.app (SwiftUI + Metal, um processo)
+MultiDroid.app (SwiftUI + Metal, um processo)
 ├── Painel ────────── lista de aparelhos, estado, recursos, ações em lote (2.6)
 ├── Grade ─────────── compõe as telas numa só MTKView; arrastar, agrupar, ampliar
 ├── Instâncias ────── uma por aparelho: inicia, pausa, retoma, encerra o emulador
@@ -44,10 +44,10 @@ emulator -avd <clone> -no-window -grpc <porta> -grpc-use-token -no-audio …   �
 - Roda imagens **arm64** direto no Apple Silicon, sem tradução de instruções.
 - Usa a GPU do Mac para o Android (renderização acelerada), o que importa para
   vídeo e rolagem.
-- Tem todas as imagens que o Duo quer: celular, tablet e dobrável (mesma
+- Tem todas as imagens que o MultiDroid quer: celular, tablet e dobrável (mesma
   imagem, perfil de hardware diferente) e Wear OS.
 - Roda **sem janela** (`-no-window`) e expõe uma API gRPC
-  (`emulator/lib/emulator_controller.proto` no SDK) com o que o Duo precisa:
+  (`emulator/lib/emulator_controller.proto` no SDK) com o que o MultiDroid precisa:
   `streamScreenshot`, `sendTouch`, `sendKey`, `injectWheel`, `setVmState`,
   `setPosture` (dobrável), `getStatus`. É o mesmo caminho que o Android Studio
   usa para mostrar o emulador dentro da própria janela.
@@ -64,7 +64,7 @@ mostrou ~4,5 GB por celular; por isso o modo leve ganhou a sua própria fase 0
 1. Cada instância recebe um buffer de memória compartilhada do tamanho do seu
    quadro na grade.
 2. `streamScreenshot` com `format = RGBA8888`, **`width` e `height` juntos** =
-   tamanho do quadro (o **emulador** escala, não o Duo; com só a largura ele
+   tamanho do quadro (o **emulador** escala, não o MultiDroid; com só a largura ele
    devolve o quadro cheio, medido na fase 0) e `transport = MMAP` com um handle
    `file:///…`: os pixels caem direto no buffer, e a resposta gRPC vem vazia.
 3. O emulador só manda frame quando a tela muda: tela parada não custa nada.
@@ -83,7 +83,7 @@ mostrou ~4,5 GB por celular; por isso o modo leve ganhou a sua própria fase 0
 | **Hibernado** | encerrado com snapshot, mas o quadro continua na mesa com a última tela esmaecida; um clique acorda. Memória zero |
 
 **Hibernação automática (2026-10-10).** O teto de memória não recusa mais um
-aparelho: quando ligar ou acordar um passaria do teto, o Duo hiberna antes os
+aparelho: quando ligar ou acordar um passaria do teto, o MultiDroid hiberna antes os
 aparelhos ligados **sem uso há mais tempo** (toque, tecla, ampliar ou ligar
 contam como uso), um por vez, até caber. Só recusa quando nem hibernando
 todos cabe. Assim o número de aparelhos **cadastrados** não depende da
@@ -124,29 +124,29 @@ faz com os aparelhos sai daqui:
 | Criar aparelho | escolher perfil (2.5), imagem, nome, grupo; mostra quanto de memória vai custar antes de criar |
 | Imagens | imagens instaladas, espaço em disco, baixar/remover (com a licença do Google mostrada) |
 | Sincronizar | marcar quais aparelhos repetem a entrada do aparelho em foco |
-| Limite de memória | o teto fica no cartão de memória, no topo do painel: valor em destaque, − e +, controle deslizante e quantos celulares cabem acordados; avisa ao mudar e quando os ligados já passam dele. Ao passar do teto, o Duo hiberna quem está há mais tempo sem uso (2.3); a folha Novo aparelho avisa antes se ligar vai hibernar alguém |
+| Limite de memória | o teto fica no cartão de memória, no topo do painel: valor em destaque, − e +, controle deslizante e quantos celulares cabem acordados; avisa ao mudar e quando os ligados já passam dele. Ao passar do teto, o MultiDroid hiberna quem está há mais tempo sem uso (2.3); a folha Novo aparelho avisa antes se ligar vai hibernar alguém |
 
-### 2.7 Independência: o Duo instala o que usa
+### 2.7 Independência: o MultiDroid instala o que usa
 
-O Duo não depende de Android Studio, Java, `sdkmanager`, `avdmanager` nem `adb`.
-Tudo mora em `~/Library/Application Support/Duo/` (`sdk/`, `avd/`, `state.json`).
+O MultiDroid não depende de Android Studio, Java, `sdkmanager`, `avdmanager` nem `adb`.
+Tudo mora em `~/Library/Application Support/MultiDroid/` (`sdk/`, `avd/`, `state.json`).
 
 | Antes | Agora | Como |
 |---|---|---|
 | `sdkmanager` | **Imagens** no app | lê `repository2-3.xml` e `sys-img/<tag>/sys-img2-3.xml` em dl.google.com, canal estável, arquivo `macosx`/`aarch64`; baixa, confere o SHA-1 publicado, extrai com o `ditto` do macOS e troca a pasta de uma vez |
-| licença no terminal | folha de licença no app | texto vindo do próprio XML; o aceite fica em `sdk/licenses/<id>` com o SHA-1 do texto (formato do sdkmanager): se o Google mudar o texto, o Duo pede de novo |
+| licença no terminal | folha de licença no app | texto vindo do próprio XML; o aceite fica em `sdk/licenses/<id>` com o SHA-1 do texto (formato do sdkmanager): se o Google mudar o texto, o MultiDroid pede de novo |
 | `avdmanager create` | `Catalog.create` | escreve `<nome>.ini` e `config.ini` com os campos que o avdmanager grava para cada hardware (dobradiça do Pixel 9 Pro Fold incluída); o emulador cria o disco do usuário no primeiro boot |
 | `adb emu kill` | console do emulador | TCP local na porta do console, `auth` com `~/.emulator_console_auth_token`, depois `kill`: desliga salvando o estado. Sem resposta, SIGTERM (desliga limpo, sem salvar) |
 | Android Studio instalado | opcional | se existir, **Copiar do Studio** clona a imagem com `clonefile` (instantâneo, sem disco extra) e **Trazer** move aparelhos de `~/.android/avd` |
 
 O emulador exige uma pasta `platform-tools` dentro do SDK, mas aceita vazia. O
-Duo roda com `-no-metrics` (sem coleta de uso) e aponta `ANDROID_SDK_ROOT`,
+MultiDroid roda com `-no-metrics` (sem coleta de uso) e aponta `ANDROID_SDK_ROOT`,
 `ANDROID_AVD_HOME` e `ANDROID_EMULATOR_HOME` para a própria pasta.
 
 Medido em 2026-10-07: aparelho escrito à mão liga em 18 s (relógio) e 22,5 s
 (dobrável) a frio; depois do `kill` pelo console, volta em 2 s pelo estado salvo,
 inclusive depois de mover a pasta do aparelho. A licença das imagens Play e
-Wear proíbe redistribuir: o Duo nunca embute imagem; cada usuário aceita e
+Wear proíbe redistribuir: o MultiDroid nunca embute imagem; cada usuário aceita e
 baixa do Google (decisão M-5).
 
 ### 2.8 Mesa e grade
@@ -198,7 +198,7 @@ vão para um menu. O painel lateral recolhe com ⌘0.
 
 - Sincronizar entrada entre aparelhos marcados.
 - Arrastar arquivo do Finder para instalar APK ou enviar foto.
-- Atalhos de teclado por aparelho; perfis salvos por conta do Duo.
+- Atalhos de teclado por aparelho; perfis salvos por conta do MultiDroid.
 
 ### Resultado da fase 0 (2026-10-07, M4 de 24 GB)
 
@@ -280,7 +280,7 @@ Consequências:
 
 **Pergunta:** quanto custa cada aparelho quando vários Androids dividem uma
 só VM Linux, em vez de um emulador inteiro por aparelho? Se o custo cair
-para perto de 1 GB, o Duo ganha um segundo tipo de aparelho, **Leve**, ao lado
+para perto de 1 GB, o MultiDroid ganha um segundo tipo de aparelho, **Leve**, ao lado
 do **Completo** (o emulador de hoje).
 
 **Arquitetura medida**
@@ -299,12 +299,12 @@ Mac ── Virtualization.framework ── 1 VM Linux arm64 (Ubuntu 24.04, kerne
   que desfaz justamente o que se quer medir — kernel, cache da imagem e
   páginas iguais compartilhados entre aparelhos.
 - **Por que Lima no protótipo:** ele cria a VM com o mesmo
-  Virtualization.framework (`--vm-type=vz`) que o Duo embutiria; o protótipo
+  Virtualization.framework (`--vm-type=vz`) que o MultiDroid embutiria; o protótipo
   troca só quem liga a VM, não o hipervisor. Embutir a VM no app fica para
   depois, se o modo leve passar.
 - **Imagem:** `redroid/redroid:13.0.0_64only-latest` (AOSP + Redroid,
   Apache 2.0). Ao contrário das imagens do Google, **pode ser embutida e
-  redistribuída** pelo Duo — o modo leve não tem o risco de licença da seção 5.
+  redistribuída** pelo MultiDroid — o modo leve não tem o risco de licença da seção 5.
 - **GPU:** só software (`androidboot.redroid_gpu_mode=guest`). O Linux
   convidado do Virtualization.framework não tem aceleração 3D.
 - **Tela e toque no protótipo:** `scrcpy` pelo adb do contêiner, só para
@@ -331,7 +331,7 @@ boot, como no `measure-image.sh`):
 no footprint do Mac e rolagem sem atraso perceptível (menos de 10% de
 quadros com atraso). Passando, o modo leve entra no plano como tipo de
 aparelho **Leve**: só celular e tablet, sem Play Store (apps por APK), sem Wear,
-GPU em software. Não passando, fica registrado aqui e o Duo segue só com o
+GPU em software. Não passando, fica registrado aqui e o MultiDroid segue só com o
 emulador e com a hibernação de quem está fora de foco.
 
 ### Resultado da fase 0 do modo leve (2026-10-09, M4 de 24 GB)
@@ -361,7 +361,7 @@ Consequências:
    leves ligados em vez de 3–4; um de 16 GB, uns 8–10 em vez de 2.
 2. **A VM do app precisa de balão de memória**
    (`VZVirtioTraditionalMemoryBalloonDevice`). Sem ele, desligar aparelhos
-   não devolve nada ao Mac, e o ganho do KSM fica preso dentro da VM. O Duo
+   não devolve nada ao Mac, e o ganho do KSM fica preso dentro da VM. O MultiDroid
    encolhe a VM pelo balão quando aparelhos desligam; com isso, o KSM deve
    levar o custo para perto de 0,7 GB (a medir depois do balão).
 3. **A rolagem simples está boa, mas sem folga**: a GPU em software segura
@@ -383,7 +383,7 @@ Consequências:
 
 | # | Decisão | Por quê |
 |---|---|---|
-| M-1 | Emulador oficial, não motor próprio | GPU acelerada, todas as imagens, API pronta; o diferencial do Duo é a organização e a leveza, não a virtualização |
+| M-1 | Emulador oficial, não motor próprio | GPU acelerada, todas as imagens, API pronta; o diferencial do MultiDroid é a organização e a leveza, não a virtualização |
 | M-2 | SwiftUI + Metal, um processo | o app em si não pode competir por memória com os Androids |
 | M-3 | Frames por `MMAP`, escalados no emulador | é o caminho com menos cópia e menos CPU que a API oferece |
 | M-4 | Duplicar com `clonefile` do APFS | instantâneo e sem custo de disco |
@@ -395,8 +395,8 @@ Consequências:
 
 | Risco | Efeito | O que fazer |
 |---|---|---|
-| **Licença das imagens do Google** (Play e Wear): o SDK é licenciado "somente para desenvolver aplicativos" e não pode ser redistribuído | produto de consumo em área cinzenta | o Duo **nunca** embute nem redistribui imagens: o usuário as baixa do Google pelo instalador, aceitando a licença; oferecer imagens AOSP (sem Google) como opção; revisar com advogado antes de tornar o repositório público |
+| **Licença das imagens do Google** (Play e Wear): o SDK é licenciado "somente para desenvolver aplicativos" e não pode ser redistribuído | produto de consumo em área cinzenta | o MultiDroid **nunca** embute nem redistribui imagens: o usuário as baixa do Google pelo instalador, aceitando a licença; oferecer imagens AOSP (sem Google) como opção; revisar com advogado antes de tornar o repositório público |
 | Apps que bloqueiam emulador (integridade do Play) | bancos e alguns apps não abrem | dizer na ficha; não tentar burlar a verificação |
-| Termos dos serviços (várias contas, automação) | conta do usuário suspensa | o Duo isola contas; a sincronização de entrada é manual e visível, sem roteiro automático |
+| Termos dos serviços (várias contas, automação) | conta do usuário suspensa | o MultiDroid isola contas; a sincronização de entrada é manual e visível, sem roteiro automático |
 | Memória: ~4,5 GB por celular no emulador | 2 aparelhos num Mac de 16 GB | hibernar quem está fora de foco; modo leve em contêiner (fase 0 do modo leve) |
-| Mudanças no emulador | quebra da API gRPC | fixar a versão do emulador por release do Duo; testes contra o proto |
+| Mudanças no emulador | quebra da API gRPC | fixar a versão do emulador por release do MultiDroid; testes contra o proto |

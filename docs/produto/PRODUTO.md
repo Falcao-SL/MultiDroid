@@ -1,7 +1,7 @@
-# Produto — Duo
+# Produto — MultiDroid
 
-**Vários aparelhos Android lado a lado no seu Mac — cada um com as suas
-contas, organizados numa mesa.**
+**Um ambiente para rodar várias contas e aparelhos Android ao mesmo tempo,
+no seu Mac — cada aparelho com as suas contas, organizados numa mesa.**
 
 | | |
 |---|---|
@@ -38,7 +38,7 @@ múltiplas instâncias; no Mac com Apple Silicon, não há um equivalente leve.
   e ele volta em segundos.
 - **Instala sozinho** o emulador e as imagens, direto do Google, mostrando a
   licença; não precisa de Android Studio.
-- Sem servidor, sem conta Duo, sem coleta de uso.
+- Sem servidor, sem conta MultiDroid, sem coleta de uso.
 
 ## Por que este e não outro
 
@@ -61,9 +61,9 @@ múltiplas instâncias; no Mac com Apple Silicon, não há um equivalente leve.
 
 ## Princípios de produto
 
-1. **Leve acima de tudo.** O Duo gasta só com o que está à vista.
+1. **Leve acima de tudo.** O MultiDroid gasta só com o que está à vista.
 2. **Tudo num painel.** Nenhuma ação exige terminal ou Android Studio.
-3. **Nada sai do Mac por causa do Duo.** Só baixa do Google o que o usuário
+3. **Nada sai do Mac por causa do MultiDroid.** Só baixa do Google o que o usuário
    pede.
 4. **Honestidade sobre limites.** Dizer quanto de memória cada aparelho
    custa e o que não funciona em emulador.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fase 0 do Duo para Mac: mede o custo real de uma imagem de sistema.
+# Fase 0 do MultiDroid: mede o custo real de uma imagem de sistema.
 # Cria um AVD, liga a frio sem janela, mede o boot e a memória com o aparelho
 # parado, e desliga. Um aparelho por vez, para a medida não se misturar.
 #
@@ -10,7 +10,7 @@ NAME=$1; IMAGE=$2; DEVICE=$3; RAM=$4; CORES=$5
 SDK=${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}
 ADB=$SDK/platform-tools/adb
 PORT=5570
-LOG=/tmp/duo-measure-$NAME.log
+LOG=/tmp/multidroid-measure-$NAME.log
 
 echo no | "$SDK/cmdline-tools/latest/bin/avdmanager" create avd -n "$NAME" -k "$IMAGE" -d "$DEVICE" --force >/dev/null 2>&1
 t0=$(date +%s)

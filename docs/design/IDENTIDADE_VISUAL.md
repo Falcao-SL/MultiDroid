@@ -1,6 +1,6 @@
 # Identidade visual — Falcao Neo-Brutalism
 
-Identidade do Duo para Mac (SwiftUI). É o **mesmo sistema** do BR Generator
+Identidade do MultiDroid (SwiftUI). É o **mesmo sistema** do BR Generator
 (bordas grossas, sombra dura, cor chapada, tipografia pesada), com acento
 próprio: o azul. Os **valores** estão em [`tokens.json`](tokens.json) — este
 documento explica o uso; nunca repita um número aqui sem que ele esteja lá.
@@ -20,12 +20,12 @@ Unidade: `1` = 1 pt.
 5. **Movimento físico.** Botão pressionado desliza sobre a própria sombra
    (a sombra some e o bloco anda `(4, 4)` em 70 ms).
 6. **Cantos discretos.** Raio 10 nos blocos.
-7. **A tela do Android é intocável.** O Duo desenha a moldura, os botões e o
+7. **A tela do Android é intocável.** O MultiDroid desenha a moldura, os botões e o
    painel; nunca pinta por cima da tela de um aparelho.
 
 ## Acento e cores
 
-- O acento do Duo é o **azul** (`cor.acento.azul`): botão primário (`Novo
+- O acento do MultiDroid é o **azul** (`cor.acento.azul`): botão primário (`Novo
   aparelho`, ações), seleção.
 - Cores de estado nos botões do aparelho: `verde` ligar/retomar, `azul`
   pausar, `vermelho` desligar e apagar, `amarelo` avisos (ex.: falta
@@ -46,11 +46,11 @@ Unidade: `1` = 1 pt.
 
 `tokens.json` ainda traz grupos que eram dos apps de celular (papéis,
 espaços e tamanhos de componentes que não existem no Mac); não valem para o
-Duo para Mac até alguém os usar.
+MultiDroid até alguém os usar.
 
 ## Componentes (Mac)
 
-| Componente | Em `mac/Sources/Duo/Theme.swift` | Uso |
+| Componente | Em `mac/Sources/MultiDroid/Theme.swift` | Uso |
 |------------|----------------------------------|-----|
 | BrutalBox | `.brutal(fill:shadow:)` | painel, cartões, folhas; variante sem sombra para avisos |
 | BrutalButton | `BrutalButtonStyle(fill:)` | ações com texto; fundo `azul` por padrão, `verde` para confirmar, branco para secundárias |
@@ -82,7 +82,7 @@ como ícone de interface. Nenhum logo de serviço nem do Google/Android.
   (`#A78BFA`), da frente `ciano` (`#5CE1E6`), borda grossa off-white
   (`#EFEDE6`) e a sombra dura na cor do aparelho de trás, sobre grafite
   (`#14161B`; `#0B0C10` no modo escuro). Sem qualquer referência a marcas.
-- Fonte única: `icone/duo-icon.svg` (camadas `bg`, `back`, `shadow`, `front`).
+- Fonte única: `icone/multidroid-icon.svg` (camadas `bg`, `back`, `shadow`, `front`).
   Tudo é gerado por `icone/export_icons.py`; nunca edite as saídas à mão.
 - **Mac**: `icone/AppIcon.icon` (Icon Composer, Xcode 26+), com fundo
   próprio no escuro e uma camada por aparelho; `mac/scripts/build-app.sh`
@@ -103,7 +103,7 @@ como ícone de interface. Nenhum logo de serviço nem do Google/Android.
 
 ## Implementação
 
-`mac/Sources/Duo/Theme.swift` repete os valores de `tokens.json` (cores,
+`mac/Sources/MultiDroid/Theme.swift` repete os valores de `tokens.json` (cores,
 borda, raio, sombra). Regras:
 
 1. Cores, borda, raio e sombra só em `Theme.swift` (tamanhos de fonte e

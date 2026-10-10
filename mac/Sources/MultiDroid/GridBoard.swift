@@ -88,7 +88,7 @@ extension AppModel {
 
 struct GridBoard: View {
     @Environment(AppModel.self) private var model
-    @Environment(DuoWindow.self) private var win
+    @Environment(DeskWindow.self) private var win
     let list: [Device]
 
     /// Bordas que o gesto mexe: nenhuma = mover; uma = lado; duas = canto.
@@ -115,8 +115,8 @@ struct GridBoard: View {
                     if let drag, let target = spots[drag.id] {
                         RoundedRectangle(cornerRadius: 10)
                             .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
-                            .foregroundStyle(Duo.azul)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Duo.azul.opacity(0.12)))
+                            .foregroundStyle(Tema.azul)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Tema.azul.opacity(0.12)))
                             .frame(width: rect(target, cell).width, height: rect(target, cell).height)
                             .offset(x: rect(target, cell).minX, y: rect(target, cell).minY)
                     }

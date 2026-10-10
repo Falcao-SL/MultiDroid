@@ -1,13 +1,13 @@
 // swift-tools-version: 6.0
-// Duo para Mac — vários aparelhos Android lado a lado (docs/spec/MAC.md).
+// MultiDroid — várias contas e aparelhos Android ao mesmo tempo, no Mac (docs/spec/MAC.md).
 // Pacote SwiftPM; scripts/build-app.sh monta o .app com Info.plist e ícone.
 import PackageDescription
 
 let package = Package(
-    name: "Duo",
+    name: "MultiDroid",
     platforms: [.macOS("26.0")],
     products: [
-        .executable(name: "Duo", targets: ["Duo"]),
+        .executable(name: "MultiDroid", targets: ["MultiDroid"]),
     ],
     dependencies: [
         .package(url: "https://github.com/grpc/grpc-swift-2.git", from: "2.0.0"),
@@ -17,14 +17,14 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "Duo",
+            name: "MultiDroid",
             dependencies: [
                 .product(name: "GRPCCore", package: "grpc-swift-2"),
                 .product(name: "GRPCNIOTransportHTTP2", package: "grpc-swift-nio-transport"),
                 .product(name: "GRPCProtobuf", package: "grpc-swift-protobuf"),
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
             ],
-            path: "Sources/Duo"
+            path: "Sources/MultiDroid"
         ),
     ]
 )

@@ -1,12 +1,15 @@
 import Darwin
 import Foundation
 
-/// Onde moram o emulador, as imagens e os aparelhos. Tudo numa pasta do Duo
-/// (~/Library/Application Support/Duo): o Duo baixa o que precisa direto do
+/// Onde moram o emulador, as imagens e os aparelhos. Tudo numa pasta do MultiDroid
+/// (~/Library/Application Support/MultiDroid): o MultiDroid baixa o que precisa direto do
 /// repositório do Google e não usa Android Studio, Java, avdmanager nem adb.
 /// O emulador só exige que exista a pasta platform-tools, mesmo vazia.
 enum SDK {
     static let home: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("MultiDroid", isDirectory: true)
+    /// A pasta das versões chamadas Duo (até 2026-10-10).
+    static let legacyHome: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("Duo", isDirectory: true)
     static let root = home.appendingPathComponent("sdk", isDirectory: true)
     static let avdHome = home.appendingPathComponent("avd", isDirectory: true)
@@ -14,13 +17,29 @@ enum SDK {
     static let licenses = root.appendingPathComponent("licenses", isDirectory: true)
 
     /// O SDK do Android Studio, se houver: só para importar imagens (clonefile,
-    /// sem baixar nem ocupar disco) e aparelhos antigos. O Duo não depende dele.
+    /// sem baixar nem ocupar disco) e aparelhos antigos. O MultiDroid não depende dele.
     static let studioRoot = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Android/sdk")
     static let studioAvdHome = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".android/avd")
 
     /// Onde o emulador escreve porta e token gRPC de cada instância (pid_<pid>.ini).
     static let discovery = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Caches/TemporaryItems/avd/running")
+
+    /// Uma vez só: a pasta da época do nome Duo vira a do MultiDroid (mesmo
+    /// volume: instantâneo, sem copiar o SDK) e os <nome>.ini dos aparelhos
+    /// passam a apontar para o caminho novo. Não mexe em nada se algum
+    /// emulador ainda roda a partir da pasta antiga.
+    static func migrateLegacyHome() {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: legacyHome.path), !fm.fileExists(atPath: home.path) else { return }
+        guard !run(URL(fileURLWithPath: "/bin/ps"), ["-axo", "args="]).output.contains(legacyHome.path) else { return }
+        do { try fm.moveItem(at: legacyHome, to: home) } catch { return }
+        let avd = home.appendingPathComponent("avd", isDirectory: true)
+        for ini in (try? fm.contentsOfDirectory(at: avd, includingPropertiesForKeys: nil)) ?? [] where ini.pathExtension == "ini" {
+            guard let text = try? String(contentsOf: ini, encoding: .utf8) else { continue }
+            try? text.replacingOccurrences(of: legacyHome.path, with: home.path).write(to: ini, atomically: true, encoding: .utf8)
+        }
+    }
 
     static func prepare() {
         let fm = FileManager.default
@@ -29,7 +48,7 @@ enum SDK {
         }
     }
 
-    /// Ambiente do emulador: aponta para as pastas do Duo e ignora as do Android Studio.
+    /// Ambiente do emulador: aponta para as pastas do MultiDroid e ignora as do Android Studio.
     static var environment: [String: String] {
         var env = ProcessInfo.processInfo.environment
         env["ANDROID_HOME"] = nil

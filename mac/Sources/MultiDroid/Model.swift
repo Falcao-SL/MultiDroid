@@ -9,7 +9,7 @@ import Observation
 final class Device: Identifiable {
     enum State: Equatable {
         case off, starting, on, paused, stopping
-        /// Rodando fora do Duo (aberto pelo Android Studio ou em janela própria).
+        /// Rodando fora do MultiDroid (aberto pelo Android Studio ou em janela própria).
         case external
         /// Hibernado: desligado com o estado salvo, para dar memória a outro.
         /// Não gasta nada; volta em segundos pelo Quick Boot.
@@ -92,10 +92,9 @@ final class AppModel {
     private let stateURL: URL
 
     init() {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Duo", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        stateURL = dir.appendingPathComponent("state.json")
+        SDK.migrateLegacyHome()
+        try? FileManager.default.createDirectory(at: SDK.home, withIntermediateDirectories: true)
+        stateURL = SDK.home.appendingPathComponent("state.json")
         ceilingGB = (Metrics.physicalGB * 0.75).rounded()
         SDK.prepare()
         migrateFromStudio()
@@ -126,8 +125,8 @@ final class AppModel {
         }
     }
 
-    /// Uma vez só: os aparelhos que versões antigas do Duo criaram no Android
-    /// Studio (nome "Duo-…") vêm para a pasta do Duo, com a imagem que usam
+    /// Uma vez só: os aparelhos que versões antigas (ainda chamadas Duo) criaram no Android
+    /// Studio (nome "Duo-…") vêm para a pasta do MultiDroid, com a imagem que usam
     /// e o emulador copiados por clonefile (sem baixar, sem ocupar disco).
     private func migrateFromStudio() {
         guard Catalog.load().isEmpty else { return }
@@ -158,7 +157,7 @@ final class AppModel {
     }
 
     func title(of desk: String) -> String {
-        desk == Self.mainDesk ? "Duo" : "Duo · Mesa \(desk.replacingOccurrences(of: "mesa-", with: ""))"
+        desk == Self.mainDesk ? "MultiDroid" : "MultiDroid · Mesa \(desk.replacingOccurrences(of: "mesa-", with: ""))"
     }
 
     func windowOpened(_ desk: String) {
@@ -222,7 +221,7 @@ final class AppModel {
         save()
     }
 
-    /// Aparelhos já rodando (abertos antes, ou pelo Android Studio): o Duo os
+    /// Aparelhos já rodando (abertos antes, ou pelo Android Studio): o MultiDroid os
     /// mostra e consegue desligar; se tiverem gRPC com token, também a tela.
     private func adoptRunning() {
         let ps = SDK.run(URL(fileURLWithPath: "/bin/ps"), ["-axo", "pid=,args="]).output
@@ -288,8 +287,8 @@ final class AppModel {
         p.environment = SDK.environment
         p.arguments = ["-avd", d.id, "-no-window", "-no-audio", "-no-boot-anim", "-no-metrics", "-gpu", "host",
                        "-cores", "\(d.info.kind.cores)", "-grpc", "\(grpcPort)", "-grpc-use-token", "-port", "\(console)"]
-        // Saída do emulador em ~/Library/Logs/Duo/<aparelho>.log, para entender falhas.
-        let logs = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/Duo")
+        // Saída do emulador em ~/Library/Logs/MultiDroid/<aparelho>.log, para entender falhas.
+        let logs = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/MultiDroid")
         try? FileManager.default.createDirectory(at: logs, withIntermediateDirectories: true)
         let logURL = logs.appendingPathComponent("\(d.id).log")
         FileManager.default.createFile(atPath: logURL.path, contents: nil)
@@ -473,7 +472,7 @@ final class AppModel {
         }
     }
 
-    /// Processo sumiu sem passar pelo Duo (fechado por fora): volta a desligado.
+    /// Processo sumiu sem passar pelo MultiDroid (fechado por fora): volta a desligado.
     private func adoptCheck(_ d: Device) {
         if let pid = d.pid, kill(pid, 0) == 0 { return }
         d.screen?.stop(); d.link?.close()

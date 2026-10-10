@@ -1,18 +1,18 @@
-# Status — Duo
+# Status — MultiDroid
 
 > Atualizado em **2026-10-09**. Fonte única de "em que pé está".
 
 | Campo | Valor |
 |---|---|
 | **Estágio** | **App de Mac em construção.** Fase 0 medida (2026-10-07); fase 1 quase toda feita; fase 2 não começou |
-| **Plataforma** | só macOS: Duo para Mac em `mac/` (Swift Package, SwiftUI + gRPC), macOS 26, Apple Silicon |
+| **Plataforma** | só macOS: MultiDroid em `mac/` (Swift Package, SwiftUI + gRPC), macOS 26, Apple Silicon |
 | **Versão** | 0.1 (build 1), assinatura ad hoc (`scripts/build-app.sh`) |
-| **Identificador** | `com.falcaosl.duo.mac` · Apple Team `6EZ89E2F5S` |
+| **Identificador** | `com.falcaosl.multidroid` · Apple Team `6EZ89E2F5S` |
 | **Distribuição** | Developer ID + notarização, fora da Mac App Store (decisão M-6); ainda não configurada |
 | **Monetização** | **Nenhuma: código aberto, GPL-3.0** (2026-10-10; [MONETIZACAO.md](MONETIZACAO.md)) |
 | **Próximo marco** | Fechar o critério da fase 1: criar, duplicar e organizar 4 celulares + 1 relógio em menos de 5 minutos num Mac limpo |
 
-Em 2026-10-09 o Duo passou a ser só o app de Mac. O plano dos apps de
+Em 2026-10-09 o MultiDroid passou a ser só o app de Mac. O plano dos apps de
 celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 
 ## Fases (spec/MAC.md §3)
