@@ -2,6 +2,9 @@
 # Monta build/MultiDroid.app: executável do SwiftPM + Info.plist + ícone do Icon Composer
 # (docs/design/icone/AppIcon.icon, compilado pelo actool para macOS).
 #   scripts/build-app.sh [debug|release]
+# Assina com o Developer ID e o hardened runtime quando o certificado está no
+# Keychain (exigência da notarização); senão, ad hoc. SIGN_ID força outra
+# identidade; SIGN_ID=- força ad hoc.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}
@@ -34,5 +37,12 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
-codesign --force --sign - "$APP" >/dev/null 2>&1
-echo "ok: $APP"
+SIGN_ID=${SIGN_ID:-$(security find-identity -v -p codesigning 2>/dev/null \
+  | awk -F'"' '/Developer ID Application/{print $2; exit}')}
+if [ -n "$SIGN_ID" ] && [ "$SIGN_ID" != "-" ]; then
+  codesign --force --options runtime --timestamp --sign "$SIGN_ID" "$APP"
+  echo "ok: $APP (assinado: $SIGN_ID)"
+else
+  codesign --force --sign - "$APP" >/dev/null 2>&1
+  echo "ok: $APP (ad hoc: só abre neste Mac)"
+fi

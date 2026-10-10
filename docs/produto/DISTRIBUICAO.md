@@ -16,10 +16,10 @@ desenvolvedor desconhecido.
 | Item | Situação |
 |------|----------|
 | Conta Apple Developer (Team `6EZ89E2F5S`) | existe |
-| Certificado **Developer ID Application** | a configurar |
-| Assinatura com hardened runtime e entitlements necessários | a definir (hoje `build-app.sh` assina ad hoc) |
-| Notarização (`notarytool`) e grampo (`stapler`) | a configurar |
-| Embalagem (`.dmg` ou `.zip`) | a decidir |
+| Certificado **Developer ID Application** | no Keychain; `build-app.sh` usa sozinho quando encontra |
+| Assinatura com hardened runtime | **feito**: Developer ID + `--options runtime --timestamp`, sem entitlements (o app não usa o Hypervisor nem sandbox; quem usa é o emulador, assinado pelo Google) |
+| Notarização (`notarytool`) e grampo (`stapler`) | `scripts/release.sh` faz; falta guardar a credencial uma vez: `xcrun notarytool store-credentials notary --apple-id <e-mail> --team-id 6EZ89E2F5S` |
+| Embalagem | **`.dmg`** assinado (`mac/build/MultiDroid-<versão>.dmg`, ~11 MB), com atalho para Aplicativos |
 | Página de download | GitHub Releases do repositório (público quando o dono decidir); página no `falcaosl.com` apontando para lá |
 | Homebrew cask | depois da primeira release notarizada |
 | Atualização automática | a decidir |
@@ -31,6 +31,15 @@ desenvolvedor desconhecido.
   redistribuir. O usuário baixa e aceita dentro do app (decisão M-5).
 - **O próprio emulador**: também vem do repositório do Google pelo
   instalador do app (MAC.md §2.7).
+
+## Como gerar uma release
+
+```sh
+mac/scripts/release.sh            # compila, assina, monta o .dmg, notariza e grampeia
+NOTARIZE=0 mac/scripts/release.sh # só monta e assina (para testar)
+```
+
+A versão vem de `CFBundleShortVersionString` em `build-app.sh`.
 
 ## Requisitos para o usuário
 
@@ -58,6 +67,6 @@ desenvolvedor desconhecido.
 |-------|----------|
 | Fase 0 (medir) | **Feito** |
 | Fase 1 (o app) | quase feito |
-| Developer ID + notarização | a fazer |
+| Developer ID + notarização | assinatura feita; notarização aguarda a credencial |
 | Página de download e política publicada | a fazer |
 | Lançamento | a decidir |
