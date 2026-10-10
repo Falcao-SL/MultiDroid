@@ -100,6 +100,7 @@ struct PanelView: View {
             Spacer()
             Button("Ligar") { for n in selection { if let d = model.device(n) { model.start(d) } } }
             Button("Pausar") { for n in selection { if let d = model.device(n) { model.pause(d) } } }
+            Button("Hibernar") { for n in selection { if let d = model.device(n) { model.hibernate(d) } } }
             Button("Desligar") { for n in selection { if let d = model.device(n) { model.stop(d) } } }
         }
         .buttonStyle(BrutalButtonStyle(fill: Duo.ciano))
@@ -144,7 +145,8 @@ struct MemoryCard: View {
                 }
             }
             .frame(height: 14)
-            Text(String(format: "Aparelhos: %.1f GB · teto %.0f GB · swap %.1f GB", model.runningGB, model.ceilingGB, model.swapGB))
+            Text(String(format: "Aparelhos: %.1f GB · teto %.0f GB · swap %.1f GB", model.runningGB, model.ceilingGB, model.swapGB)
+                 + (model.asleepCount > 0 ? " · \(model.asleepCount) hibernando" : ""))
                 .font(.system(size: 11, weight: .semibold)).opacity(0.7)
         }
         .padding(12)
@@ -162,6 +164,7 @@ struct StatusDot: View {
         case .paused: (Duo.azul, "pausado")
         case .stopping: (Duo.laranja, "desligando")
         case .external: (Duo.roxo, "aberto fora do Duo")
+        case .asleep: (Duo.ciano, "hibernando")
         }
         HStack(spacing: 5) {
             Circle().fill(c).frame(width: 9, height: 9).overlay(Circle().stroke(.black.opacity(0.6), lineWidth: 1))
@@ -219,11 +222,15 @@ struct DeviceRow: View {
             switch d.state {
             case .off:
                 iconButton("play.fill", Duo.verde) { model.start(d) }
+            case .asleep:
+                if d.waking { ProgressView().controlSize(.small) } else { iconButton("play.fill", Duo.verde) { model.start(d) } }
             case .on:
                 iconButton("pause.fill", Duo.azul) { model.pause(d) }
+                iconButton("moon.zzz.fill", Duo.ciano) { model.hibernate(d) }
                 iconButton("stop.fill", Duo.vermelho) { model.stop(d) }
             case .paused:
                 iconButton("play.fill", Duo.verde) { model.resume(d) }
+                iconButton("moon.zzz.fill", Duo.ciano) { model.hibernate(d) }
                 iconButton("stop.fill", Duo.vermelho) { model.stop(d) }
             case .external:
                 iconButton("stop.fill", Duo.vermelho) { model.stop(d) }
@@ -328,6 +335,7 @@ struct GridArea: View {
                         return true
                     }
                     .onTapGesture(count: 2) {
+                        model.used(d)
                         withAnimation(.snappy) { win.focused = win.focused == d.id ? nil : d.id }
                     }
             }
@@ -362,6 +370,14 @@ struct DeviceTile: View {
                         ScreenView(device: d, image: img)
                             .clipShape(RoundedRectangle(cornerRadius: round ? 999 : 12))
                             .opacity(d.state == .paused ? 0.45 : 1)
+                    } else if let img = d.lastFrame, d.state == .asleep || d.state == .starting {
+                        // Hibernado (ou acordando): a última tela, esmaecida; um clique acorda.
+                        Image(decorative: img, scale: 1).resizable().interpolation(.high)
+                            .clipShape(RoundedRectangle(cornerRadius: round ? 999 : 12))
+                            .opacity(0.35)
+                            .contentShape(Rectangle())
+                            .onTapGesture { model.start(d) }
+                        if d.state == .starting || d.waking { ProgressView().controlSize(.large).tint(.white) }
                     } else {
                         VStack(spacing: 10) {
                             Text(placeholder(d)).font(.system(size: 12, weight: .bold)).foregroundStyle(.white.opacity(0.75))
@@ -369,11 +385,17 @@ struct DeviceTile: View {
                             if d.state == .off {
                                 Button("Ligar") { model.start(d) }.buttonStyle(BrutalButtonStyle(fill: Duo.verde))
                             }
+                            if d.state == .asleep, !d.waking {
+                                Button("Acordar") { model.start(d) }.buttonStyle(BrutalButtonStyle(fill: Duo.ciano))
+                            }
                         }
                         .padding()
                     }
                     if d.state == .paused {
                         Button("Retomar") { model.resume(d) }.buttonStyle(BrutalButtonStyle(fill: Duo.verde))
+                    }
+                    if d.state == .asleep, !d.waking, d.lastFrame != nil {
+                        Button("Acordar") { model.start(d) }.buttonStyle(BrutalButtonStyle(fill: Duo.ciano))
                     }
                 }
                 .aspectRatio(CGFloat(fw) / CGFloat(fh), contentMode: .fit)
@@ -395,6 +417,7 @@ struct DeviceTile: View {
         case .starting: d.message ?? "ligando…"
         case .stopping: "desligando…"
         case .external: "Aberto fora do Duo.\nDesligue e ligue por aqui para ver a tela."
+        case .asleep: d.message ?? "Hibernando: não gasta memória.\nVolta em segundos."
         default: ""
         }
     }
@@ -466,6 +489,8 @@ struct DeviceToolbar: View {
             Button { model.resume(d) } label: { Image(systemName: "play.fill").frame(width: 14, height: 14) }
                 .buttonStyle(BrutalIconStyle(fill: Duo.verde)).help("Retomar")
         }
+        Button { model.hibernate(d) } label: { Image(systemName: "moon.zzz.fill").frame(width: 14, height: 14) }
+            .buttonStyle(BrutalIconStyle(fill: Duo.ciano)).help("Hibernar: libera a memória e guarda o estado")
         Button { model.stop(d) } label: { Image(systemName: "stop.fill").frame(width: 14, height: 14) }
             .buttonStyle(BrutalIconStyle(fill: Duo.vermelho)).help("Desligar")
     }
@@ -487,11 +512,13 @@ struct DeviceToolbar: View {
 
     private func run(_ action: @escaping @Sendable (EmulatorLink) async -> Void) {
         guard let link = device.link else { return }
+        model.used(device)
         Task { await action(link) }
     }
 
     private func send() {
         guard let link = device.link, !text.isEmpty else { return }
+        model.used(device)
         let t = text
         text = ""
         Task { await link.type(t) }
@@ -511,6 +538,7 @@ struct DeviceToolbar: View {
 
 /// A tela do aparelho; clique e arraste viram toque no Android.
 struct ScreenView: View {
+    @Environment(AppModel.self) private var model
     let device: Device
     let image: CGImage
 
@@ -531,6 +559,7 @@ struct ScreenView: View {
 
     private func send(_ point: CGPoint, _ size: CGSize, down: Bool) {
         guard let link = device.link else { return }
+        if down { model.used(device) }
         let parts = device.info.screen.split(separator: "×").compactMap { Int($0) }
         guard parts.count == 2, size.width > 0, size.height > 0 else { return }
         let x = Int(max(0, min(1, point.x / size.width)) * Double(parts[0]))

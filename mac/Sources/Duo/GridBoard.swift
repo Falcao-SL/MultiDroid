@@ -217,7 +217,7 @@ struct GridBoard: View {
             .contentShape(Rectangle())
             .pointerStyle(.grabIdle)
             .gesture(gesture(d, edges: [], cell))
-            .onTapGesture(count: 2) { withAnimation(.snappy) { win.focused = d.id } }
+            .onTapGesture(count: 2) { model.used(d); withAnimation(.snappy) { win.focused = d.id } }
     }
 
     /// Espessura da faixa de redimensionar: cabe na margem do quadro, sem

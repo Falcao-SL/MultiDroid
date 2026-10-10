@@ -80,6 +80,15 @@ mostrou ~4,5 GB por celular; por isso o modo leve ganhou a sua própria fase 0
 | Fora da tela (rolado) | stream cancelado; o Android segue rodando |
 | Minimizado / pausado | `setVmState(PAUSED)`: CPU zero, memória mantida |
 | Encerrado | snapshot salvo; volta em segundos com Quick Boot |
+| **Hibernado** | encerrado com snapshot, mas o quadro continua na mesa com a última tela esmaecida; um clique acorda. Memória zero |
+
+**Hibernação automática (2026-10-10).** O teto de memória não recusa mais um
+aparelho: quando ligar ou acordar um passaria do teto, o Duo hiberna antes os
+aparelhos ligados **sem uso há mais tempo** (toque, tecla, ampliar ou ligar
+contam como uso), um por vez, até caber. Só recusa quando nem hibernando
+todos cabe. Assim o número de aparelhos **cadastrados** não depende da
+memória; só o de **acordados** ao mesmo tempo. Medido: carregar o snapshot
+leva 0,7–1,4 s e salvar 1,3–2,8 s, então trocar de aparelho custa uns 3–5 s.
 
 ### 2.4 Duplicar
 
@@ -109,13 +118,13 @@ faz com os aparelhos sai daqui:
 |---|---|
 | Lista de aparelhos | nome, tipo (celular, tablet, dobrável, relógio), conta/grupo, estado (ligado, pausado, desligado, ligando), versão do Android |
 | Recursos | memória e CPU de cada aparelho e do total, ao vivo; memória livre do Mac e alerta antes do swap |
-| Ações por aparelho | ligar, pausar, retomar, desligar, reiniciar, duplicar, renomear, apagar, abrir em tela cheia |
-| Ações em lote | selecionar vários e ligar/pausar/desligar/duplicar de uma vez; ligar um grupo inteiro |
+| Ações por aparelho | ligar, pausar, retomar, hibernar, desligar, reiniciar, duplicar, renomear, apagar, abrir em tela cheia |
+| Ações em lote | selecionar vários e ligar/pausar/hibernar/desligar/duplicar de uma vez; ligar um grupo inteiro |
 | Grupos | agrupar aparelhos por conta ou projeto; a grade segue os grupos |
 | Criar aparelho | escolher perfil (2.5), imagem, nome, grupo; mostra quanto de memória vai custar antes de criar |
 | Imagens | imagens instaladas, espaço em disco, baixar/remover (com a licença do Google mostrada) |
 | Sincronizar | marcar quais aparelhos repetem a entrada do aparelho em foco |
-| Limite de memória | o usuário define um teto; o painel não liga um aparelho que passaria dele |
+| Limite de memória | o usuário define um teto; ao passar dele, o Duo hiberna quem está há mais tempo sem uso (2.3) |
 
 ### 2.7 Independência: o Duo instala o que usa
 

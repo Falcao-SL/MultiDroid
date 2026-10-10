@@ -1,3 +1,4 @@
+import CoreGraphics
 import Darwin
 import Foundation
 import Observation
@@ -10,6 +11,9 @@ final class Device: Identifiable {
         case off, starting, on, paused, stopping
         /// Rodando fora do Duo (aberto pelo Android Studio ou em janela própria).
         case external
+        /// Hibernado: desligado com o estado salvo, para dar memória a outro.
+        /// Não gasta nada; volta em segundos pelo Quick Boot.
+        case asleep
     }
 
     var info: DeviceInfo
@@ -22,11 +26,18 @@ final class Device: Identifiable {
     var cpu = 0.0
     var message: String?
     var landscape = false
+    /// Último uso (toque, tecla, ampliar, ligar): quem está há mais tempo sem
+    /// uso é o primeiro a hibernar.
+    var lastUsed = Date.distantPast
+    /// A última tela antes de hibernar, mostrada esmaecida no quadro.
+    var lastFrame: CGImage?
+    /// Esperando outro hibernar para poder ligar.
+    var waking = false
     fileprivate var lastCPU: (nanos: UInt64, at: Date)?
 
     nonisolated let id: String
     /// Qualquer estado com processo vivo (ou ainda morrendo): bloqueia duplicar e apagar.
-    var isRunning: Bool { state != .off }
+    var isRunning: Bool { state != .off && state != .asleep }
 
     init(info: DeviceInfo) { self.info = info; self.id = info.name }
 
@@ -91,10 +102,21 @@ final class AppModel {
         wireImageSwap()
         loadState()
         refresh()
-        // --start A,B: liga aparelhos ao abrir (testes e atalhos).
+        // --start A,B: liga aparelhos ao abrir (testes e atalhos), um de cada
+        // vez: o próximo só começa quando o anterior terminou o boot.
         let args = ProcessInfo.processInfo.arguments
         if let i = args.firstIndex(of: "--start"), i + 1 < args.count {
-            for name in args[i + 1].split(separator: ",") { if let d = device(String(name)) { start(d) } }
+            let names = args[i + 1].split(separator: ",").map(String.init)
+            Task { [weak self] in
+                for name in names {
+                    guard let self, let d = self.device(name) else { continue }
+                    self.start(d)
+                    for _ in 0..<480 {
+                        try? await Task.sleep(for: .milliseconds(500))
+                        if d.state == .on || (!d.waking && (d.state == .off || d.state == .asleep)) { break }
+                    }
+                }
+            }
         }
         metricsTask = Task { [weak self] in
             while !Task.isCancelled {
@@ -225,14 +247,39 @@ final class AppModel {
         devices.filter(\.isRunning).reduce(0) { $0 + max($1.footprintGB, $1.info.kind.estimateGB) } + d.info.kind.estimateGB
     }
 
+    func used(_ d: Device) { d.lastUsed = Date() }
+
+    /// Liga (ou acorda) um aparelho. Se ele não couber no teto de memória, os
+    /// aparelhos sem uso há mais tempo hibernam antes, até caber.
     func start(_ d: Device) {
-        guard d.state == .off else { return }
+        guard d.state == .off || d.state == .asleep, !d.waking else { return }
         guard images.ready else { banner = "Baixe o emulador em Imagens antes de ligar"; return }
-        let projected = projectedGB(adding: d)
-        guard projected <= ceilingGB else {
-            banner = String(format: "%@ não liga: os aparelhos passariam de %.0f GB (teto de %.0f GB)", d.id, projected, ceilingGB)
-            return
+        used(d)
+        guard projectedGB(adding: d) > ceilingGB else { launch(d); return }
+        d.waking = true
+        d.message = "abrindo espaço…"
+        Task {
+            let fits = await makeRoom(for: d)
+            d.waking = false
+            d.message = nil
+            if fits { launch(d) }
         }
+    }
+
+    private func makeRoom(for d: Device) async -> Bool {
+        while projectedGB(adding: d) > ceilingGB {
+            let awake = devices.filter { ($0.state == .on || $0.state == .paused) && $0.id != d.id }
+            guard let victim = awake.min(by: { $0.lastUsed < $1.lastUsed }) else {
+                banner = String(format: "%@ não liga: nem hibernando os outros cabe no teto de %.0f GB", d.id, ceilingGB)
+                return false
+            }
+            banner = "\(victim.id) hibernou para \(d.id) ligar"
+            await hibernateAndWait(victim)
+        }
+        return true
+    }
+
+    private func launch(_ d: Device) {
         let used = Set(devices.compactMap(\.consolePort))
         let console = stride(from: 5600, to: 5680, by: 2).first { !used.contains($0) } ?? 5600
         let grpcPort = 8600 + (console - 5600) / 2
@@ -294,6 +341,7 @@ final class AppModel {
 
     func resume(_ d: Device) {
         guard d.state == .paused, let link = d.link else { return }
+        used(d)
         d.state = .on
         Task {
             await link.setPaused(false)
@@ -302,10 +350,23 @@ final class AppModel {
     }
 
     func stop(_ d: Device) {
+        if d.state == .asleep { d.state = .off; d.lastFrame = nil; return }
         Task { await stopAndWait(d) }
     }
 
-    func stopAndWait(_ d: Device) async {
+    /// Hibernar é desligar salvando o estado (como o Desligar) e guardar a
+    /// última tela; o aparelho acorda sozinho ao ser usado de novo.
+    func hibernate(_ d: Device) {
+        Task { await hibernateAndWait(d) }
+    }
+
+    private func hibernateAndWait(_ d: Device) async {
+        guard d.state == .on || d.state == .paused else { return }
+        d.lastFrame = d.screen?.image
+        await stopAndWait(d, to: .asleep)
+    }
+
+    func stopAndWait(_ d: Device, to final: Device.State = .off) async {
         guard d.isRunning, d.state != .stopping, let console = d.consolePort else { return }
         d.state = .stopping
         d.screen?.stop()
@@ -321,7 +382,8 @@ final class AppModel {
         }
         d.link?.close()
         d.link = nil; d.screen = nil; d.pid = nil; d.consolePort = nil
-        d.footprintGB = 0; d.cpu = 0; d.state = .off; d.message = nil
+        d.footprintGB = 0; d.cpu = 0; d.state = final; d.message = nil
+        if final == .off { d.lastFrame = nil }
     }
 
     /// Aparelhos que usam um pacote: todos, para o emulador; os do tipo, para uma imagem.
@@ -420,4 +482,5 @@ final class AppModel {
     }
 
     var runningGB: Double { devices.filter(\.isRunning).reduce(0) { $0 + $1.footprintGB } }
+    var asleepCount: Int { devices.filter { $0.state == .asleep }.count }
 }

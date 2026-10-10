@@ -30,7 +30,8 @@ celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 | Aparelhos | celular (Pixel 9), tablet (Pixel Tablet), dobrável (Pixel 9 Pro Fold), relógio (Wear OS redondo) |
 | Painel | lista, estado, memória/CPU ao vivo, memória do Mac, teto de memória, grupos, ações em lote, criar, duplicar, apagar (renomear ainda não) |
 | Mesa | grade livre de 24 colunas, arranjo automático e por grupo, uma mesa por janela (⌘N), menu Mesas, painel recolhível (⌘0) |
-| Quadro | voltar, início, recentes, volume, girar, digitar, captura de tela, pausar, desligar |
+| Quadro | voltar, início, recentes, volume, girar, digitar, captura de tela, pausar, hibernar, desligar |
+| Hibernação | ao passar do teto de memória, hiberna quem está há mais tempo sem uso; quadro hibernado mostra a última tela e acorda com um clique (MAC.md §2.3) |
 | Tela e entrada | `streamScreenshot` por `MMAP` escalado no emulador; toque e teclas por gRPC |
 | Instalador | emulador e imagens baixados de dl.google.com, licença no app, SHA-1, atualizar com aparelhos ligados, importar do Android Studio |
 | Modo leve (fase 0) | protótipo `mac/tools/leve.sh`: Redroid em contêiner numa VM do Virtualization.framework; medido em 2026-10-09, ~0,85 GB por aparelho com 8 ligados contra ~4,5 GB do emulador (MAC.md §3) |
