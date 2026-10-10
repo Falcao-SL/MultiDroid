@@ -74,11 +74,6 @@ struct PanelView: View {
                 }
                 .padding(.trailing, 6).padding(.bottom, 8)
             }
-            HStack {
-                Text("Teto de memória").font(.system(size: 12, weight: .bold))
-                Slider(value: $model.ceilingGB, in: 4...Metrics.physicalGB.rounded(), step: 1) { _ in model.save() }
-                Text("\(Int(model.ceilingGB)) GB").font(.system(size: 12, weight: .bold).monospacedDigit())
-            }
         }
         .padding(18)
         .foregroundStyle(p.tinta)
@@ -125,8 +120,10 @@ struct MemoryCard: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
+        @Bindable var model = model
         let total = Metrics.physicalGB
         let used = max(0, total - model.availableGB)
+        let max = total.rounded()
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Memória do Mac").font(.system(size: 12, weight: .bold))
@@ -145,12 +142,48 @@ struct MemoryCard: View {
                 }
             }
             .frame(height: 14)
-            Text(String(format: "Aparelhos: %.1f GB · teto %.0f GB · swap %.1f GB", model.runningGB, model.ceilingGB, model.swapGB)
+            Text(String(format: "Aparelhos: %.1f GB · swap %.1f GB", model.runningGB, model.swapGB)
                  + (model.asleepCount > 0 ? " · \(model.asleepCount) hibernando" : ""))
                 .font(.system(size: 11, weight: .semibold)).opacity(0.7)
+            Divider().padding(.vertical, 2)
+            // O teto: até quanto os aparelhos ligados podem gastar. Acima dele,
+            // o Duo hiberna quem está há mais tempo sem uso (MAC.md §2.3).
+            HStack(spacing: 6) {
+                Text("Teto dos aparelhos").font(.system(size: 12, weight: .bold))
+                Spacer()
+                Button { setCeiling(model.ceilingGB - 1) } label: { Image(systemName: "minus").frame(width: 10, height: 10) }
+                    .buttonStyle(BrutalIconStyle()).disabled(model.ceilingGB <= 4).help("Diminuir o teto")
+                Text("\(Int(model.ceilingGB)) GB").font(.system(size: 14, weight: .black).monospacedDigit())
+                    .frame(minWidth: 46)
+                Button { setCeiling(model.ceilingGB + 1) } label: { Image(systemName: "plus").frame(width: 10, height: 10) }
+                    .buttonStyle(BrutalIconStyle()).disabled(model.ceilingGB >= max).help("Aumentar o teto")
+            }
+            Slider(value: $model.ceilingGB, in: 4...max, step: 1) { editing in if !editing { setCeiling(model.ceilingGB) } }
+            Text(capacity).font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(model.runningGB > model.ceilingGB ? Duo.vermelho : Color.primary.opacity(0.7))
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)
         .brutal()
+    }
+
+    /// Quantos celulares cabem acordados com este teto, e o que acontece além dele.
+    private var capacity: String {
+        let fit = Int(model.ceilingGB / DeviceKind.celular.estimateGB)
+        if model.runningGB > model.ceilingGB {
+            return String(format: "Os ligados já passam do teto (%.1f GB). O próximo a ligar hiberna os sem uso.", model.runningGB)
+        }
+        return fit == 0
+            ? "Nenhum celular cabe neste teto. Aumente para ligar."
+            : "Cabem ~\(fit) celular\(fit == 1 ? "" : "es") acordado\(fit == 1 ? "" : "s"). Acima disso, o Duo hiberna quem está sem uso."
+    }
+
+    private func setCeiling(_ gb: Double) {
+        let v = min(Metrics.physicalGB.rounded(), Swift.max(4, gb.rounded()))
+        model.ceilingGB = v
+        model.save()
+        let fit = Int(v / DeviceKind.celular.estimateGB)
+        model.banner = "Teto em \(Int(v)) GB: cabem ~\(fit) celular\(fit == 1 ? "" : "es") acordado\(fit == 1 ? "" : "s")"
     }
 }
 
@@ -600,6 +633,11 @@ struct NewDeviceSheet: View {
             Text(String(format: "Android 13 · custa cerca de %.1f GB de memória ligado", kind.estimateGB))
                 .font(.system(size: 12, weight: .semibold)).opacity(0.7)
                 .fixedSize(horizontal: false, vertical: true)
+            if let fit = ceilingNote {
+                Text(fit).font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(kind.estimateGB > model.ceilingGB ? Duo.vermelho : Color.primary.opacity(0.7))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if !model.images.hasImage(for: kind) {
                 HStack {
                     Text("Falta a imagem \(kind.imageLabel).").font(.system(size: 12, weight: .bold))
@@ -647,6 +685,19 @@ struct NewDeviceSheet: View {
     }
 
     private var valid: Bool { !avdName.isEmpty && model.device(avdName) == nil }
+
+    /// Como o teto de memória afeta este aparelho quando ele for ligado.
+    private var ceilingNote: String? {
+        let teto = Int(model.ceilingGB)
+        if kind.estimateGB > model.ceilingGB {
+            return "Sozinho ele já passa do teto de \(teto) GB: aumente o teto no painel para conseguir ligar."
+        }
+        let ligados = model.devices.filter(\.isRunning).reduce(0) { $0 + Swift.max($1.footprintGB, $1.info.kind.estimateGB) }
+        if ligados + kind.estimateGB > model.ceilingGB {
+            return "Com o teto de \(teto) GB, ligar este vai hibernar os aparelhos sem uso há mais tempo."
+        }
+        return nil
+    }
 
     /// Diz por que o Criar está desligado, ou como o nome vai ficar.
     private var nameHint: String? {

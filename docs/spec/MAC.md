@@ -124,7 +124,7 @@ faz com os aparelhos sai daqui:
 | Criar aparelho | escolher perfil (2.5), imagem, nome, grupo; mostra quanto de memória vai custar antes de criar |
 | Imagens | imagens instaladas, espaço em disco, baixar/remover (com a licença do Google mostrada) |
 | Sincronizar | marcar quais aparelhos repetem a entrada do aparelho em foco |
-| Limite de memória | o usuário define um teto; ao passar dele, o Duo hiberna quem está há mais tempo sem uso (2.3) |
+| Limite de memória | o teto fica no cartão de memória, no topo do painel: valor em destaque, − e +, controle deslizante e quantos celulares cabem acordados; avisa ao mudar e quando os ligados já passam dele. Ao passar do teto, o Duo hiberna quem está há mais tempo sem uso (2.3); a folha Novo aparelho avisa antes se ligar vai hibernar alguém |
 
 ### 2.7 Independência: o Duo instala o que usa
 
