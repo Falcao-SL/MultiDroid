@@ -595,7 +595,7 @@ struct NewDeviceSheet: View {
                     .buttonStyle(BrutalButtonStyle(fill: kind == k ? Duo.azul : Color.white))
                 }
             }
-            TextField("Nome (ex.: Conta-Trabalho)", text: $name).textFieldStyle(.roundedBorder)
+            TextField("Nome (ex.: Conta Trabalho)", text: $name).textFieldStyle(.roundedBorder)
             TextField("Grupo (opcional)", text: $group).textFieldStyle(.roundedBorder)
             Text(String(format: "Android 13 · custa cerca de %.1f GB de memória ligado", kind.estimateGB))
                 .font(.system(size: 12, weight: .semibold)).opacity(0.7)
@@ -608,6 +608,11 @@ struct NewDeviceSheet: View {
                     Button("Abrir Imagens") { dismiss(); win.showImages = true }.buttonStyle(BrutalButtonStyle(fill: Duo.amarelo))
                 }
             }
+            if let hint = nameHint {
+                Text(hint).font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(valid ? Color.primary.opacity(0.7) : Duo.vermelho)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let error {
                 Text(error).font(.system(size: 12)).foregroundStyle(Duo.vermelho)
                     .fixedSize(horizontal: false, vertical: true)
@@ -618,7 +623,7 @@ struct NewDeviceSheet: View {
                 Button(busy ? "Criando…" : "Criar") {
                     busy = true
                     Task {
-                        error = await model.create(name: name, kind: kind, group: group, desk: win.desk)
+                        error = await model.create(name: avdName, kind: kind, group: group, desk: win.desk)
                         busy = false
                         if error == nil { dismiss() }
                     }
@@ -631,8 +636,26 @@ struct NewDeviceSheet: View {
         .frame(width: 500)
     }
 
-    private var valid: Bool {
-        !name.isEmpty && name.range(of: "^[A-Za-z0-9._-]+$", options: .regularExpression) != nil && model.device(name) == nil
+    /// O emulador só aceita letras sem acento, números, ponto, _ e - no nome do
+    /// aparelho: "Conta 2" vira "Conta-2", "Ação" vira "Acao".
+    private var avdName: String {
+        let plain = name.folding(options: [.diacriticInsensitive, .widthInsensitive], locale: .current)
+        let dashed = plain.replacingOccurrences(of: "\\s+", with: "-", options: .regularExpression)
+        let kept = dashed.replacingOccurrences(of: "[^A-Za-z0-9._-]", with: "", options: .regularExpression)
+        return kept.replacingOccurrences(of: "-{2,}", with: "-", options: .regularExpression)
+                   .trimmingCharacters(in: CharacterSet(charactersIn: "-."))
+    }
+
+    private var valid: Bool { !avdName.isEmpty && model.device(avdName) == nil }
+
+    /// Diz por que o Criar está desligado, ou como o nome vai ficar.
+    private var nameHint: String? {
+        let typed = name.trimmingCharacters(in: .whitespaces)
+        if typed.isEmpty { return nil }
+        if avdName.isEmpty { return "Use letras ou números no nome." }
+        if model.device(avdName) != nil { return "Já existe um aparelho chamado \(avdName)." }
+        if avdName != typed { return "Vai se chamar \(avdName) (o emulador não aceita espaço nem acento)." }
+        return nil
     }
 }
 

@@ -68,6 +68,8 @@ extension View {
 struct BrutalButtonStyle: ButtonStyle {
     var fill: Color = Duo.azul
 
+    @Environment(\.isEnabled) private var isEnabled
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 13, weight: .bold))
@@ -76,6 +78,7 @@ struct BrutalButtonStyle: ButtonStyle {
             .padding(.vertical, 7)
             .brutal(fill: fill, shadow: !configuration.isPressed)
             .offset(x: configuration.isPressed ? Duo.sombra : 0, y: configuration.isPressed ? Duo.sombra : 0)
+            .opacity(isEnabled ? 1 : 0.4)  // desativado precisa parecer desativado
             .animation(.linear(duration: 0.07), value: configuration.isPressed)
     }
 }
@@ -84,6 +87,8 @@ struct BrutalButtonStyle: ButtonStyle {
 struct BrutalIconStyle: ButtonStyle {
     var fill: Color = .white
 
+    @Environment(\.isEnabled) private var isEnabled
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 12, weight: .bold))
@@ -91,6 +96,7 @@ struct BrutalIconStyle: ButtonStyle {
             .padding(6)
             .brutal(fill: fill, shadow: !configuration.isPressed)
             .offset(x: configuration.isPressed ? 2 : 0, y: configuration.isPressed ? 2 : 0)
+            .opacity(isEnabled ? 1 : 0.4)  // desativado precisa parecer desativado
             .animation(.linear(duration: 0.07), value: configuration.isPressed)
     }
 }
