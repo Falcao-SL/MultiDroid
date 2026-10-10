@@ -236,11 +236,45 @@ Consequências:
 2. Tirar a Play Store não muda a memória; quem pesa é o próprio emulador: o
    processo custa ~2–3 GB **além** da RAM do Android, em todas as imagens
    (provavelmente o `gfxstream` via Vulkan/Metal). Próximo teste: modos de
-   GPU mais econômicos.
+   GPU mais econômicos. **Medido em 2026-10-10: não é a GPU** (seção
+   "Emulador enxuto").
 3. Com 4,5 GB por celular, um Mac de 24 GB comporta ~3–4 aparelhos sem swap,
    e um de 16 GB ~2. O painel precisa mostrar esse custo antes de ligar
    (seção 2.6).
 4. Frames e entrada estão provados: `MMAP` + escala no emulador é o caminho.
+
+### Emulador enxuto (2026-10-10, M4 de 24 GB)
+
+**Pergunta:** quanto dá para tirar da memória de um celular no emulador sem
+perder rolagem fluida, vídeo, Play Store e GPU? `mac/tools/measure-lean.sh`:
+um aparelho por vez, Android 13 com Play, boot a frio, medido 60 s parado,
+depois 20 rolagens em Configurações e um vídeo de feed tocando. Memória pelo
+`vmmap` (o número do Monitor de Atividade, que conta a parte comprimida pelo
+tamanho original) e, entre parênteses, a residente.
+
+| Variação | Memória parado | Rolagem com atraso | Vídeo |
+|---|---|---|---|
+| **Base** (GPU do Mac, 1080×2424, 2 GB) — 3 rodadas | 4,6–4,7 GB (2,6–2,7 GB) | 0,4–4,8% | toca |
+| GPU `swiftshader` | 4,8 GB (2,9 GB) | **51%** | toca, CPU 36% |
+| GPU `swangle` | 4,6 GB (2,6 GB) | **35%** | toca, CPU 89% |
+| GPU `lavapipe` | 4,6 GB (2,7 GB) | **69%** | toca, CPU 143% |
+| Tela 720×1600 — 4 rodadas | 4,1–4,4 GB (2,1–2,5 GB) | 0–0,8% | toca |
+| Tela 540×1200 | 4,4 GB (2,5 GB) | — | toca |
+| RAM 1,5 GB e 1 GB | 4,2–4,3 GB | ~1% | toca — **mas o emulador força 2 GB** ("Increasing RAM size to 2048MB"): a diferença é ruído |
+
+Consequências:
+
+1. **A GPU por software não economiza** e trava a rolagem. Os ~2 GB que o
+   processo gasta além da RAM do Android **não são da GPU**, ao contrário do
+   que a fase 0 supunha.
+2. **RAM abaixo de 2 GB não existe** nesta imagem: o emulador impõe o mínimo.
+3. **Tela menor tira só 0,2–0,4 GB** (5–8%), perto da variação entre rodadas
+   (~0,4 GB). Vale como padrão, porque não custa nada no quadro da mesa, mas
+   não muda quantos aparelhos cabem.
+4. **O emulador enxuto não resolve "todos ao mesmo tempo"**: um celular fica
+   em ~4,4 GB, e um Mac de 24 GB continua com 4–5 acordados. Para mais que
+   isso, só o modo leve (abaixo) ou um Mac com mais memória; para muitas
+   contas em alternância, a hibernação (2.3).
 
 ### Fase 0 do modo leve — Androids em contêiner (aberta em 2026-10-09)
 
