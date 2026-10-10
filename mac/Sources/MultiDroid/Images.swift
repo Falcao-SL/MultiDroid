@@ -282,7 +282,7 @@ final class ImageStore {
         let needed = pkg.size * 3  // zip + extraído, com folga
         if let free = try? SDK.home.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
             .volumeAvailableCapacityForImportantUsage, free < needed {
-            error = String(format: "Falta espaço: precisa de %.1f GB livres", Double(needed) / 1e9)
+            error = "Falta espaço: precisa de \(gb(Double(needed) / 1e9)) livres"
             return
         }
         progress[path] = 0

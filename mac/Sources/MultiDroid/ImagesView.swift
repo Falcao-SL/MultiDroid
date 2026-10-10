@@ -110,7 +110,7 @@ struct ImagesSheet: View {
     }
 
     private func removeMessage(_ path: String) -> String {
-        let size = String(format: "Libera %.1f GB.", Double(Self.size(of: Images.dir(path))) / 1e9)
+        let size = "Libera \(gb(Double(Self.size(of: Images.dir(path))) / 1e9))."
         let names = users(path).map(\.id)
         if names.isEmpty { return size + " Dá para baixar de novo quando quiser." }
         let who = names.joined(separator: ", ")
@@ -205,7 +205,7 @@ struct ImagesSheet: View {
     }
 
     private func status(have: String?, pkg: RemotePackage?) -> String {
-        let size = pkg.map { String(format: " · %.1f GB", Double($0.size) / 1e9) } ?? ""
+        let size = pkg.map { " · " + gb(Double($0.size) / 1e9) } ?? ""
         switch (have, pkg) {
         case let (h?, p?) where newer(p.revision, than: h): return "instalado \(h) · nova \(p.revision)\(size)"
         case let (h?, _): return "instalado \(h)"
@@ -234,7 +234,7 @@ struct ImagesSheet: View {
     }
 
     private func diskUse() -> String {
-        String(format: "%.1f GB na pasta", Double(Self.size(of: SDK.root)) / 1e9)
+        gb(Double(Self.size(of: SDK.root)) / 1e9) + " na pasta"
     }
 
     static func size(of dir: URL) -> Int64 {

@@ -128,7 +128,7 @@ struct MemoryCard: View {
             HStack {
                 Text("Memória do Mac").font(.system(size: 12, weight: .bold))
                 Spacer()
-                Text(String(format: "%.1f de %.0f GB", used, total)).font(.system(size: 12, weight: .bold).monospacedDigit())
+                Text("\(gb(used).dropLast(3)) de \(Int(total)) GB").font(.system(size: 12, weight: .bold).monospacedDigit())
             }
             GeometryReader { geo in
                 let w = geo.size.width
@@ -142,7 +142,7 @@ struct MemoryCard: View {
                 }
             }
             .frame(height: 14)
-            Text(String(format: "Aparelhos: %.1f GB · swap %.1f GB", model.runningGB, model.swapGB)
+            Text("Aparelhos: \(gb(model.runningGB)) · swap \(gb(model.swapGB))"
                  + (model.asleepCount > 0 ? " · \(model.asleepCount) hibernando" : ""))
                 .font(.system(size: 11, weight: .semibold)).opacity(0.7)
             Divider().padding(.vertical, 2)
@@ -171,7 +171,7 @@ struct MemoryCard: View {
     private var capacity: String {
         let fit = Int(model.ceilingGB / DeviceKind.celular.estimateGB)
         if model.runningGB > model.ceilingGB {
-            return String(format: "Os ligados já passam do teto (%.1f GB). O próximo a ligar hiberna os sem uso.", model.runningGB)
+            return "Os ligados já passam do teto (\(gb(model.runningGB))). O próximo a ligar hiberna os sem uso."
         }
         return fit == 0
             ? "Nenhum celular cabe neste teto. Aumente para ligar."
@@ -224,7 +224,7 @@ struct DeviceRow: View {
                 HStack(spacing: 6) {
                     StatusDot(state: d.state)
                     if d.isRunning {
-                        Text(String(format: "%.1f GB · %.0f%%", d.footprintGB, d.cpu))
+                        Text("\(gb(d.footprintGB)) · \(Int(d.cpu))%")
                             .font(.system(size: 11, weight: .semibold).monospacedDigit()).opacity(0.7)
                     } else {
                         Text("\(d.info.kind.label) · \(d.info.android)").font(.system(size: 11)).opacity(0.6)
@@ -650,31 +650,29 @@ struct NewDeviceSheet: View {
                 Text(store.loading ? "Procurando imagens no Google…" : (store.error ?? "Nenhuma imagem encontrada para \(kind.label.lowercased())."))
                     .font(.system(size: 12, weight: .bold)).fixedSize(horizontal: false, vertical: true)
             } else {
-                Picker("Imagem", selection: $image) {
-                    if !installed.isEmpty {
-                        Section("Instaladas") {
-                            ForEach(installed, id: \.self) { Text(label($0)).tag(Optional($0)) }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if !installed.isEmpty {
+                            imageHeader("INSTALADAS")
+                            ForEach(installed, id: \.self) { imageCard($0) }
+                        }
+                        if !available.isEmpty {
+                            imageHeader("BAIXAR DO GOOGLE")
+                            ForEach(available, id: \.self) { imageCard($0) }
                         }
                     }
-                    if !available.isEmpty {
-                        Section("Baixar do Google") {
-                            ForEach(available, id: \.self) { p in
-                                Text(label(p) + String(format: " · %.1f GB", Double(store.remote[p]?.size ?? 0) / 1e9)).tag(Optional(p))
-                            }
-                        }
-                    }
+                    .padding(.trailing, Tema.sombra + 2).padding(.bottom, Tema.sombra + 2)
                 }
-                .font(.system(size: 13, weight: .semibold))
+                .frame(maxHeight: 230)
                 .disabled(busy)
-                if let image {
-                    Text([Images.detail(image), Images.note(image), downloadNote(image)].compactMap { $0 }.joined(separator: "\n"))
-                        .font(.system(size: 11, weight: .semibold)).opacity(0.7)
+                if let image, let note = [Images.note(image), downloadNote(image)].compactMap({ $0 }).joined(separator: "\n").nilIfEmpty {
+                    Text(note).font(.system(size: 11, weight: .semibold)).opacity(0.7)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            TextField("Nome (ex.: Conta Trabalho)", text: $name).textFieldStyle(.roundedBorder)
-            TextField("Grupo (opcional)", text: $group).textFieldStyle(.roundedBorder)
-            Text(String(format: "Custa cerca de %.1f GB de memória ligado", kind.estimateGB))
+            brutalField("Nome (ex.: Conta Trabalho)", text: $name)
+            brutalField("Grupo (opcional)", text: $group)
+            Text("Custa cerca de \(gb(kind.estimateGB)) de memória ligado")
                 .font(.system(size: 12, weight: .semibold)).opacity(0.7)
                 .fixedSize(horizontal: false, vertical: true)
             if let fit = ceilingNote {
@@ -714,15 +712,48 @@ struct NewDeviceSheet: View {
         .task { if model.images.remote.isEmpty { await model.images.refresh() } }
     }
 
-    private func label(_ path: String) -> String {
-        Images.title(path) + (Images.recommended[path] != nil ? "  ★ recomendada" : "")
+    private func imageHeader(_ title: String) -> some View {
+        Text(title).font(.system(size: 12, weight: .black)).kerning(1).padding(.top, 4)
+    }
+
+    /// Um cartão por imagem, no mesmo estilo dos botões de tipo: azul quando
+    /// escolhida; etiqueta verde se já está baixada, branca com o tamanho se não.
+    private func imageCard(_ path: String) -> some View {
+        let store = model.images
+        let have = store.installed[path] != nil
+        return Button { image = path } label: {
+            HStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 8) {
+                        Text(Images.title(path)).font(.system(size: 13, weight: .heavy))
+                        if Images.recommended[path] != nil { RecommendedBadge() }
+                    }
+                    Text(Images.detail(path)).font(.system(size: 11, weight: .medium)).opacity(0.7)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 8)
+                Tag(text: have ? "INSTALADA" : "BAIXAR · " + gb(Double(store.remote[path]?.size ?? 0) / 1e9),
+                    fill: have ? Tema.verde : .white)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 2)
+        }
+        .buttonStyle(BrutalButtonStyle(fill: image == path ? Tema.azul : Color.white))
+    }
+
+    private func brutalField(_ prompt: String, text: Binding<String>) -> some View {
+        TextField(prompt, text: text)
+            .textFieldStyle(.plain)
+            .font(.system(size: 13, weight: .semibold))
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .brutal(fill: Color(nsColor: .textBackgroundColor))
     }
 
     private var needsDownload: Bool { image.map { model.images.installed[$0] == nil } ?? false }
 
     private func downloadNote(_ path: String) -> String? {
         guard model.images.installed[path] == nil, let pkg = model.images.remote[path] else { return nil }
-        return String(format: "Não instalada: o MultiDroid baixa %.1f GB do Google antes de criar.", Double(pkg.size) / 1e9)
+        return "Não instalada: o MultiDroid baixa \(gb(Double(pkg.size) / 1e9)) do Google antes de criar."
     }
 
     /// Ao abrir e ao trocar o tipo: a imagem sugerida; senão uma recomendada;
@@ -829,4 +860,29 @@ struct EmptyDesk: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+}
+
+/// Etiqueta curta com borda, para estados (INSTALADA, BAIXAR · 0,8 GB).
+struct Tag: View {
+    let text: String
+    var fill: Color = .white
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 10, weight: .black).monospacedDigit()).tracking(0.6)
+            .foregroundStyle(Tema.tintaSobreAcento)
+            .padding(.horizontal, 7).padding(.vertical, 3)
+            .background(fill, in: RoundedRectangle(cornerRadius: 5))
+            .overlay(RoundedRectangle(cornerRadius: 5).stroke(Tema.tintaSobreAcento, lineWidth: 1.5))
+            .fixedSize()
+    }
+}
+
+/// "4,5 GB": gigabytes com vírgula, como o resto do texto em português.
+func gb(_ value: Double) -> String {
+    value.formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "pt_BR"))) + " GB"
+}
+
+extension String {
+    var nilIfEmpty: String? { isEmpty ? nil : self }
 }
