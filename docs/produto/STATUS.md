@@ -41,6 +41,7 @@ celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 - Medir o critério da fase 1 num Mac limpo.
 - Fase 2 inteira.
 - Modo leve: **vídeo não toca** no Redroid 13 (decodificador falha ao mapear o buffer; MAC.md §3, L-5) — Redroid 12, 13 e 14 falham igual; próximo passo é mexer na imagem; depois balão de memória na VM, apps reais por APK sem serviços do Google, tela e toque pelo protocolo do scrcpy.
+- Versão Linux: spec escrita ([LINUX.md](../spec/LINUX.md)), sem código; a fase 0 precisa de um PC Linux com GPU Intel ou AMD e 16 GB (o homelab não serve).
 - Desenho por Metal (decisão M-2): hoje a tela é desenhada como imagem no
   SwiftUI.
 - Assinatura Developer ID, notarização e canal de download (DISTRIBUICAO).

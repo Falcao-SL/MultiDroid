@@ -9,6 +9,7 @@ Emulator oficial sem janela.
 | Documento | Conteúdo |
 |-----------|----------|
 | [spec/MAC.md](spec/MAC.md) | Fonte única de comportamento: arquitetura, frames, estados, duplicar, perfis de aparelho, painel, instalador, mesa e grade, fases, resultados da fase 0, decisões (M-1 a M-6), riscos |
+| [spec/LINUX.md](spec/LINUX.md) | Versão Linux (proposta, sem código): Redroid em contêiner direto no kernel, com a GPU do PC; motores Leve e Completo, apps só-ARM, interface, fase 0, riscos; por que não Windows |
 
 ## Identidade visual — [`design/`](design)
 

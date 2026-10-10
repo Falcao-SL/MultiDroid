@@ -47,6 +47,7 @@ scripts/build-app.sh          # gera build/MultiDroid.app (assinatura ad hoc)
 | Documento | Conteúdo |
 |---|---|
 | [docs/spec/MAC.md](docs/spec/MAC.md) | Especificação: arquitetura, painel, mesa, instalador, fases, medições, decisões, riscos |
+| [docs/spec/LINUX.md](docs/spec/LINUX.md) | Proposta da versão Linux: Androids em contêiner com a GPU do PC; fase 0 a medir |
 | [docs/produto/STATUS.md](docs/produto/STATUS.md) | Estágio, o que existe, o que falta |
 | [docs/produto/PRODUTO.md](docs/produto/PRODUTO.md) | O que é, para quem, o que não faz |
 | [docs/design/IDENTIDADE_VISUAL.md](docs/design/IDENTIDADE_VISUAL.md) | Marca, tokens, ícone |
