@@ -19,6 +19,7 @@ set -u
 VM=duo-leve
 IMG=${DUO_LEVE_IMG:-redroid/redroid:13.0.0_64only-latest}
 W=${DUO_LEVE_W:-720} H=${DUO_LEVE_H:-1600} DPI=${DUO_LEVE_DPI:-320}
+# DUO_LEVE_EXTRA: parâmetros androidboot.* a mais, para experimentar (ex.: gralloc)
 PORTA0=5560                      # Android i escuta o adb em 127.0.0.1:(PORTA0+i)
 ADB=${ADB:-$HOME/Library/Android/sdk/platform-tools/adb}
 
@@ -69,9 +70,10 @@ up)
   for i in $(seq 1 "$N"); do
     entry=(); [ "$KSM" = ksm ] && entry=(-v /opt/duo/ksm-exec:/ksm-exec:ro --entrypoint /ksm-exec)
     args=(androidboot.redroid_width=$W androidboot.redroid_height=$H androidboot.redroid_dpi=$DPI
-          androidboot.redroid_fps=30 androidboot.redroid_gpu_mode=guest)
+          androidboot.redroid_fps=30 androidboot.redroid_gpu_mode=guest
+          androidboot.use_memfd=true ${DUO_LEVE_EXTRA:-})   # memfd: o kernel 6.8 não tem ashmem
     [ "$KSM" = ksm ] && args=(/init qemu=1 androidboot.hardware=redroid "${args[@]}")
-    sdo docker rm -f duo-leve-$i >/dev/null 2>&1
+    sdo docker rm -fv duo-leve-$i >/dev/null 2>&1
     t0=$(date +%s)
     sdo docker run -d --privileged --name duo-leve-$i -p $((PORTA0+i)):5555 \
       ${entry[@]+"${entry[@]}"} "$IMG" "${args[@]}" >/dev/null || exit 1
@@ -115,7 +117,7 @@ tela)
   ;;
 
 down)
-  sdo sh -c 'docker rm -f $(docker ps -aq --filter name=duo-leve-) 2>/dev/null; echo 2 > /sys/kernel/mm/ksm/run' >/dev/null
+  sdo sh -c 'docker rm -fv $(docker ps -aq --filter name=duo-leve-) 2>/dev/null; echo 2 > /sys/kernel/mm/ksm/run' >/dev/null
   echo "Androids desligados; a VM continua ligada (leve.sh destruir apaga)"
   ;;
 
@@ -124,7 +126,7 @@ destruir)
   ;;
 
 reiniciar)   # zera o footprint no Mac: a VM não devolve ao macOS a memória que já tocou
-  sdo sh -c 'docker rm -f $(docker ps -aq --filter name=duo-leve-) 2>/dev/null' >/dev/null
+  sdo sh -c 'docker rm -fv $(docker ps -aq --filter name=duo-leve-) 2>/dev/null' >/dev/null
   limactl stop "$VM" >/dev/null 2>&1; limactl start -y "$VM" >/dev/null 2>&1 && echo "VM reiniciada"
   ;;
 

@@ -39,7 +39,7 @@ celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 
 - Medir o critério da fase 1 num Mac limpo.
 - Fase 2 inteira.
-- Modo leve: balão de memória na VM, apps reais por APK sem serviços do Google, feed de vídeo, tela e toque pelo protocolo do scrcpy.
+- Modo leve: **vídeo não toca** no Redroid 13 (decodificador falha ao mapear o buffer; MAC.md §3, L-5) — testar Redroid 12 e 14; depois balão de memória na VM, apps reais por APK sem serviços do Google, tela e toque pelo protocolo do scrcpy.
 - Desenho por Metal (decisão M-2): hoje a tela é desenhada como imagem no
   SwiftUI.
 - Assinatura Developer ID, notarização e canal de download (DISTRIBUICAO).
