@@ -613,8 +613,22 @@ struct NewDeviceSheet: View {
     @State private var group = ""
     @State private var busy = false
     @State private var error: String?
+    @State private var license: (path: String, pkg: RemotePackage)?
 
     var body: some View {
+        if let l = license {
+            // Licença na própria folha: folha sobre folha falha no macOS.
+            LicenseSheet(title: Images.title(l.path), text: l.pkg.licenseText) {
+                model.images.accept(l.pkg)
+                license = nil
+                create()
+            } onDecline: { license = nil; busy = false }
+        } else {
+            form
+        }
+    }
+
+    private var form: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Novo aparelho").font(.system(size: 22, weight: .black))
             HStack(spacing: 10) {
@@ -629,14 +643,31 @@ struct NewDeviceSheet: View {
                     .buttonStyle(BrutalButtonStyle(fill: kind == k ? Tema.azul : Color.white))
                 }
             }
-            let options = model.images.installedImages(for: kind)
-            if !options.isEmpty {
+            let store = model.images
+            let installed = store.installedImages(for: kind)
+            let available = store.images.filter { Images.suits($0, kind) && store.installed[$0] == nil && store.remote[$0] != nil }
+            if installed.isEmpty && available.isEmpty {
+                Text(store.loading ? "Procurando imagens no Google…" : (store.error ?? "Nenhuma imagem encontrada para \(kind.label.lowercased())."))
+                    .font(.system(size: 12, weight: .bold)).fixedSize(horizontal: false, vertical: true)
+            } else {
                 Picker("Imagem", selection: $image) {
-                    ForEach(options, id: \.self) { Text(Images.title($0) + (Images.recommended[$0] != nil ? "  ★ recomendada" : "")).tag(Optional($0)) }
+                    if !installed.isEmpty {
+                        Section("Instaladas") {
+                            ForEach(installed, id: \.self) { Text(label($0)).tag(Optional($0)) }
+                        }
+                    }
+                    if !available.isEmpty {
+                        Section("Baixar do Google") {
+                            ForEach(available, id: \.self) { p in
+                                Text(label(p) + String(format: " · %.1f GB", Double(store.remote[p]?.size ?? 0) / 1e9)).tag(Optional(p))
+                            }
+                        }
+                    }
                 }
                 .font(.system(size: 13, weight: .semibold))
+                .disabled(busy)
                 if let image {
-                    Text([Images.detail(image), Images.note(image)].compactMap { $0 }.joined(separator: "\n"))
+                    Text([Images.detail(image), Images.note(image), downloadNote(image)].compactMap { $0 }.joined(separator: "\n"))
                         .font(.system(size: 11, weight: .semibold)).opacity(0.7)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -651,14 +682,6 @@ struct NewDeviceSheet: View {
                     .foregroundStyle(kind.estimateGB > model.ceilingGB ? Tema.vermelho : Color.primary.opacity(0.7))
                     .fixedSize(horizontal: false, vertical: true)
             }
-            if options.isEmpty {
-                HStack {
-                    Text("Nenhuma imagem instalada serve para \(kind.label.lowercased()). Baixe uma em Imagens.").font(.system(size: 12, weight: .bold))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer()
-                    Button("Abrir Imagens") { dismiss(); win.showImages = true }.buttonStyle(BrutalButtonStyle(fill: Tema.amarelo))
-                }
-            }
             if let hint = nameHint {
                 Text(hint).font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(valid ? Color.primary.opacity(0.7) : Tema.vermelho)
@@ -671,31 +694,82 @@ struct NewDeviceSheet: View {
             HStack {
                 Spacer()
                 Button("Cancelar") { dismiss() }.buttonStyle(BrutalButtonStyle(fill: .white))
-                Button(busy ? "Criando…" : "Criar") {
-                    busy = true
-                    Task {
-                        guard let image else { busy = false; return }
-                        error = await model.create(name: avdName, kind: kind, image: image, group: group, desk: win.desk)
-                        busy = false
-                        if error == nil { dismiss() }
-                    }
+                if busy, let image, let f = model.images.progress[image] {
+                    Button("Cancelar download") { model.images.cancel(image) }.buttonStyle(BrutalButtonStyle(fill: .white))
+                    Text(model.images.phase[image] == "baixando" ? "Baixando \(Int(f * 100))%" : (model.images.phase[image] ?? "…"))
+                        .font(.system(size: 12, weight: .bold).monospacedDigit())
+                } else {
+                    Button("Cancelar") { dismiss() }.buttonStyle(BrutalButtonStyle(fill: .white))
                 }
-                .buttonStyle(BrutalButtonStyle())
-                .disabled(busy || !valid || image == nil)
+                Button(busy ? "Criando…" : needsDownload ? "Baixar e criar" : "Criar") { create() }
+                    .buttonStyle(BrutalButtonStyle())
+                    .disabled(busy || !valid || image == nil)
             }
         }
         .padding(24)
         .frame(width: 500)
         .onAppear { pickImage() }
         .onChange(of: kind) { pickImage() }
+        .onChange(of: model.images.remote.count) { if image == nil { pickImage() } }
+        .task { if model.images.remote.isEmpty { await model.images.refresh() } }
     }
 
-    /// Ao abrir e ao trocar o tipo: a imagem sugerida, se instalada; senão uma
-    /// recomendada; senão a mais nova instalada que sirva.
+    private func label(_ path: String) -> String {
+        Images.title(path) + (Images.recommended[path] != nil ? "  ★ recomendada" : "")
+    }
+
+    private var needsDownload: Bool { image.map { model.images.installed[$0] == nil } ?? false }
+
+    private func downloadNote(_ path: String) -> String? {
+        guard model.images.installed[path] == nil, let pkg = model.images.remote[path] else { return nil }
+        return String(format: "Não instalada: o MultiDroid baixa %.1f GB do Google antes de criar.", Double(pkg.size) / 1e9)
+    }
+
+    /// Ao abrir e ao trocar o tipo: a imagem sugerida; senão uma recomendada;
+    /// senão a mais nova instalada; senão a mais nova do Google. Instaladas
+    /// têm preferência a cada passo.
     private func pickImage() {
-        let options = model.images.installedImages(for: kind)
-        image = options.contains(kind.defaultImage) ? kind.defaultImage
-            : options.first { Images.recommended[$0] != nil } ?? options.first
+        let store = model.images
+        let installed = store.installedImages(for: kind)
+        let all = installed + store.images.filter { Images.suits($0, kind) && store.installed[$0] == nil && store.remote[$0] != nil }
+        image = installed.contains(kind.defaultImage) ? kind.defaultImage
+            : installed.first { Images.recommended[$0] != nil }
+            ?? installed.first
+            ?? (all.contains(kind.defaultImage) ? kind.defaultImage : nil)
+            ?? all.first { Images.recommended[$0] != nil }
+            ?? all.first
+    }
+
+    /// Cria o aparelho; se a imagem (ou o emulador) não está instalada, baixa
+    /// antes, passando pela licença do Google na primeira vez.
+    private func create() {
+        guard let image else { return }
+        let store = model.images
+        busy = true
+        error = nil
+        let missing = [Images.emulator, image].filter { store.installed[$0] == nil }
+        for path in missing {
+            guard let pkg = store.remote[path] else {
+                error = "\(Images.title(path)) não está instalada e o Google não respondeu: tente de novo em Imagens."
+                busy = false
+                return
+            }
+            if !store.accepted(pkg) { license = (path, pkg); return }
+        }
+        Task {
+            for path in missing {
+                store.install(path)
+                while store.progress[path] != nil { try? await Task.sleep(for: .milliseconds(300)) }
+                if store.installed[path] == nil {
+                    error = store.error ?? "\(Images.title(path)) não foi instalada."
+                    busy = false
+                    return
+                }
+            }
+            error = await model.create(name: avdName, kind: kind, image: image, group: group, desk: win.desk)
+            busy = false
+            if error == nil { dismiss() }
+        }
     }
 
     /// O emulador só aceita letras sem acento, números, ponto, _ e - no nome do
