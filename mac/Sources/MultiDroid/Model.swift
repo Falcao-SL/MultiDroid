@@ -134,7 +134,7 @@ final class AppModel {
         guard !names.isEmpty else { return }
         if images.installed[Images.emulator] == nil, images.studio[Images.emulator] != nil { images.importFromStudio(Images.emulator) }
         for n in names {
-            guard let img = Catalog.studioImage(n), Images.all.contains(img) else { continue }
+            guard let img = Catalog.studioImage(n), Images.parts(img) != nil else { continue }
             if images.installed[img] == nil, images.studio[img] != nil { images.importFromStudio(img) }
             if images.installed[img] != nil { _ = Catalog.importFromStudio(n) }
         }
@@ -253,6 +253,10 @@ final class AppModel {
     func start(_ d: Device) {
         guard d.state == .off || d.state == .asleep, !d.waking else { return }
         guard images.ready else { banner = "Baixe o emulador em Imagens antes de ligar"; return }
+        guard images.installed[d.info.image] != nil else {
+            banner = "\(d.id) usa \(Images.title(d.info.image)), que não está instalada: baixe em Imagens"
+            return
+        }
         used(d)
         guard projectedGB(adding: d) > ceilingGB else { launch(d); return }
         d.waking = true
@@ -387,7 +391,7 @@ final class AppModel {
 
     /// Aparelhos que usam um pacote: todos, para o emulador; os do tipo, para uma imagem.
     func users(of path: String) -> [Device] {
-        devices.filter { $0.isRunning && (path == Images.emulator || $0.info.kind.image == path) }
+        devices.filter { $0.isRunning && (path == Images.emulator || $0.info.image == path) }
     }
 
     /// Antes de trocar um pacote em uso: desliga quem o usa (estado salvo).
@@ -431,8 +435,8 @@ final class AppModel {
         }
     }
 
-    func create(name: String, kind: DeviceKind, group: String?, desk: String) async -> String? {
-        let err = await Task.detached { Catalog.create(name: name, kind: kind) }.value
+    func create(name: String, kind: DeviceKind, image: String, group: String?, desk: String) async -> String? {
+        let err = await Task.detached { Catalog.create(name: name, kind: kind, image: image) }.value
         if err == nil, let group, !group.isEmpty { groups[name] = group }
         if err == nil, desk != Self.mainDesk { workspaceOf[name] = desk }
         refresh()

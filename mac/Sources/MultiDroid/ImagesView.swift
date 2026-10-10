@@ -11,6 +11,7 @@ struct ImagesSheet: View {
     @State private var studioDevices: [String] = []
     @State private var importError: String?
     @State private var confirm: (path: String, pkg: RemotePackage, names: [String])?
+    @State private var removing: String?
 
     var body: some View {
         if let l = license {
@@ -39,9 +40,19 @@ struct ImagesSheet: View {
                 .font(.system(size: 12, weight: .medium)).opacity(0.75)
                 .fixedSize(horizontal: false, vertical: true)
 
-            VStack(spacing: 10) {
-                ForEach(Images.all, id: \.self) { path in row(path) }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    row(Images.emulator)
+                    let have = store.images.filter { store.installed[$0] != nil }
+                    let offer = store.images.filter { store.installed[$0] == nil }
+                    section("INSTALADAS", have.isEmpty ? "Nenhuma imagem instalada ainda." : nil)
+                    ForEach(have, id: \.self) { path in row(path) }
+                    section("DISPONÍVEIS NO GOOGLE", offer.isEmpty ? (store.loading ? "Procurando…" : "Toque em ↻ para procurar.") : nil)
+                    ForEach(offer, id: \.self) { path in row(path) }
+                }
+                .padding(.trailing, 6).padding(.bottom, 6)
             }
+            .frame(maxHeight: 460)
 
             if !studioDevices.isEmpty {
                 Text("APARELHOS DO ANDROID STUDIO").font(.system(size: 12, weight: .black)).kerning(1).padding(.top, 4)
@@ -68,6 +79,13 @@ struct ImagesSheet: View {
             studioDevices = Catalog.studioDevices()
             if store.remote.isEmpty { await store.refresh() }
         }
+        .alert(removing.map { "Remover \(Images.title($0))?" } ?? "",
+               isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }), presenting: removing) { path in
+            Button("Cancelar", role: .cancel) { removing = nil }
+            Button("Remover", role: .destructive) { model.images.remove(path); removing = nil }
+        } message: { path in
+            Text(removeMessage(path))
+        }
         .alert("Desligar para atualizar?", isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } })) {
             Button("Cancelar", role: .cancel) { confirm = nil }
             Button("Atualizar") {
@@ -79,19 +97,50 @@ struct ImagesSheet: View {
         }
     }
 
+    private func section(_ title: String, _ empty: String?) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.system(size: 12, weight: .black)).kerning(1).padding(.top, 6)
+            if let empty { Text(empty).font(.system(size: 11, weight: .medium)).opacity(0.6) }
+        }
+    }
+
+    /// Aparelhos que dependem do pacote: todos, para o emulador.
+    private func users(_ path: String) -> [Device] {
+        path == Images.emulator ? model.devices : model.devices.filter { $0.info.image == path }
+    }
+
+    private func removeMessage(_ path: String) -> String {
+        let size = String(format: "Libera %.1f GB.", Double(Self.size(of: Images.dir(path))) / 1e9)
+        let names = users(path).map(\.id)
+        if names.isEmpty { return size + " Dá para baixar de novo quando quiser." }
+        let who = names.joined(separator: ", ")
+        return path == Images.emulator
+            ? size + " Nenhum aparelho liga sem o emulador até você baixá-lo de novo. Os aparelhos e os dados deles ficam."
+            : size + " \(who) não liga\(names.count == 1 ? "" : "m") até você baixar a imagem de novo. Os aparelhos e os dados deles ficam."
+    }
+
     private func row(_ path: String) -> some View {
         let store = model.images
         let have = store.installed[path]
         let pkg = store.remote[path]
         let busy = store.progress[path] != nil
-        let inUse = model.devices.contains { $0.info.kind.image == path } || (path == Images.emulator && !model.devices.isEmpty)
+        let deps = users(path)
+        let running = deps.filter(\.isRunning).map(\.id)
         return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(Images.title(path)).font(.system(size: 14, weight: .heavy)).fixedSize(horizontal: false, vertical: true)
                     Text(Images.detail(path)).font(.system(size: 11, weight: .medium)).opacity(0.7)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(status(have: have, pkg: pkg)).font(.system(size: 11, weight: .bold).monospacedDigit()).opacity(0.85)
                         .fixedSize(horizontal: false, vertical: true)
+                    if have != nil, path != Images.emulator, !deps.isEmpty {
+                        Text("Usada por " + deps.map(\.id).joined(separator: ", ")).font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Tema.azul).fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let n = Images.note(path) {
+                        Text(n).font(.system(size: 11, weight: .semibold)).opacity(0.65).fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 .layoutPriority(1)
                 Spacer()
@@ -108,10 +157,12 @@ struct ImagesSheet: View {
                             .buttonStyle(BrutalButtonStyle(fill: Tema.verde))
                     }
                     if have != nil {
-                        Button { store.remove(path) } label: { Image(systemName: "trash").frame(width: 14, height: 14) }
+                        Button {
+                            if running.isEmpty { removing = path }
+                            else { importError = "Desligue \(running.joined(separator: ", ")) antes de remover \(Images.title(path))." }
+                        } label: { Image(systemName: "trash").frame(width: 14, height: 14) }
                             .buttonStyle(BrutalIconStyle(fill: .white))
-                            .disabled(inUse)
-                            .help(inUse ? "Em uso por aparelhos do MultiDroid" : "Remover")
+                            .help(running.isEmpty ? "Remover" : "Em uso: desligue \(running.joined(separator: ", ")) antes")
                     }
                 }
             }
@@ -129,7 +180,7 @@ struct ImagesSheet: View {
 
     private func studioRow(_ name: String) -> some View {
         let img = Catalog.studioImage(name)
-        let supported = img.map { Images.all.contains($0) } ?? false
+        let supported = img.map { Images.parts($0) != nil } ?? false
         let ready = img.map { model.images.installed[$0] != nil } ?? false
         return HStack {
             Text(name).font(.system(size: 13, weight: .bold))
@@ -177,14 +228,17 @@ struct ImagesSheet: View {
     }
 
     private func diskUse() -> String {
-        let fm = FileManager.default
+        String(format: "%.1f GB na pasta", Double(Self.size(of: SDK.root)) / 1e9)
+    }
+
+    static func size(of dir: URL) -> Int64 {
         var total: Int64 = 0
-        if let e = fm.enumerator(at: SDK.root, includingPropertiesForKeys: [.totalFileAllocatedSizeKey]) {
+        if let e = FileManager.default.enumerator(at: dir, includingPropertiesForKeys: [.totalFileAllocatedSizeKey]) {
             for case let u as URL in e {
                 total += Int64((try? u.resourceValues(forKeys: [.totalFileAllocatedSizeKey]).totalFileAllocatedSize) ?? 0)
             }
         }
-        return String(format: "%.1f GB na pasta", Double(total) / 1e9)
+        return total
     }
 }
 

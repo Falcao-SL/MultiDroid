@@ -121,8 +121,8 @@ faz com os aparelhos sai daqui:
 | Ações por aparelho | ligar, pausar, retomar, hibernar, desligar, reiniciar, duplicar, renomear, apagar, abrir em tela cheia |
 | Ações em lote | selecionar vários e ligar/pausar/hibernar/desligar/duplicar de uma vez; ligar um grupo inteiro |
 | Grupos | agrupar aparelhos por conta ou projeto; a grade segue os grupos |
-| Criar aparelho | escolher perfil (2.5), imagem, nome, grupo; mostra quanto de memória vai custar antes de criar |
-| Imagens | imagens instaladas, espaço em disco, baixar/remover (com a licença do Google mostrada) |
+| Criar aparelho | escolher perfil (2.5), **imagem** (entre as instaladas que servem para o tipo; sugere a padrão), nome, grupo; mostra quanto de memória vai custar antes de criar |
+| Imagens | emulador; **instaladas** (com os aparelhos que usam cada uma) e **disponíveis no Google**: todas as imagens arm64 do canal estável a partir do Android 11 — com Google Play, com APIs do Google e Wear OS (sem as variantes `-ext`, beta, canary e 16 KB). Baixar, copiar do Android Studio, atualizar e remover; remover pede confirmação, diz quanto libera e quais aparelhos deixam de ligar, e só é bloqueado com um deles ligado. Avisos do que a fase 0 mediu (Wear acima do 13 não liga; Android 17 força 4 GB) |
 | Sincronizar | marcar quais aparelhos repetem a entrada do aparelho em foco |
 | Limite de memória | o teto fica no cartão de memória, no topo do painel: valor em destaque, − e +, controle deslizante e quantos celulares cabem acordados; avisa ao mudar e quando os ligados já passam dele. Ao passar do teto, o MultiDroid hiberna quem está há mais tempo sem uso (2.3); a folha Novo aparelho avisa antes se ligar vai hibernar alguém |
 

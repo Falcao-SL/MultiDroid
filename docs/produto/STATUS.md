@@ -33,7 +33,7 @@ celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 | Quadro | voltar, início, recentes, volume, girar, digitar, captura de tela, pausar, hibernar, desligar |
 | Hibernação | ao passar do teto de memória, hiberna quem está há mais tempo sem uso; quadro hibernado mostra a última tela e acorda com um clique (MAC.md §2.3) |
 | Tela e entrada | `streamScreenshot` por `MMAP` escalado no emulador; toque e teclas por gRPC |
-| Instalador | emulador e imagens baixados de dl.google.com, licença no app, SHA-1, atualizar com aparelhos ligados, importar do Android Studio |
+| Instalador | emulador e qualquer imagem arm64 estável do Android 11 em diante, baixados de dl.google.com; licença no app, SHA-1, atualizar com aparelhos ligados, importar do Android Studio, remover com confirmação; cada aparelho escolhe a sua imagem ao ser criado |
 | Modo leve (fase 0) | protótipo `mac/tools/leve.sh`: Redroid em contêiner numa VM do Virtualization.framework; medido em 2026-10-09, ~0,85 GB por aparelho com 8 ligados contra ~4,5 GB do emulador (MAC.md §3) |
 
 ## O que falta

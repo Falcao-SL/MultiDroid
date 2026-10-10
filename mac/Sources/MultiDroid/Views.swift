@@ -609,6 +609,7 @@ struct NewDeviceSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var kind: DeviceKind = .celular
+    @State private var image: String?
     @State private var group = ""
     @State private var busy = false
     @State private var error: String?
@@ -628,9 +629,21 @@ struct NewDeviceSheet: View {
                     .buttonStyle(BrutalButtonStyle(fill: kind == k ? Tema.azul : Color.white))
                 }
             }
+            let options = model.images.installedImages(for: kind)
+            if !options.isEmpty {
+                Picker("Imagem", selection: $image) {
+                    ForEach(options, id: \.self) { Text(Images.title($0)).tag(Optional($0)) }
+                }
+                .font(.system(size: 13, weight: .semibold))
+                if let image {
+                    Text([Images.detail(image), Images.note(image)].compactMap { $0 }.joined(separator: "\n"))
+                        .font(.system(size: 11, weight: .semibold)).opacity(0.7)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             TextField("Nome (ex.: Conta Trabalho)", text: $name).textFieldStyle(.roundedBorder)
             TextField("Grupo (opcional)", text: $group).textFieldStyle(.roundedBorder)
-            Text(String(format: "Android 13 · custa cerca de %.1f GB de memória ligado", kind.estimateGB))
+            Text(String(format: "Custa cerca de %.1f GB de memória ligado", kind.estimateGB))
                 .font(.system(size: 12, weight: .semibold)).opacity(0.7)
                 .fixedSize(horizontal: false, vertical: true)
             if let fit = ceilingNote {
@@ -638,9 +651,9 @@ struct NewDeviceSheet: View {
                     .foregroundStyle(kind.estimateGB > model.ceilingGB ? Tema.vermelho : Color.primary.opacity(0.7))
                     .fixedSize(horizontal: false, vertical: true)
             }
-            if !model.images.hasImage(for: kind) {
+            if options.isEmpty {
                 HStack {
-                    Text("Falta a imagem \(kind.imageLabel).").font(.system(size: 12, weight: .bold))
+                    Text("Nenhuma imagem instalada serve para \(kind.label.lowercased()). Baixe uma em Imagens.").font(.system(size: 12, weight: .bold))
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer()
                     Button("Abrir Imagens") { dismiss(); win.showImages = true }.buttonStyle(BrutalButtonStyle(fill: Tema.amarelo))
@@ -661,17 +674,27 @@ struct NewDeviceSheet: View {
                 Button(busy ? "Criando…" : "Criar") {
                     busy = true
                     Task {
-                        error = await model.create(name: avdName, kind: kind, group: group, desk: win.desk)
+                        guard let image else { busy = false; return }
+                        error = await model.create(name: avdName, kind: kind, image: image, group: group, desk: win.desk)
                         busy = false
                         if error == nil { dismiss() }
                     }
                 }
                 .buttonStyle(BrutalButtonStyle())
-                .disabled(busy || !valid || !model.images.hasImage(for: kind))
+                .disabled(busy || !valid || image == nil)
             }
         }
         .padding(24)
         .frame(width: 500)
+        .onAppear { pickImage() }
+        .onChange(of: kind) { pickImage() }
+    }
+
+    /// Ao abrir e ao trocar o tipo: a imagem sugerida, se instalada; senão a
+    /// mais nova instalada que sirva.
+    private func pickImage() {
+        let options = model.images.installedImages(for: kind)
+        image = options.contains(kind.defaultImage) ? kind.defaultImage : options.first
     }
 
     /// O emulador só aceita letras sem acento, números, ponto, _ e - no nome do

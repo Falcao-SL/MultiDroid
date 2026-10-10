@@ -9,40 +9,111 @@ import Foundation
 /// do Google e baixa direto de dl.google.com.
 enum Images {
     static let emulator = "emulator"
+    /// As imagens padrão (as mais leves que a fase 0 mediu): Android 13 com
+    /// Play para celular, tablet e dobrável, Wear OS 4 para o relógio.
     static let play33 = "system-images;android-33;google_apis_playstore;arm64-v8a"
     static let wear33 = "system-images;android-33;android-wear;arm64-v8a"
-    static let all = [emulator, play33, wear33]
 
     static let repo = URL(string: "https://dl.google.com/android/repository/")!
 
+    /// Os tipos de imagem que o MultiDroid oferece, cada um com a sua lista no
+    /// repositório do Google. Só arm64-v8a (nativas no Apple Silicon), canal
+    /// estável, do Android 11 (API 30) em diante.
+    static let tags = ["google_apis_playstore", "google_apis", "default", "android-wear"]
+    static let minAPI = 30
+
+    /// "system-images;android-34;google_apis;arm64-v8a" → ("34", "google_apis");
+    /// nil para o que não é imagem de sistema arm64 que o MultiDroid gerencia.
+    static func parts(_ path: String) -> (api: String, tag: String)? {
+        let p = path.split(separator: ";").map(String.init)
+        guard p.count == 4, p[0] == "system-images", p[1].hasPrefix("android-"), p[3] == "arm64-v8a",
+              tags.contains(where: { p[2] == $0 || p[2].hasPrefix($0 + "-") }) else { return nil }
+        return (String(p[1].dropFirst(8)), p[2])
+    }
+
+    static func isWear(_ path: String) -> Bool { parts(path)?.tag.hasPrefix("android-wear") ?? false }
+
+    /// A imagem serve para esse tipo de aparelho? Wear só no relógio, e vice-versa.
+    static func suits(_ path: String, _ kind: DeviceKind) -> Bool { isWear(path) == (kind == .relogio) }
+
+    /// Número da API como número, para ordenar ("36.1" → 36.1).
+    static func apiNumber(_ path: String) -> Double { Double(parts(path)?.api ?? "") ?? 0 }
+
+    /// Versão do Android que o usuário reconhece: API 33 é o Android 13.
+    /// Uma versão intermediária (API 36.1) leva o número da API junto, para não
+    /// aparecer igual à 36: "16 (API 36.1)".
+    static func androidVersion(_ api: String) -> String {
+        let nums = api.split(separator: ".")
+        guard let n = Int(nums.first ?? "") else { return api }
+        let v = switch n {
+        case 30: "11"
+        case 31: "12"
+        case 32: "12L"
+        default: n >= 33 ? String(n - 20) : api
+        }
+        let minor = nums.count > 1 ? Int(nums[1]) ?? 0 : 0
+        return minor == 0 ? v : "\(v) (API \(api))"
+    }
+
     static func title(_ path: String) -> String {
-        switch path {
-        case emulator: "Emulador do Android"
-        case play33: "Android 13 com Google Play"
-        case wear33: "Wear OS 4 (Android 13)"
-        default: path
+        if path == emulator { return "Emulador do Android" }
+        guard let (api, tag) = parts(path) else { return path }
+        let v = androidVersion(api)
+        if tag.hasPrefix("android-wear") { return "Wear OS (Android \(v))" }
+        return switch tag {
+        case "google_apis_playstore": "Android \(v) com Google Play"
+        case "google_apis": "Android \(v) com APIs do Google"
+        default: "Android \(v) sem Google (AOSP)"
         }
     }
 
     static func detail(_ path: String) -> String {
-        switch path {
-        case emulator: "Roda os aparelhos. Obrigatório."
-        case play33: "Celular, tablet e dobrável."
-        case wear33: "Relógio."
+        if path == emulator { return "Roda os aparelhos. Obrigatório." }
+        guard let (api, tag) = parts(path) else { return "" }
+        let uso = tag.hasPrefix("android-wear") ? "Relógio" : "Celular, tablet e dobrável"
+        let extra = switch tag {
+        case "google_apis_playstore": " · com Play Store"
+        case "google_apis": " · sem Play Store; apps por APK"
+        case "default": " · sem nenhum app do Google; apps por APK"
         default: ""
+        }
+        return "\(uso) · API \(api)\(extra)"
+    }
+
+    /// O que a fase 0 mediu (MAC.md §3) e vale avisar antes de baixar.
+    static func note(_ path: String) -> String? {
+        if path == play33 || path == wear33 { return "Recomendada: a mais leve que o MultiDroid mediu." }
+        guard let (api, tag) = parts(path), let n = Int(api.split(separator: ".").first ?? "") else { return nil }
+        if tag.hasPrefix("android-wear"), n > 33 { return "Não ligou neste emulador nos testes do MultiDroid." }
+        if n >= 37 { return "O emulador força 4 GB de RAM nesta versão: custa mais memória." }
+        return nil
+    }
+
+    /// Nome curto do tipo, para o config.ini do aparelho (tag.display).
+    static func tagDisplay(_ path: String) -> String {
+        guard let tag = parts(path)?.tag else { return "" }
+        if tag.hasPrefix("android-wear") { return "Wear OS" }
+        return switch tag {
+        case "google_apis_playstore": "Google Play"
+        case "google_apis": "Google APIs"
+        default: "Default Android System Image"
         }
     }
 
-    /// Lista XML onde o pacote é publicado, e base das URLs dos arquivos.
-    static func listURL(_ path: String) -> URL {
-        if path == emulator { return repo.appendingPathComponent("repository2-3.xml") }
-        return base(path).appendingPathComponent("sys-img2-3.xml")
-    }
+    static func tagListURL(_ tag: String) -> URL { repo.appendingPathComponent("sys-img/\(tag)/sys-img2-3.xml") }
 
-    static func base(_ path: String) -> URL {
-        if path == emulator { return repo }
-        let tag = path.split(separator: ";")[2]
-        return repo.appendingPathComponent("sys-img/\(tag)/")
+    /// Imagens instaladas numa pasta de SDK (a do MultiDroid ou a do Android Studio).
+    static func scanInstalled(root: URL = SDK.root) -> [String: String] {
+        let fm = FileManager.default
+        var out: [String: String] = [:]
+        let base = root.appendingPathComponent("system-images", isDirectory: true)
+        for api in (try? fm.contentsOfDirectory(atPath: base.path)) ?? [] {
+            for tag in (try? fm.contentsOfDirectory(atPath: base.appendingPathComponent(api).path)) ?? [] {
+                let path = "system-images;\(api);\(tag);arm64-v8a"
+                if parts(path) != nil, let rev = installed(path, root: root) { out[path] = rev }
+            }
+        }
+        return out
     }
 
     /// "system-images;android-33;android-wear;arm64-v8a" → sdk/system-images/android-33/android-wear/arm64-v8a
@@ -91,29 +162,42 @@ final class ImageStore {
     init() { scan() }
 
     var ready: Bool { installed[Images.emulator] != nil }
-    func hasImage(for kind: DeviceKind) -> Bool { installed[kind.image] != nil }
+    /// Imagens instaladas que servem para esse tipo de aparelho, da mais nova à mais antiga.
+    func installedImages(for kind: DeviceKind) -> [String] { images.filter { installed[$0] != nil && Images.suits($0, kind) } }
 
     func scan() {
-        for p in Images.all {
-            installed[p] = Images.installed(p)
-            studio[p] = Images.installed(p, root: SDK.studioRoot)
-        }
+        installed = Images.scanInstalled()
+        installed[Images.emulator] = Images.installed(Images.emulator)
+        studio = Images.scanInstalled(root: SDK.studioRoot)
+        studio[Images.emulator] = Images.installed(Images.emulator, root: SDK.studioRoot)
     }
 
-    /// Lê as listas do Google (duas ou três requisições pequenas).
+    /// Imagens de sistema conhecidas (instaladas ou oferecidas pelo Google),
+    /// da mais nova para a mais antiga.
+    var images: [String] {
+        Set(installed.keys).union(remote.keys).subtracting([Images.emulator])
+            .sorted { (Images.apiNumber($0), $0) > (Images.apiNumber($1), $1) }
+    }
+
+    /// Lê as listas do Google: a do emulador e uma por tipo de imagem.
     func refresh() async {
         loading = true
         defer { loading = false }
         do {
             var out: [String: RemotePackage] = [:]
-            var docs: [URL: XMLDocument] = [:]
-            for p in Images.all {
-                let u = Images.listURL(p)
-                if docs[u] == nil {
-                    let (data, _) = try await URLSession.shared.data(from: u)
-                    docs[u] = try XMLDocument(data: data)
+            let main = Images.repo.appendingPathComponent("repository2-3.xml")
+            let (data, _) = try await URLSession.shared.data(from: main)
+            if let pkg = try Self.parse(try XMLDocument(data: data), path: Images.emulator, base: Images.repo) {
+                out[Images.emulator] = pkg
+            }
+            for tag in Images.tags {
+                let u = Images.tagListURL(tag)
+                let (data, _) = try await URLSession.shared.data(from: u)
+                let doc = try XMLDocument(data: data)
+                let paths = try doc.nodes(forXPath: "//remotePackage/@path").compactMap(\.stringValue)
+                for p in Set(paths) where Images.parts(p) != nil && Images.apiNumber(p) >= Double(Images.minAPI) {
+                    if let pkg = try Self.parse(doc, path: p, base: u.deletingLastPathComponent()) { out[p] = pkg }
                 }
-                if let pkg = try Self.parse(docs[u]!, path: p) { out[p] = pkg }
             }
             remote = out
             error = nil
@@ -122,7 +206,7 @@ final class ImageStore {
         }
     }
 
-    nonisolated static func parse(_ doc: XMLDocument, path: String) throws -> RemotePackage? {
+    nonisolated static func parse(_ doc: XMLDocument, path: String, base: URL) throws -> RemotePackage? {
         let candidates = try doc.nodes(forXPath: "//remotePackage[@path='\(path)']").compactMap { $0 as? XMLElement }
         for el in candidates {
             // Só o canal estável (channel-0).
@@ -140,7 +224,7 @@ final class ImageStore {
                 let license = try el.nodes(forXPath: "uses-license/@ref").first?.stringValue ?? "android-sdk-license"
                 let text = try doc.nodes(forXPath: "//license[@id='\(license)']").first?.stringValue ?? ""
                 return RemotePackage(revision: rev.joined(separator: "."), size: size, sha1: sha1,
-                                     url: Images.base(path).appendingPathComponent(file),
+                                     url: base.appendingPathComponent(file),
                                      license: license, licenseText: text)
             }
         }

@@ -25,10 +25,8 @@ enum DeviceKind: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    var image: String {
-        self == .relogio ? "system-images;android-33;android-wear;arm64-v8a"
-                         : "system-images;android-33;google_apis_playstore;arm64-v8a"
-    }
+    /// A imagem sugerida ao criar (a mais leve medida); dá para escolher outra.
+    var defaultImage: String { self == .relogio ? Images.wear33 : Images.play33 }
 
     var hardware: String {
         switch self {
@@ -54,9 +52,6 @@ enum DeviceKind: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    var tag: String { self == .relogio ? "android-wear" : "google_apis_playstore" }
-    var tagDisplay: String { self == .relogio ? "Wear OS 4" : "Google Play" }
-    var imageLabel: String { self == .relogio ? "Wear OS 4 (Android 13)" : "Android 13 com Google Play" }
 
     /// Memória estimada do processo, em GB (medido na fase 0; tablet e
     /// dobrável estimados).
@@ -84,6 +79,9 @@ struct DeviceInfo: Identifiable, Hashable {
     let android: String
     let screen: String
     let dir: URL
+    /// A imagem que o aparelho usa, no formato de pacote
+    /// ("system-images;android-33;google_apis_playstore;arm64-v8a").
+    let image: String
 }
 
 /// Os aparelhos em ~/.android/avd, e as operações que mudam essa pasta.
@@ -104,7 +102,8 @@ enum Catalog {
                 kind: .guess(device: cfg["hw.device.name"] ?? "", image: image),
                 android: "API \(api)",
                 screen: "\(cfg["hw.lcd.width"] ?? "?")×\(cfg["hw.lcd.height"] ?? "?")",
-                dir: dir
+                dir: dir,
+                image: image.split(separator: "/").joined(separator: ";")
             )
         }.sorted { $0.name < $1.name }
     }
@@ -113,22 +112,23 @@ enum Catalog {
     /// (<nome>.ini e <nome>.avd/config.ini), com os mesmos campos que o
     /// avdmanager gravaria para esse hardware. O emulador cria o disco do
     /// usuário a partir da imagem no primeiro boot.
-    static func create(name: String, kind: DeviceKind) -> String? {
+    static func create(name: String, kind: DeviceKind, image: String) -> String? {
         let fm = FileManager.default
         let dir = SDK.avdHome.appendingPathComponent("\(name).avd")
         let ini = SDK.avdHome.appendingPathComponent("\(name).ini")
         guard !fm.fileExists(atPath: dir.path), !fm.fileExists(atPath: ini.path) else { return "já existe um aparelho com esse nome" }
-        guard Images.installed(kind.image) != nil else { return "baixe antes a imagem \(kind.imageLabel) em Imagens" }
+        guard Images.installed(image) != nil else { return "baixe antes a imagem \(Images.title(image)) em Imagens" }
+        let target = "android-\(Images.parts(image)?.api ?? "33")"
         do {
             try fm.createDirectory(at: dir, withIntermediateDirectories: true)
             try """
             avd.ini.encoding=UTF-8
             path=\(dir.path)
             path.rel=avd/\(name).avd
-            target=android-33
+            target=\(target)
 
             """.write(to: ini, atomically: true, encoding: .utf8)
-            try config(name: name, kind: kind).write(to: dir.appendingPathComponent("config.ini"), atomically: true, encoding: .utf8)
+            try config(name: name, kind: kind, image: image).write(to: dir.appendingPathComponent("config.ini"), atomically: true, encoding: .utf8)
         } catch {
             try? fm.removeItem(at: dir); try? fm.removeItem(at: ini)
             return error.localizedDescription
@@ -136,9 +136,10 @@ enum Catalog {
         return nil
     }
 
-    static func config(name: String, kind: DeviceKind) -> String {
+    static func config(name: String, kind: DeviceKind, image: String) -> String {
         let (w, h, dpi) = kind.lcd
         let wear = kind == .relogio
+        let tag = Images.parts(image)?.tag ?? "default", display = Images.tagDisplay(image)
         var c: [(String, String)] = [
             ("avd.ini.encoding", "UTF-8"), ("AvdId", name), ("avd.ini.displayname", name),
             ("abi.type", "arm64-v8a"), ("hw.cpu.arch", "arm64"), ("hw.cpu.ncore", "\(kind.cores)"),
@@ -153,8 +154,8 @@ enum Catalog {
             ("hw.camera.back", "emulated"), ("hw.camera.front", "none"),
             ("hw.audioInput", "no"), ("hw.audioOutput", "no"), ("hw.sdCard", "no"),
             ("disk.dataPartition.size", wear ? "2G" : "6G"), ("userdata.useQcow2", "no"),
-            ("image.sysdir.1", Images.sysdir(kind.image)),
-            ("tag.id", kind.tag), ("tag.ids", kind.tag), ("tag.display", kind.tagDisplay), ("tag.displaynames", kind.tagDisplay),
+            ("image.sysdir.1", Images.sysdir(image)),
+            ("tag.id", tag), ("tag.ids", tag), ("tag.display", display), ("tag.displaynames", display),
             ("PlayStore.enabled", "no"), ("showDeviceFrame", "no"),
             ("fastboot.forceColdBoot", "no"), ("fastboot.forceFastBoot", "yes"),
             ("firstboot.bootFromLocalSnapshot", "yes"), ("firstboot.saveToLocalSnapshot", "yes"),
