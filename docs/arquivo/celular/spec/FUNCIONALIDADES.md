@@ -200,7 +200,7 @@ cima da tela atual. Não há abas nem menu lateral.
   vazia ou se está contida em `normalizarBusca(apelido)` ou em
   `normalizarBusca(nome do serviço)` (no personalizado, o `dominioBase`).
 - `normalizarBusca`: minúsculas; `á à â ã → a`, `é ê → e`, `í → i`,
-  `ó ô õ → o`, `ú → u`, `ç → c` — a mesma do BR Generator.
+  `ó ô õ → o`, `ú → u`, `ç → c`.
 - Combina com o chip de serviço (os dois filtros valem juntos).
 - Nenhum resultado: `Nada encontrado para "<texto aparado>"`.
 - A busca não é persistida.
@@ -305,8 +305,8 @@ personalizado), onde o usuário faz login no próprio site.
     mostra `Este endereço é do <nome>. Usar o <nome> do catálogo?` com
     `Usar <nome>` e `Continuar como site`. A escolha é do usuário.
 
-O erro aparece sob o campo, em minúsculas e sem ponto final (padrão dos
-motivos do BR Generator), e o botão fica desabilitado até o campo ser válido.
+O erro aparece sob o campo, em minúsculas e sem ponto final, e o botão fica
+desabilitado até o campo ser válido.
 
 ### 5.4 Regras de conta
 

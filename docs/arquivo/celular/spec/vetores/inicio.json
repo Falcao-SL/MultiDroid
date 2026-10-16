@@ -1,5 +1,5 @@
 {
-  "descricao": "Ordem e busca da tela Início (FUNCIONALIDADES §4). ordenar(contas): fixadas primeiro, cada grupo por ordem crescente, desempate por id. buscar(contas, consulta, servico): aplica trim, normalizarBusca e casa por substring no apelido ou no nome do serviço (dominioBase no personalizado); servico != null filtra pelo chip de serviço; resultado na ordem de ordenar. normalizarBusca é a mesma do BR Generator (só á à â ã é ê í ó ô õ ú ç).",
+  "descricao": "Ordem e busca da tela Início (FUNCIONALIDADES §4). ordenar(contas): fixadas primeiro, cada grupo por ordem crescente, desempate por id. buscar(contas, consulta, servico): aplica trim, normalizarBusca e casa por substring no apelido ou no nome do serviço (dominioBase no personalizado); servico != null filtra pelo chip de serviço; resultado na ordem de ordenar. normalizarBusca põe em minúsculas e tira o acento só de á à â ã é ê í ó ô õ ú ç.",
   "contas": [
     {"id": "a", "servico": "instagram", "apelido": "Pessoal", "fixada": false, "ordem": 2},
     {"id": "b", "servico": "instagram", "apelido": "Loja da Ana", "fixada": true, "ordem": 4},

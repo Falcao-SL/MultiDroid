@@ -12,7 +12,7 @@ Todos os arquivos são JSON UTF-8. Strings são comparadas **exatamente**
 Origem: os vetores foram escritos junto com a especificação (2026-09-21) e
 conferidos com uma implementação de referência descartável, feita só para
 isso e não versionada. Quando o núcleo Kotlin (`android/core`) existir, ele
-passa a ser a referência, como no BR Generator.
+passa a ser a referência.
 
 ## Como cada plataforma lê
 
@@ -47,7 +47,7 @@ Total: 129 casos comuns às duas plataformas + 12 casos só do Android (fase 2).
 ```
 
 - Chame a função com `entrada` **exatamente como está** (o `trim` faz parte
-  da função, ao contrário do BR Generator).
+  da função).
 - Válida: `url`, `dominioBase` e `servicoSugerido` (id do catálogo quando o
   host pertence a um serviço — a tela sugere usar o serviço) preenchidos;
   `erro` null.

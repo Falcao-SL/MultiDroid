@@ -1,9 +1,8 @@
 # CI/CD e publicação — Android e iOS
 
 > **Esqueleto.** Os workflows ainda não existem; este documento define a
-> forma que eles devem ter, no mesmo padrão do BR Generator. A fonte da
-> verdade, quando existirem, serão `.github/workflows/android.yml` e
-> `ios.yml`.
+> forma que eles devem ter. A fonte da verdade, quando existirem, serão
+> `.github/workflows/android.yml` e `ios.yml`.
 
 Dois workflows, um por plataforma:
 

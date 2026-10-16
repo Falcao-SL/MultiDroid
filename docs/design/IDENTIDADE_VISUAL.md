@@ -1,8 +1,7 @@
 # Identidade visual — Falcao Neo-Brutalism
 
-Identidade do MultiDroid (SwiftUI). É o **mesmo sistema** do BR Generator
-(bordas grossas, sombra dura, cor chapada, tipografia pesada), com acento
-próprio: o azul. Os **valores** estão em [`tokens.json`](tokens.json) — este
+Identidade do MultiDroid (SwiftUI): neo-brutalismo (bordas grossas, sombra
+dura, cor chapada, tipografia pesada), com o azul como acento. Os **valores** estão em [`tokens.json`](tokens.json) — este
 documento explica o uso; nunca repita um número aqui sem que ele esteja lá.
 O comportamento das telas está em [`../spec/MAC.md`](../spec/MAC.md).
 
