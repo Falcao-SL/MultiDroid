@@ -4,7 +4,7 @@
 
 Um ambiente para rodar várias contas e aparelhos Android ao mesmo tempo, no seu Mac.
 
-Site: <https://multidroid.falcaosl.com> · Download: [última versão](https://github.com/iramarfalcao/MultiDroid/releases/latest)
+Site: <https://multidroid.falcaosl.com> · Download: o `.dmg` assinado e notarizado sai na primeira release; até lá, compile pelo [Como rodar](#como-rodar).
 
 ## O que é
 
