@@ -45,3 +45,33 @@ jobs:
             rust/target/release/multidroid
             rust/target/release/multidroid.exe
           if-no-files-found: error
+
+  # Etapa R-3: liga um aparelho de verdade no Linux x86_64, com KVM, e testa
+  # boot, pausa, captura e desligar salvando (core/tests/emulador_real.rs).
+  emulador-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: rust
+    env:
+      MULTIDROID_GPU: swiftshader_indirect
+      MULTIDROID_SDK: ${{ github.workspace }}/sdk
+    steps:
+      - uses: actions/checkout@v4
+      - name: KVM para o emulador
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      # Emulador e imagem AOSP 33 x86_64 (~1,5 GB) baixados uma vez e guardados.
+      - uses: actions/cache@v4
+        with:
+          path: sdk
+          key: sdk-linux-emulador-aosp33-v1
+      - run: cargo test -p multidroid-core --test emulador_real -- --ignored --nocapture

@@ -13,6 +13,14 @@ roxmltree = "0.20"
 sha1 = "0.10"
 ureq = "2"
 zip = { version = "2", default-features = false, features = ["deflate"] }
+prost = "0.13"
+tonic = "0.12"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "net"] }
+sysinfo = { version = "0.33", default-features = false, features = ["system"] }
+
+[build-dependencies]
+tonic-build = "0.12"
+protoc-bin-vendored = "3"
 
 [dev-dependencies]
 tempfile = "3"

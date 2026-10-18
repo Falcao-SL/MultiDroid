@@ -4,6 +4,7 @@
 
 pub mod catalog;
 pub mod devices;
+pub mod emulator;
 pub mod ini;
 pub mod install;
 pub mod platform;
