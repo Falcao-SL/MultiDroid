@@ -16,6 +16,25 @@ Quem precisa de várias contas do mesmo serviço, ou de vários aparelhos Androi
 
 O MultiDroid não automatiza contas nem burla a verificação de integridade dos apps (bancos e alguns apps não abrem em emulador).
 
+## Telas
+
+![A mesa do MultiDroid com três celulares e um relógio ligados ao mesmo tempo, ao lado do painel com a memória e a CPU de cada aparelho](docs/screenshots/mesa-ligada.webp)
+
+*A mesa com três celulares e um relógio ligados ao mesmo tempo, num Mac de 24 GB. Cada quadro tem os botões do aparelho ao lado da tela: voltar, início, recentes, volume, girar, digitar, captura, pausar, hibernar e desligar.*
+
+<table>
+<tr>
+<td width="32%"><img src="docs/screenshots/painel.webp" alt="O painel com a memória do Mac, o teto de memória dos aparelhos e quatro aparelhos ligados com memória e CPU"></td>
+<td><img src="docs/screenshots/mesa-desligada.webp" alt="A mesa com os aparelhos desligados, cada um com o botão Ligar"></td>
+</tr>
+<tr>
+<td><em>O painel: memória do Mac, o teto dos aparelhos (acima dele o MultiDroid hiberna quem está há mais tempo sem uso) e cada aparelho com estado, memória e CPU.</em></td>
+<td><em>A mesma mesa com os aparelhos desligados: cada quadro mostra o tipo, a versão do Android e o botão Ligar.</em></td>
+</tr>
+</table>
+
+Capturas do app real (0.2), com imagens Android sem apps do Google. A interface é em português por enquanto.
+
 ## Funcionalidades
 
 Estado em 2026-10-18, versão 0.2 (`docs/produto/STATUS.md`).
