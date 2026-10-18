@@ -1,0 +1,47 @@
+# Versão Rust do MultiDroid nos três sistemas (docs/spec/MULTIPLATAFORMA.md §6):
+# formata, analisa, testa e compila no macOS, no Windows e no Linux a cada push
+# que mexe em rust/ ou nos tokens de design. O app SwiftUI (mac/) não passa aqui.
+name: rust
+
+on:
+  push:
+    branches: [main]
+    paths: ["rust/**", "docs/design/tokens.json", ".github/workflows/rust.yml"]
+  pull_request:
+    paths: ["rust/**", "docs/design/tokens.json", ".github/workflows/rust.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bibliotecas do Slint no Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - run: cargo fmt --all --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+      - run: cargo build --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: multidroid-${{ runner.os }}
+          path: |
+            rust/target/release/multidroid
+            rust/target/release/multidroid.exe
+          if-no-files-found: error

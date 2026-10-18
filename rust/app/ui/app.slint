@@ -1,0 +1,76 @@
+// MultiDroid em Slint (docs/spec/MULTIPLATAFORMA.md §2.2). As cores e a forma
+// chegam de docs/design/tokens.json pelo global Tema, preenchido em main.rs:
+// nenhum número de design é repetido aqui.
+
+export global Tema {
+    in property <color> fundo;
+    in property <color> superficie;
+    in property <color> borda;
+    in property <color> sombra;
+    in property <color> tinta;
+    in property <color> tinta-sobre-acento;
+    in property <color> azul;
+    in property <color> verde;
+    in property <length> largura-borda;
+    in property <length> raio;
+    in property <length> sombra-x;
+    in property <length> sombra-y;
+}
+
+// Bloco neo-brutalista: borda grossa e sombra dura, sem desfoque.
+component Bloco inherits Rectangle {
+    in property <color> cor: Tema.superficie;
+    Rectangle {
+        x: Tema.sombra-x; y: Tema.sombra-y;
+        width: parent.width; height: parent.height;
+        background: Tema.sombra; border-radius: Tema.raio;
+    }
+    Rectangle {
+        background: cor; border-radius: Tema.raio;
+        border-width: Tema.largura-borda; border-color: Tema.borda;
+        @children
+    }
+}
+
+export component AppWindow inherits Window {
+    title: "MultiDroid";
+    preferred-width: 1100px;
+    preferred-height: 700px;
+    background: Tema.fundo;
+    in property <string> versao;
+    in property <string> pasta;
+
+    HorizontalLayout {
+        padding: 20px;
+        spacing: 20px;
+        VerticalLayout {
+            width: 340px;
+            spacing: 16px;
+            alignment: start;
+            HorizontalLayout {
+                spacing: 12px;
+                Text { text: "MultiDroid"; font-size: 28px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; }
+                Bloco {
+                    cor: Tema.azul; width: 150px; height: 44px;
+                    Text { text: "+ Novo aparelho"; font-size: 15px; font-weight: 800; color: Tema.tinta-sobre-acento; }
+                }
+            }
+            Bloco {
+                height: 120px;
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 8px;
+                    Text { text: "Versão Rust \{versao} (etapa R-0)"; font-size: 15px; font-weight: 800; color: Tema.tinta; }
+                    Text { text: "Dados em:"; font-size: 12px; color: Tema.tinta; opacity: 0.6; }
+                    Text { text: pasta; font-size: 12px; color: Tema.tinta; wrap: word-wrap; }
+                }
+            }
+        }
+        Bloco {
+            Text {
+                text: "A mesa chega na etapa R-4.";
+                font-size: 16px; font-weight: 700; color: Tema.tinta; opacity: 0.6;
+            }
+        }
+    }
+}

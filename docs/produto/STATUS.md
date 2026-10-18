@@ -44,6 +44,10 @@ celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 - A linha de cada aparelho no painel não quebra mais "ligado" em duas linhas: estado numa linha, memória e CPU na de baixo.
 - Site, histórico do git conferido (sem segredos) e repositório aberto.
 
+## Mac, Windows e Linux (2026-10-18)
+
+Decidido: um código em Rust com interface Slint nos três sistemas ([`spec/MULTIPLATAFORMA.md`](../spec/MULTIPLATAFORMA.md)), em `rust/`. A 0.2 SwiftUI continua sendo a versão publicada no Mac até a Rust alcançá-la. Etapa R-0 feita: workspace, núcleo lendo os tokens de design, janela Slint e CI nos três sistemas.
+
 ## O que falta
 
 - Medir o critério da fase 1 num Mac limpo.

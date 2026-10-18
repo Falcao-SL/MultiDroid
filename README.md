@@ -49,6 +49,16 @@ Estado em 2026-10-18, versão 0.2 (`docs/produto/STATUS.md`).
 - **Tela e entrada**: a tela chega por memória compartilhada (`MMAP`) já escalada pelo emulador; toque, teclas e texto voltam por gRPC em localhost, com token.
 - **Modo leve (protótipo da fase 0)**: `mac/tools/leve.sh` roda Redroid em contêiner numa VM do Virtualization.framework. Medido em 2026-10-09: cerca de 0,85 GB por aparelho com 8 ligados, contra cerca de 4,5 GB do emulador.
 
+## Versão Rust (Mac, Windows e Linux)
+
+Em construção em [`rust/`](rust): um código em Rust com interface Slint para os três sistemas ([`docs/spec/MULTIPLATAFORMA.md`](docs/spec/MULTIPLATAFORMA.md)). A versão publicada continua sendo a 0.2 em SwiftUI, até a Rust fazer tudo o que ela faz.
+
+```sh
+cd rust
+cargo run          # abre a janela
+cargo test
+```
+
 ## Como rodar
 
 Requisitos: macOS 26 e Apple Silicon.

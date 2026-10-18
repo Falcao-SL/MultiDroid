@@ -1,5 +1,9 @@
 # MultiDroid para Linux — Androids em contêiner, com a GPU do PC
 
+> **2026-10-18:** a interface e a linguagem mudaram para Rust e Slint nos três sistemas
+> ([`MULTIPLATAFORMA.md`](MULTIPLATAFORMA.md)); a proposta Kotlin/Compose do §2.5
+> fica só como histórico. O motor leve, a GPU e a fase 0 abaixo continuam valendo.
+
 > Especificação escrita em 2026-10-10. Ainda não há código: o MultiDroid é só
 > Mac ([`MAC.md`](MAC.md)). Os números marcados **(hipótese)** não foram
 > medidos; a fase 0 existe para medi-los. Windows fica fora desta spec (seção 6).
