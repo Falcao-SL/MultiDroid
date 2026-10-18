@@ -82,6 +82,8 @@ core não sabe em que sistema está.
 |---|---|
 | R-0 | **Feita** (2026-10-18): workspace, tokens, janela Slint; CI verde no macOS, no Windows e no Linux |
 | R-1 | **Feita** (2026-10-18): `catalog`, `install` e `ini`. 12 testes com listas de exemplo (os XML do repositório oficial não entram no repositório do MultiDroid) e 2 testes contra o repositório real (`cargo test -- --ignored`): leem o emulador para os três hosts e instalam a imagem AOSP 33. A extração é feita pela biblioteca de zip, sem `ditto`. `cargo run -p multidroid-core --example instaladas` lista no Mac o que a 0.2 instalou |
+| R-2 | **Feita** (2026-10-18): `devices` (criar, duplicar com clone do APFS ou reflink, apagar, importar do Android Studio, arquitetura do host no config.ini) e `state` (o `state.json` da 0.2, com campos desconhecidos preservados, e a grade livre). `cargo run -p multidroid-core --example aparelhos` lê no Mac os 4 aparelhos e a mesa da 0.2 sem mudar nenhum arquivo |
+| R-8 | **Adiantada** (2026-10-18): `release.yml` gera os pacotes dos três sistemas por tag, como "MultiDroid Preview" em pré-release; `rust/scripts/release-mac.sh` assina e notariza o .dmg no Mac |
 
 ## 4. Como testar cada sistema a partir do Mac
 
