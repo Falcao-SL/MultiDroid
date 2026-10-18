@@ -4,7 +4,7 @@
 
 Um ambiente para rodar várias contas e aparelhos Android ao mesmo tempo, no seu Mac.
 
-Site: <https://multidroid.falcaosl.com> · Download: o `.dmg` assinado e notarizado sai na primeira release; até lá, compile pelo [Como rodar](#como-rodar).
+Site: <https://multidroid.falcaosl.com> · Download: [MultiDroid 0.2 (.dmg assinado e notarizado)](https://github.com/iramarfalcao/MultiDroid/releases/latest)
 
 ## O que é
 
@@ -68,7 +68,7 @@ Riscos registrados: licença das imagens Play e Wear, apps que bloqueiam emulado
 | Loja | Situação | Observação |
 |---|---|---|
 | Mac App Store | Não será enviado | Decisão M-6: o app baixa e executa imagens Android e usa o emulador com Hypervisor.framework, o que a Mac App Store não aceita. |
-| Distribuição direta | Não publicado | Developer ID + notarização, fora da loja. A assinatura está feita; a notarização aguarda a credencial. Página de download em GitHub Releases ainda a fazer. |
+| Distribuição direta | **Publicado (0.2, 2026-10-18)** | `.dmg` assinado com Developer ID e notarizado, no [GitHub Releases](https://github.com/iramarfalcao/MultiDroid/releases) e no site. |
 | App Store / Google Play | Não se aplica | O plano dos apps de celular foi arquivado em 2026-10-09. |
 
 Fonte: `docs/produto/STATUS.md` e `docs/produto/DISTRIBUICAO.md`.

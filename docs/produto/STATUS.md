@@ -4,7 +4,7 @@
 
 | Campo | Valor |
 |---|---|
-| **Estágio** | **App de Mac em construção.** Fase 0 medida (2026-10-07); fase 1 quase toda feita; fase 2 não começou |
+| **Estágio** | **Publicado: 0.2 no GitHub Releases** (2026-10-18), código aberto. Fase 1 quase toda feita; fase 2 não começou |
 | **Plataformas** | macOS 26, Apple Silicon (só Mac) |
 | **Stack** | Swift Package em `mac/`: SwiftUI + gRPC sobre o Android Emulator oficial |
 | **Versão** | 0.2 (build 2), assinada com Developer ID (`scripts/build-app.sh`); notarização e `.dmg` por `scripts/release.sh` |
