@@ -12,3 +12,30 @@ slint = "1"
 
 [build-dependencies]
 slint-build = "1"
+
+# Pacotes de cada sistema, gerados pelo cargo-packager no workflow release.yml
+# (docs/spec/MULTIPLATAFORMA.md §6). Enquanto a versão Rust não alcança a 0.2,
+# sai como "MultiDroid Preview", com outro identificador, para não substituir o
+# app SwiftUI instalado.
+[package.metadata.packager]
+product-name = "MultiDroid Preview"
+identifier = "com.falcaosl.multidroid.preview"
+publisher = "Falcao SL"
+copyright = "© 2026 Falcao SL"
+category = "DeveloperTool"
+homepage = "https://multidroid.falcaosl.com"
+description = "Vários aparelhos Android numa mesa só."
+before-packaging-command = "cargo build --release -p multidroid"
+out-dir = "../target/packages"
+binaries = [{ path = "multidroid", main = true }]
+binaries-dir = "../target/release"
+icons = ["icons/32x32.png", "icons/128x128.png", "icons/256x256.png"]
+
+[package.metadata.packager.macos]
+minimum-system-version = "13.0"
+
+[package.metadata.packager.deb]
+depends = ["libfontconfig1", "libxkbcommon0"]
+
+[package.metadata.packager.nsis]
+installer-mode = "currentUser"

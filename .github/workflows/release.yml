@@ -1,0 +1,116 @@
+# Pacotes da versão Rust nos três sistemas (docs/spec/MULTIPLATAFORMA.md §6).
+# Uma tag v<versão do rust/Cargo.toml>[-sufixo] gera .dmg, instalador do Windows,
+# .AppImage e .deb e publica tudo numa release. Tag com sufixo (v0.3.0-alpha.1)
+# sai como pré-release. Tag de outra versão (a do app SwiftUI, por exemplo)
+# não roda nada aqui. "Run workflow" à mão só gera os pacotes, sem release.
+#
+# O .dmg do CI sai sem assinatura da Apple; rust/scripts/release-mac.sh <tag>
+# gera no Mac do dono o assinado e notarizado e troca o arquivo na release.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  versao:
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.v.outputs.rust }}
+      nome: ${{ steps.v.outputs.nome }}
+      pre: ${{ steps.v.outputs.pre }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          CARGO=$(sed -n 's/^version = "\(.*\)"/\1/p' rust/Cargo.toml | head -1)
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            TAG=${GITHUB_REF_NAME#v}
+            BASE=${TAG%%-*}
+          else
+            TAG="$CARGO-teste"; BASE=$CARGO
+          fi
+          if [ "$BASE" = "$CARGO" ]; then echo rust=true >>"$GITHUB_OUTPUT"; else echo rust=false >>"$GITHUB_OUTPUT"; fi
+          echo "nome=$TAG" >>"$GITHUB_OUTPUT"
+          case "$TAG" in *-*) echo pre=true ;; *) echo pre=false ;; esac >>"$GITHUB_OUTPUT"
+          echo "Cargo $CARGO, tag $TAG"
+
+  pacotes:
+    needs: versao
+    if: needs.versao.outputs.rust == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            formatos: dmg
+          - os: windows-latest
+            formatos: nsis
+          # 22.04 para o .AppImage rodar em distribuições com glibc mais antiga.
+          - os: ubuntu-22.04
+            formatos: appimage,deb
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bibliotecas do Slint e do AppImage no Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev libfuse2 file
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - name: cargo-packager
+        run: cargo install cargo-packager --locked --version 0.11.8
+      - name: Pacotes
+        working-directory: rust/app
+        run: |
+          cargo packager --release -f ${{ matrix.formatos }}
+      - name: Nomes dos arquivos
+        run: |
+          N="MultiDroid-Preview-${{ needs.versao.outputs.nome }}"
+          mkdir -p out
+          cd target/packages
+          for f in *.dmg *-setup.exe *.AppImage *.deb; do
+            [ -e "$f" ] || continue
+            case "$f" in
+              *.dmg) mv "$f" "../../out/$N-mac-arm64.dmg" ;;
+              *-setup.exe) mv "$f" "../../out/$N-windows-x64-setup.exe" ;;
+              *.AppImage) mv "$f" "../../out/$N-linux-x86_64.AppImage" ;;
+              *.deb) mv "$f" "../../out/$N-linux-amd64.deb" ;;
+            esac
+          done
+          ls -la ../../out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pacote-${{ runner.os }}
+          path: rust/out/*
+          if-no-files-found: error
+
+  publicar:
+    needs: [versao, pacotes]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRE=""
+          [ "${{ needs.versao.outputs.pre }}" = true ] && PRE="--prerelease"
+          gh release create "$GITHUB_REF_NAME" out/* $PRE -R "$GITHUB_REPOSITORY" \
+            --title "MultiDroid Preview ${{ needs.versao.outputs.nome }} (Mac, Windows e Linux)" \
+            --notes "Versão Rust em construção, para testar a instalação nos três sistemas. Ainda não liga aparelhos: a versão para usar é a 0.2 do Mac. Andamento em docs/spec/MULTIPLATAFORMA.md."
