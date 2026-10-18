@@ -1,8 +1,10 @@
 # MultiDroid
 
-![macOS 26](https://img.shields.io/badge/macOS-26%20%C2%B7%20Apple%20Silicon-lightgrey) ![Swift / SwiftUI](https://img.shields.io/badge/Swift-SwiftUI%20%2B%20gRPC-orange) [![GPL-3.0](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-blue)](LICENSE) ![Versão 0.1](https://img.shields.io/badge/vers%C3%A3o-0.1-yellow)
+![macOS 26](https://img.shields.io/badge/macOS-26%20%C2%B7%20Apple%20Silicon-lightgrey) ![Swift / SwiftUI](https://img.shields.io/badge/Swift-SwiftUI%20%2B%20gRPC-orange) [![GPL-3.0](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-blue)](LICENSE) ![Versão 0.2](https://img.shields.io/badge/vers%C3%A3o-0.2-yellow)
 
 Um ambiente para rodar várias contas e aparelhos Android ao mesmo tempo, no seu Mac.
+
+Site: <https://multidroid.falcaosl.com> · Download: [última versão](https://github.com/iramarfalcao/MultiDroid/releases/latest)
 
 ## O que é
 
@@ -16,7 +18,7 @@ O MultiDroid não automatiza contas nem burla a verificação de integridade dos
 
 ## Funcionalidades
 
-Estado em 2026-10-09, versão 0.1 (`docs/produto/STATUS.md`).
+Estado em 2026-10-18, versão 0.2 (`docs/produto/STATUS.md`).
 
 - **Aparelhos**: celular (Pixel 9), tablet (Pixel Tablet), dobrável (Pixel 9 Pro Fold) e relógio (Wear OS redondo).
 - **Painel**: lista com estado, memória e CPU ao vivo, memória do Mac, teto de memória, grupos, ações em lote (ligar, pausar, desligar, duplicar), criar e apagar. Renomear ainda não existe.
@@ -56,8 +58,8 @@ Do [`docs/produto/STATUS.md`](docs/produto/STATUS.md) e de [`docs/spec/MAC.md`](
 - Modo leve: o vídeo não toca no Redroid 13 (decodificador falha ao mapear o buffer; Redroid 12 e 14 falham igual). Depois disso, balão de memória na VM, apps reais por APK sem serviços do Google, tela e toque pelo protocolo do scrcpy.
 - Desenho da tela por Metal (decisão M-2); hoje é desenhada como imagem no SwiftUI.
 - Versão Linux: há spec ([`docs/spec/LINUX.md`](docs/spec/LINUX.md)), sem código. A fase 0 precisa de um PC Linux com GPU Intel ou AMD e 16 GB.
-- Assinatura Developer ID com notarização e canal de download; pipeline de build e release no GitHub Actions (a criar); Homebrew cask depois da primeira release notarizada.
-- Decidir nome público, idiomas e site. Antes de tornar o repositório público: revisar o histórico do git e revisar com advogado a licença das imagens do Google.
+- Pipeline de build e release no GitHub Actions (a criar); Homebrew cask depois da primeira release notarizada.
+- Interface só em português; decidir os outros idiomas. Revisar com advogado a licença das imagens do Google (o app não as redistribui: cada pessoa baixa do Google e aceita a licença).
 
 Riscos registrados: licença das imagens Play e Wear, apps que bloqueiam emulador, memória em Macs de 8 a 16 GB e mudanças na API do emulador ([`MAC.md`](docs/spec/MAC.md) §5).
 

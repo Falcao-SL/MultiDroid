@@ -201,7 +201,8 @@ struct StatusDot: View {
         }
         HStack(spacing: 5) {
             Circle().fill(c).frame(width: 9, height: 9).overlay(Circle().stroke(.black.opacity(0.6), lineWidth: 1))
-            Text(t).font(.system(size: 11, weight: .semibold))
+            // Uma linha só: com os botões do aparelho à vista, "ligado" quebrava em "liga / do".
+            Text(t).font(.system(size: 11, weight: .semibold)).lineLimit(1).fixedSize()
         }
     }
 }
@@ -221,14 +222,15 @@ struct DeviceRow: View {
                 .foregroundStyle(Tema.tintaSobreAcento)
             VStack(alignment: .leading, spacing: 3) {
                 Text(d.id).font(.system(size: 14, weight: .heavy)).lineLimit(1)
-                HStack(spacing: 6) {
-                    StatusDot(state: d.state)
-                    if d.isRunning {
-                        Text("\(gb(d.footprintGB)) · \(Int(d.cpu))%")
-                            .font(.system(size: 11, weight: .semibold).monospacedDigit()).opacity(0.7)
-                    } else {
-                        Text("\(d.info.kind.label) · \(d.info.android)").font(.system(size: 11)).opacity(0.6)
-                    }
+                // Estado numa linha, números na de baixo: com os botões do aparelho à
+                // vista não cabe tudo numa linha só.
+                StatusDot(state: d.state)
+                if d.isRunning {
+                    Text("\(gb(d.footprintGB)) · \(Int(d.cpu))%")
+                        .font(.system(size: 11, weight: .semibold).monospacedDigit()).opacity(0.7)
+                        .lineLimit(1)
+                } else {
+                    Text("\(d.info.kind.label) · \(d.info.android)").font(.system(size: 11)).opacity(0.6).lineLimit(1)
                 }
                 if let g = model.groups[d.id] {
                     Text(g.uppercased()).font(.system(size: 9, weight: .black)).kerning(0.8)

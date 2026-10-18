@@ -1,14 +1,16 @@
 # Status — MultiDroid
 
-> Atualizado em **2026-10-09**. Fonte única de "em que pé está".
+> Atualizado em **2026-10-18**. Fonte única de "em que pé está".
 
 | Campo | Valor |
 |---|---|
 | **Estágio** | **App de Mac em construção.** Fase 0 medida (2026-10-07); fase 1 quase toda feita; fase 2 não começou |
-| **Plataforma** | só macOS: MultiDroid em `mac/` (Swift Package, SwiftUI + gRPC), macOS 26, Apple Silicon |
-| **Versão** | 0.1 (build 1), assinatura ad hoc (`scripts/build-app.sh`) |
+| **Plataformas** | macOS 26, Apple Silicon (só Mac) |
+| **Stack** | Swift Package em `mac/`: SwiftUI + gRPC sobre o Android Emulator oficial |
+| **Versão** | 0.2 (build 2), assinada com Developer ID (`scripts/build-app.sh`); notarização e `.dmg` por `scripts/release.sh` |
 | **Identificador** | `com.falcaosl.multidroid` · Apple Team `6EZ89E2F5S` |
-| **Distribuição** | Developer ID + notarização, fora da Mac App Store (decisão M-6); ainda não configurada |
+| **Distribuição** | `.dmg` assinado e notarizado no GitHub Releases, fora da Mac App Store (decisão M-6); repositório público |
+| **Site** | https://multidroid.falcaosl.com (em `site/`, inglês) |
 | **Monetização** | **Nenhuma: código aberto, GPL-3.0** (2026-10-10; [MONETIZACAO.md](MONETIZACAO.md)) |
 | **Próximo marco** | Fechar o critério da fase 1: criar, duplicar e organizar 4 celulares + 1 relógio em menos de 5 minutos num Mac limpo |
 
@@ -36,6 +38,12 @@ celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 | Instalador | emulador e qualquer imagem arm64 estável do Android 11 em diante, baixados de dl.google.com; licença no app, SHA-1, atualizar com aparelhos ligados, importar do Android Studio, remover com confirmação; cada aparelho escolhe a sua imagem ao ser criado |
 | Modo leve (fase 0) | protótipo `mac/tools/leve.sh`: Redroid em contêiner numa VM do Virtualization.framework; medido em 2026-10-09, ~0,85 GB por aparelho com 8 ligados contra ~4,5 GB do emulador (MAC.md §3) |
 
+## O que mudou na 0.2 (2026-10-18)
+
+- O instalador extrai o Wear OS 33 (o `ditto` não lia o zip do Google; agora cai no `unzip`).
+- A linha de cada aparelho no painel não quebra mais "ligado" em duas linhas: estado numa linha, memória e CPU na de baixo.
+- Site, histórico do git conferido (sem segredos) e repositório aberto.
+
 ## O que falta
 
 - Medir o critério da fase 1 num Mac limpo.
@@ -44,8 +52,8 @@ celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 - Versão Linux: spec escrita ([LINUX.md](../spec/LINUX.md)), sem código; a fase 0 precisa de um PC Linux com GPU Intel ou AMD e 16 GB (o homelab não serve).
 - Desenho por Metal (decisão M-2): hoje a tela é desenhada como imagem no
   SwiftUI.
-- Assinatura Developer ID, notarização e canal de download (DISTRIBUICAO).
-- Decidir nome público, idiomas e site; revisar o histórico do git antes de tornar o repositório público.
+- Pipeline de build e release no GitHub Actions; Homebrew cask depois da primeira release notarizada.
+- Interface só em português; decidir os outros idiomas.
 - Revisar com advogado a licença das imagens do Google antes de tornar o
   repositório público (MAC.md §5).
 

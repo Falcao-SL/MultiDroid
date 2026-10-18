@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy | MultiDroid</title>
+<meta name="description" content="MultiDroid collects no personal data, has no account and no server. What it downloads, what it keeps on your Mac and how to remove it.">
+<meta name="theme-color" content="#17171c">
+<link rel="canonical" href="https://multidroid.falcaosl.com/privacy.html">
+<link rel="icon" href="assets/icon-1.png" type="image/png">
+<link rel="stylesheet" href="assets/home-1.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="bar">
+  <div class="wrap bar-row">
+    <a class="brand" href="/"><img src="assets/icon-1.png" width="36" height="36" alt="">MultiDroid</a>
+    <nav class="nav" aria-label="Main"><a href="/">Home</a><a href="https://github.com/iramarfalcao/MultiDroid">GitHub</a></nav>
+  </div>
+</header>
+<main id="main" class="wrap legal">
+  <h1>Privacy</h1>
+  <p class="note">MultiDroid for macOS · In effect from October 18, 2026</p>
+
+  <h2>In short</h2>
+  <ul class="limits">
+    <li>MultiDroid collects no personal data.</li>
+    <li>There is no MultiDroid account, sign-in or server.</li>
+    <li>There are no trackers, no analytics and no third-party SDKs.</li>
+    <li>The only network requests MultiDroid makes on its own are the downloads you ask for: the emulator and system images, from the official Android repository.</li>
+  </ul>
+
+  <h2>What it downloads</h2>
+  <p class="body">When you install or update the emulator or an image, MultiDroid reads the public catalogue of the official Android repository and downloads the files from it (dl.google.com/android/repository). That is an ordinary download request, carrying nothing about you beyond what any download sends, such as your IP address. MultiDroid checks each file against the published SHA-1 before installing it. The repository's own terms apply to the images, and MultiDroid shows them for you to accept before the download.</p>
+
+  <h2>What stays on your Mac</h2>
+  <dl class="spec">
+    <div><dt>Emulator and images</dt><dd>~/Library/Application Support/MultiDroid/sdk/, with your license acceptances</dd></div>
+    <div><dt>Your devices</dt><dd>~/Library/Application Support/MultiDroid/avd/ (the accounts, apps and photos inside them)</dd></div>
+    <div><dt>Preferences</dt><dd>~/Library/Application Support/MultiDroid/state.json (order, groups, desks, positions, memory ceiling)</dd></div>
+    <div><dt>Screenshots</dt><dd>~/Pictures/MultiDroid/</dd></div>
+  </dl>
+  <p class="body">MultiDroid sends none of this anywhere. Delete a device inside the app; deleting the folder ~/Library/Application Support/MultiDroid/ removes everything except the screenshots.</p>
+
+  <h2>The Android devices</h2>
+  <p class="body">Each device is a real Android running on your Mac. Inside it you sign in to your accounts and use the apps you want, as on a phone, and those apps reach their own services directly from the device. MultiDroid does not keep what you type or your passwords and does not read your accounts. It shows the screen and passes touches, keys and text to the emulator over a local connection (localhost, with a token) that never leaves the Mac.</p>
+  <p class="body">MultiDroid starts the emulator with -no-metrics, which turns off the emulator's usage statistics. Android inside each device, and any services the image includes, follow their own privacy rules.</p>
+
+  <h2>Third-party services</h2>
+  <p class="body">The apps and services you use inside the devices have their own privacy policies and terms. MultiDroid is not affiliated with, sponsored or approved by any of those services, nor by the makers of Android, and it does not automate anything in your accounts.</p>
+
+  <h2>Your rights</h2>
+  <p class="body">Because MultiDroid collects and processes no personal data, there is nothing in our hands to access, correct, delete or export: everything the app keeps is on your Mac, under your control. The app is not directed at children. If this policy changes, the date above changes with it. Questions: <a href="mailto:dev@falcaosl.com">dev@falcaosl.com</a>.</p>
+</main>
+<footer class="foot">
+  <div class="wrap foot-row">
+    <span>© 2026 Falcao SL · GPL-3.0</span>
+    <a href="/">MultiDroid</a>
+    <a href="https://falcaosl.com/">falcaosl.com</a>
+  </div>
+</footer>
+</body>
+</html>

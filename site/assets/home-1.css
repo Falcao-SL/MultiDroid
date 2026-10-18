@@ -1,0 +1,117 @@
+/* MultiDroid — site (2026-10-18).
+
+   O mesmo neo-brutalismo do app (docs/design/tokens.json): bordas de 2,5 px,
+   sombra dura (4, 4, sem desfoque), cor chapada, raio 10 e o azul como acento.
+   Fonte do sistema em pesos fortes, como no app; tema escuro dos tokens. O CSP é style-src 'self' e script-src 'self':
+   nada inline e nenhum script na página. Nome novo a cada mudança: /assets/ é
+   imutável por um ano no nginx e no Cloudflare. */
+
+:root {
+  --fundo: #17171c;
+  --superficie: #23232b;
+  --tinta: #efede6;
+  --muted: #b9b7af;
+  --tinta-acento: #141414;
+  --sombra-cor: #000000;
+  --azul: #7aa7ff;
+  --rosa: #ff90e8;
+  --amarelo: #ffde59;
+  --verde: #4ade80;
+  --ciano: #5ce1e6;
+  --borda: 2.5px solid var(--tinta);
+  --sombra: 4px 4px 0 var(--sombra-cor);
+  --raio: 10px;
+  --wrap: 1200px;
+  --pad: clamp(16px, 4vw, 48px);
+  --face: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--fundo); color: var(--tinta); font: 400 17px/1.6 var(--face); }
+h1, h2, h3, p, ul, dl, dd, figure { margin: 0; padding: 0; }
+ul { list-style: none; }
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; text-underline-offset: .2em; }
+a:hover { text-decoration-thickness: 2px; }
+::selection { background: var(--amarelo); color: var(--tinta-acento); }
+:focus-visible { outline: 3px solid var(--tinta); outline-offset: 3px; }
+.skip { position: absolute; left: -9999px; top: 8px; background: var(--amarelo); color: var(--tinta-acento); padding: 10px 14px; border: var(--borda); z-index: 10; }
+.skip:focus { left: 8px; }
+.wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 var(--pad); }
+
+.bar { border-bottom: var(--borda); background: var(--superficie); }
+.bar-row { display: flex; align-items: center; gap: 24px; min-height: 64px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; text-decoration: none; }
+.brand img { width: 36px; height: 36px; }
+.nav { margin-left: auto; display: flex; gap: 22px; font-size: 15px; font-weight: 600; }
+.nav a { text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+.nav a:hover { text-decoration: underline; }
+
+/* Abertura: título, botões e a mesa do app em tamanho grande. */
+.hero { padding-top: clamp(40px, 6vw, 80px); padding-bottom: clamp(48px, 6vw, 80px); }
+h1 { font-size: clamp(42px, 6.4vw, 84px); line-height: .98; font-weight: 900; letter-spacing: -.02em; max-width: 13ch; }
+.lead { margin-top: 22px; max-width: 34em; font-size: clamp(18px, 1.6vw, 21px); color: var(--muted); }
+.actions { margin-top: 30px; display: flex; flex-wrap: wrap; gap: 14px; }
+.btn { display: inline-flex; align-items: center; min-height: 52px; padding: 0 24px; border: var(--borda); border-radius: var(--raio); background: var(--superficie); box-shadow: var(--sombra); font-weight: 700; font-size: 17px; text-decoration: none; transition: transform 70ms, box-shadow 70ms; }
+.btn--blue { background: var(--azul); color: var(--tinta-acento); }
+/* Como no app: apertado, o botão desliza sobre a própria sombra. */
+.btn:hover { text-decoration: none; }
+.btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--sombra-cor); }
+.note { margin-top: 16px; font-size: 15px; color: var(--muted); }
+.shot { margin-top: clamp(32px, 4vw, 52px); }
+.shot img { border: var(--borda); border-radius: var(--raio); box-shadow: 8px 8px 0 var(--sombra-cor); }
+.shot figcaption { margin-top: 14px; font-size: 14px; color: var(--muted); }
+
+.sec { border-top: var(--borda); padding: clamp(56px, 8vw, 100px) 0; }
+h2 { font-size: clamp(30px, 3.8vw, 48px); line-height: 1.08; font-weight: 800; letter-spacing: -.01em; max-width: 20em; }
+.body { margin-top: 18px; max-width: 38em; color: var(--muted); }
+
+.split { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 72px); align-items: center; }
+.shot--panel { margin-top: 0; justify-self: center; max-width: 360px; }
+
+/* Cartões chapados nas cores de acento do app, em ciclo. */
+.cards { margin-top: clamp(28px, 4vw, 44px); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.card { border: var(--borda); border-radius: var(--raio); box-shadow: var(--sombra); padding: 20px 20px 22px; color: var(--tinta-acento); }
+.card h3 { font-size: 20px; line-height: 1.2; font-weight: 800; }
+.card p { margin-top: 10px; font-size: 16px; }
+.card--pink { background: var(--rosa); }
+.card--yellow { background: var(--amarelo); }
+.card--green { background: var(--verde); }
+.card--cyan { background: var(--ciano); }
+
+.spec { border: var(--borda); border-radius: var(--raio); box-shadow: var(--sombra); background: var(--superficie); }
+.spec > div { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); gap: 14px; padding: 14px 18px; border-top: 1.5px solid var(--tinta); }
+.spec > div:first-child { border-top: 0; }
+.spec dt { font-weight: 700; }
+.spec dd { color: var(--muted); }
+
+.limits { margin-top: clamp(24px, 3vw, 36px); display: grid; gap: 12px; max-width: 46em; }
+.limits li { position: relative; padding: 14px 18px 14px 52px; border: var(--borda); border-radius: var(--raio); background: var(--superficie); }
+.limits li::before { content: ""; position: absolute; left: 18px; top: 18px; width: 18px; height: 18px; border: var(--borda); border-radius: 4px; background: var(--amarelo); }
+
+.foot { border-top: var(--borda); background: var(--superficie); }
+.foot-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 22px; padding-top: 14px; padding-bottom: 24px; font-size: 14px; color: var(--muted); }
+.foot a { min-height: 44px; display: inline-flex; align-items: center; }
+
+@media (max-width: 980px) {
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .bar-row { flex-wrap: wrap; gap: 0 16px; padding-top: 10px; }
+  /* Uma linha só, rolável por dentro: a página não ganha rolagem horizontal. */
+  .nav { order: 3; width: calc(100% + 2 * var(--pad)); margin: 0 calc(-1 * var(--pad)); padding: 0 var(--pad); gap: 18px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; font-size: 14px; }
+  .nav::-webkit-scrollbar { display: none; }
+  .cards { grid-template-columns: minmax(0, 1fr); }
+  .spec > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .shot img { box-shadow: 5px 5px 0 var(--sombra-cor); }
+}
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+
+/* Página de privacidade. */
+.legal { padding-top: clamp(40px, 6vw, 72px); padding-bottom: clamp(48px, 6vw, 80px); max-width: 860px; }
+.legal h1 { font-size: clamp(38px, 5vw, 60px); }
+.legal h2 { margin-top: 44px; font-size: clamp(24px, 2.6vw, 30px); }
+.legal .spec { margin-top: 18px; }

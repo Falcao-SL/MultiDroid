@@ -347,12 +347,20 @@ final class ImageStore {
         let tmp = SDK.home.appendingPathComponent("tmp-\(UUID().uuidString)", isDirectory: true)
         try fm.createDirectory(at: tmp, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: tmp) }
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
-        p.arguments = ["-x", "-k", zip.path, tmp.path]
-        try p.run()
-        p.waitUntilExit()
-        guard p.terminationStatus == 0 else { throw InstallError("não extraiu o arquivo") }
+        // O ditto não lê alguns zips do Google (o do Wear OS 33 r04: "Couldn't read
+        // pkzip signature"); o unzip do sistema lê. Tenta um, depois o outro.
+        func run(_ tool: String, _ args: [String]) throws -> Bool {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: tool)
+            p.arguments = args
+            try p.run()
+            p.waitUntilExit()
+            return p.terminationStatus == 0
+        }
+        if try !run("/usr/bin/ditto", ["-x", "-k", zip.path, tmp.path]) {
+            for item in (try? fm.contentsOfDirectory(at: tmp, includingPropertiesForKeys: nil)) ?? [] { try? fm.removeItem(at: item) }
+            guard try run("/usr/bin/unzip", ["-q", zip.path, "-d", tmp.path]) else { throw InstallError("não extraiu o arquivo") }
+        }
         // O zip tem uma única pasta no topo (emulator/ ou arm64-v8a/).
         guard let top = try fm.contentsOfDirectory(at: tmp, includingPropertiesForKeys: nil)
             .first(where: { !$0.lastPathComponent.hasPrefix(".") }) else { throw InstallError("arquivo vazio") }
