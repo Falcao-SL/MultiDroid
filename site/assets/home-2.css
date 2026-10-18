@@ -115,3 +115,17 @@ h2 { font-size: clamp(30px, 3.8vw, 48px); line-height: 1.08; font-weight: 800; l
 .legal h1 { font-size: clamp(38px, 5vw, 60px); }
 .legal h2 { margin-top: 44px; font-size: clamp(24px, 2.6vw, 30px); }
 .legal .spec { margin-top: 18px; }
+
+/* Downloads por sistema: o do Mac baixa; os outros mostram que estão em construção. */
+.downloads { margin-top: 30px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; max-width: 900px; }
+.dl { display: grid; gap: 4px; min-height: 76px; padding: 14px 18px; border: var(--borda); border-radius: var(--raio); text-decoration: none; }
+.dl b { font-size: 18px; font-weight: 800; }
+.dl span { font-size: 14px; }
+.dl--ready { background: var(--azul); color: var(--tinta-acento); box-shadow: var(--sombra); transition: transform 70ms, box-shadow 70ms; }
+.dl--ready:hover { text-decoration: none; color: var(--tinta-acento); }
+.dl--ready:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--sombra-cor); }
+.dl--soon { border-style: dashed; color: var(--muted); }
+.cards--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 980px) { .cards--3 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { .downloads { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .dl--ready { transition: none; } }

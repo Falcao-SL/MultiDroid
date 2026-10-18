@@ -38,7 +38,7 @@
 }
 </script>
 <link rel="icon" href="assets/icon-1.png" type="image/png">
-<link rel="stylesheet" href="assets/home-1.css">
+<link rel="stylesheet" href="assets/home-2.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -47,6 +47,7 @@
   <div class="wrap bar-row">
     <a class="brand" href="/"><img src="assets/icon-1.png" width="36" height="36" alt="">MultiDroid</a>
     <nav class="nav" aria-label="Main">
+      <a href="#uses">Uses</a>
       <a href="#panel">Panel</a>
       <a href="#desk">Desk</a>
       <a href="#install">Install</a>
@@ -61,15 +62,28 @@
   <section class="wrap hero" aria-labelledby="hero-title">
     <h1 id="hero-title">Every Android you need, on one desk.</h1>
     <p class="lead">MultiDroid runs the official Android Emulator without its windows and lays your devices out on a single desk on your Mac: phones, a tablet, a foldable and a round watch, each with its own accounts.</p>
-    <p class="actions">
-      <a class="btn btn--blue" href="https://github.com/iramarfalcao/MultiDroid/releases/download/v0.2/MultiDroid-0.2.dmg">Download for Mac</a>
-      <a class="btn" href="https://github.com/iramarfalcao/MultiDroid">Source on GitHub</a>
-    </p>
-    <p class="note">Version 0.2, a 12 MB .dmg signed and notarized by Apple. Free and open source (GPL-3.0). macOS 26 or later on Apple Silicon. The interface is in Brazilian Portuguese for now.</p>
+    <ul class="downloads" aria-label="Downloads">
+      <li><a class="dl dl--ready" href="https://github.com/iramarfalcao/MultiDroid/releases/download/v0.2/MultiDroid-0.2.dmg"><b>Download for Mac</b><span>Version 0.2 · 12 MB .dmg · macOS 26, Apple Silicon</span></a></li>
+      <li><span class="dl dl--soon" aria-disabled="true"><b>Windows</b><span>In development</span></span></li>
+      <li><span class="dl dl--soon" aria-disabled="true"><b>Linux</b><span>In development</span></span></li>
+    </ul>
+    <p class="note">Free and open source (GPL-3.0), signed and notarized by Apple. The interface is in Brazilian Portuguese for now. <a href="https://github.com/iramarfalcao/MultiDroid">Source on GitHub</a> · <a href="mailto:dev@falcaosl.com?subject=MultiDroid%3A%20tell%20me%20when%20Windows%20or%20Linux%20is%20out">Tell me when Windows or Linux is out</a></p>
     <figure class="shot shot--hero">
       <img src="assets/desk-2.webp" width="1710" height="890" alt="MultiDroid on a Mac with three Android phones and a watch switched on at the same time, next to the panel with each device's memory and CPU">
       <figcaption>Three phones and a watch on at the same time, on a Mac with 24 GB.</figcaption>
     </figure>
+  </section>
+
+  <section class="sec" id="uses" aria-labelledby="uses-title">
+    <div class="wrap">
+      <h2 id="uses-title">What it is for.</h2>
+      <p class="body">MultiDroid is for anyone who needs more than one Android at a time and does not want a drawer full of phones or a pile of loose emulator windows.</p>
+      <ul class="cards cards--3">
+        <li class="card card--yellow"><h3>Several accounts of the same app</h3><p>Social media managers, creators and shops can keep each account on its own device, signed in and side by side, and switch with a glance instead of logging out and in.</p></li>
+        <li class="card card--pink"><h3>Testing an app on every format</h3><p>Developers can see the same app on a phone, a tablet, a foldable and a watch at once, and pause or duplicate a device in a second.</p></li>
+        <li class="card card--cyan"><h3>The real app on your Mac</h3><p>When a service only works properly in its Android app, with its notifications, you can keep it open on the Mac next to your work instead of reaching for the phone.</p></li>
+      </ul>
+    </div>
   </section>
 
   <section class="sec" id="panel" aria-labelledby="panel-title">
