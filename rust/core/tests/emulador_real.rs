@@ -13,7 +13,11 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 fn get(url: &str) -> String {
-    ureq::get(url).call().expect("sem rede").into_string().unwrap()
+    ureq::get(url)
+        .call()
+        .expect("sem rede")
+        .into_string()
+        .unwrap()
 }
 
 fn ensure(path: &str, list_url: &str, sdk: &Path, host: Host) {
@@ -98,10 +102,19 @@ async fn liga_pausa_e_desliga_um_aparelho() {
         "{running:?}"
     );
 
-    assert!(link.set_paused(true).await);
-    assert_eq!(link.paused().await, Some(true));
-    assert!(link.set_paused(false).await);
-    assert_eq!(link.paused().await, Some(false));
+    // A troca de estado da VM é assíncrona: espera chegar, com prazo.
+    for want in [true, false] {
+        assert!(link.set_paused(want).await);
+        let t0 = Instant::now();
+        while link.paused().await != Some(want) {
+            assert!(
+                t0.elapsed() < Duration::from_secs(15),
+                "não ficou paused={want}"
+            );
+            tokio::time::sleep(Duration::from_millis(200)).await;
+        }
+        eprintln!("paused={want} em {:?}", t0.elapsed());
+    }
     link.key("GoHome").await;
     let png = link.screenshot_png().await.expect("sem captura");
     assert_eq!(&png[1..4], b"PNG");

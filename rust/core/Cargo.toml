@@ -16,6 +16,7 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 prost = "0.13"
 tonic = "0.12"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "net"] }
+memmap2 = "0.9"
 sysinfo = { version = "0.33", default-features = false, features = ["system"] }
 
 [build-dependencies]

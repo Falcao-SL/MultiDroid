@@ -2977,6 +2977,7 @@ dependencies = [
 name = "multidroid-core"
 version = "0.3.0"
 dependencies = [
+ "memmap2",
  "prost",
  "protoc-bin-vendored",
  "roxmltree 0.20.0",

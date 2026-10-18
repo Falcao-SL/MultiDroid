@@ -8,5 +8,6 @@ pub mod emulator;
 pub mod ini;
 pub mod install;
 pub mod platform;
+pub mod screen;
 pub mod state;
 pub mod tokens;

@@ -32,6 +32,34 @@ pub fn data_dir() -> PathBuf {
     }
 }
 
+/// Memória física do computador, em GB.
+pub fn physical_gb() -> f64 {
+    let mut s = sysinfo::System::new();
+    s.refresh_memory();
+    s.total_memory() as f64 / 1e9
+}
+
+/// Memória em uso e swap, em GB.
+pub fn memory_use_gb() -> (f64, f64) {
+    let mut s = sysinfo::System::new();
+    s.refresh_memory();
+    (s.used_memory() as f64 / 1e9, s.used_swap() as f64 / 1e9)
+}
+
+/// Onde as capturas de tela vão: <Imagens>/MultiDroid.
+pub fn pictures_dir() -> PathBuf {
+    home().join("Pictures").join("MultiDroid")
+}
+
+/// Registro do emulador de cada aparelho.
+pub fn logs_dir() -> PathBuf {
+    if cfg!(target_os = "macos") {
+        home().join("Library/Logs/MultiDroid")
+    } else {
+        data_dir().join("logs")
+    }
+}
+
 /// Copia uma pasta inteira para `dst` (que não pode existir). No Mac usa o clone
 /// do APFS (`cp -c`), instantâneo e sem gastar disco até as cópias divergirem; no
 /// Linux, reflink quando o sistema de arquivos aceita (Btrfs, XFS). Se o comando
