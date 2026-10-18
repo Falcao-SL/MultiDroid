@@ -7,3 +7,12 @@ version = "0.3.0"
 edition = "2024"
 license = "GPL-3.0-only"
 repository = "https://github.com/iramarfalcao/MultiDroid"
+
+# Build de desenvolvimento enxuto: sem informação de depuração das dependências,
+# para a pasta target não passar de poucos GB (o Mac do dono tem pouco disco).
+[profile.dev]
+debug = "line-tables-only"
+incremental = false
+
+[profile.dev.package."*"]
+debug = false

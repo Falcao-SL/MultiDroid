@@ -1,6 +1,7 @@
-// MultiDroid em Slint (docs/spec/MULTIPLATAFORMA.md §2.2). As cores e a forma
-// chegam de docs/design/tokens.json pelo global Tema, preenchido em main.rs:
-// nenhum número de design é repetido aqui.
+// MultiDroid em Slint (docs/spec/MULTIPLATAFORMA.md §2.2), as mesmas telas do
+// Mac (MAC.md §2.6): painel à esquerda, mesa em grade de 24 colunas à direita.
+// As cores e a forma chegam de docs/design/tokens.json pelo global Tema,
+// preenchido em main.rs: nenhum número de design é repetido aqui.
 
 export global Tema {
     in property <color> fundo;
@@ -11,19 +12,46 @@ export global Tema {
     in property <color> tinta-sobre-acento;
     in property <color> azul;
     in property <color> verde;
+    in property <color> ciano;
+    in property <color> amarelo;
+    in property <color> vermelho;
+    in property <color> rosa;
+    in property <color> roxo;
     in property <length> largura-borda;
     in property <length> raio;
     in property <length> sombra-x;
     in property <length> sombra-y;
 }
 
+// Estados de um aparelho, como na 0.2.
+export enum Estado { desligado, ligando, ligado, pausado, desligando, externo, hibernado }
+
+export struct Aparelho {
+    nome: string,
+    tipo: string,
+    android: string,
+    estado: Estado,
+    mensagem: string,
+    metricas: string,
+    grupo: string,
+    // lugar na grade livre, em células
+    x: int, y: int, w: int, h: int,
+    // proporção da tela (largura / altura), já girada
+    proporcao: float,
+    tela: image,
+    tem-tela: bool,
+    relogio: bool,
+}
+
 // Bloco neo-brutalista: borda grossa e sombra dura, sem desfoque.
 component Bloco inherits Rectangle {
     in property <color> cor: Tema.superficie;
+    in property <bool> sombra: true;
     Rectangle {
         x: Tema.sombra-x; y: Tema.sombra-y;
         width: parent.width; height: parent.height;
-        background: Tema.sombra; border-radius: Tema.raio;
+        background: sombra ? Tema.sombra : transparent;
+        border-radius: Tema.raio;
     }
     Rectangle {
         background: cor; border-radius: Tema.raio;
@@ -32,44 +60,282 @@ component Bloco inherits Rectangle {
     }
 }
 
-export component AppWindow inherits Window {
-    title: "MultiDroid";
-    preferred-width: 1100px;
-    preferred-height: 700px;
-    background: Tema.fundo;
-    in property <string> versao;
-    in property <string> pasta;
+// Botão com a sombra que some ao apertar (a pressão de 70 ms dos tokens).
+component BotaoBase inherits Rectangle {
+    in property <string> texto;
+    in property <color> cor: Tema.superficie;
+    in property <length> tamanho-fonte: 14px;
+    in property <bool> ativo: true;
+    in property <string> dica;
+    callback clicou();
+    out property <length> largura-texto: t.preferred-width;
+    opacity: ativo ? 1 : 0.4;
+    accessible-role: button;
+    accessible-label: dica != "" ? dica : texto;
+    accessible-action-default => { clicou(); }
+    Rectangle {
+        x: area.pressed ? 0 : Tema.sombra-x * 0.75; y: area.pressed ? 0 : Tema.sombra-y * 0.75;
+        width: parent.width; height: parent.height;
+        background: Tema.sombra; border-radius: Tema.raio * 0.8;
+        animate x, y { duration: 70ms; }
+    }
+    Rectangle {
+        x: area.pressed ? Tema.sombra-x * 0.75 : 0; y: area.pressed ? Tema.sombra-y * 0.75 : 0;
+        animate x, y { duration: 70ms; }
+        background: cor; border-radius: Tema.raio * 0.8;
+        border-width: Tema.largura-borda; border-color: Tema.borda;
+        t := Text {
+            text: texto; font-size: tamanho-fonte; font-weight: 800;
+            color: cor == Tema.superficie ? Tema.tinta : Tema.tinta-sobre-acento;
+            horizontal-alignment: center; vertical-alignment: center;
+        }
+    }
+    area := TouchArea {
+        enabled: ativo;
+        mouse-cursor: pointer;
+        clicked => { clicou(); }
+    }
+}
 
+component Botao inherits BotaoBase {
+    min-width: self.largura-texto + 24px;
+    min-height: 36px;
+}
+
+// Botão quadrado de ícone (glifo), para a coluna do quadro e as linhas do painel.
+component Icone inherits BotaoBase {
+    in property <string> glifo;
+    texto: glifo;
+    width: 30px; height: 30px;
+    tamanho-fonte: 13px;
+}
+
+component Ponto inherits Rectangle {
+    in property <Estado> estado;
+    width: 10px; height: 10px; border-radius: 5px;
+    border-width: 1.5px; border-color: Tema.borda;
+    background: estado == Estado.ligado ? Tema.verde
+        : estado == Estado.pausado ? Tema.azul
+        : estado == Estado.hibernado ? Tema.ciano
+        : estado == Estado.ligando || estado == Estado.desligando ? Tema.amarelo
+        : estado == Estado.externo ? Tema.roxo
+        : transparent;
+}
+
+export global Rotulo {
+    pure public function de(e: Estado) -> string {
+        if e == Estado.ligado { return "ligado"; }
+        if e == Estado.pausado { return "pausado"; }
+        if e == Estado.hibernado { return "hibernado"; }
+        if e == Estado.ligando { return "ligando…"; }
+        if e == Estado.desligando { return "desligando…"; }
+        if e == Estado.externo { return "aberto fora do MultiDroid"; }
+        return "desligado";
+    }
+}
+
+component LinhaAparelho inherits Bloco {
+    in property <Aparelho> a;
+    callback acao(string);
+    height: 74px;
     HorizontalLayout {
-        padding: 20px;
-        spacing: 20px;
+        padding: 10px; spacing: 10px;
+        Bloco {
+            sombra: false;
+            width: 34px; height: 46px;
+            cor: a.relogio ? Tema.roxo : Tema.azul;
+        }
         VerticalLayout {
-            width: 340px;
-            spacing: 16px;
-            alignment: start;
+            spacing: 2px; alignment: center;
+            Text { text: a.nome; font-size: 15px; font-weight: 900; color: Tema.tinta; overflow: elide; }
             HorizontalLayout {
-                spacing: 12px;
-                Text { text: "MultiDroid"; font-size: 28px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; }
-                Bloco {
-                    cor: Tema.azul; width: 150px; height: 44px;
-                    Text { text: "+ Novo aparelho"; font-size: 15px; font-weight: 800; color: Tema.tinta-sobre-acento; }
-                }
+                spacing: 6px; alignment: start;
+                Ponto { estado: a.estado; y: (parent.height - self.height) / 2; }
+                Text { text: a.mensagem != "" ? a.mensagem : Rotulo.de(a.estado); font-size: 12px; font-weight: 700; color: Tema.tinta; overflow: elide; }
             }
-            Bloco {
-                height: 120px;
-                VerticalLayout {
-                    padding: 16px;
-                    spacing: 8px;
-                    Text { text: "Versão Rust \{versao} (etapa R-0)"; font-size: 15px; font-weight: 800; color: Tema.tinta; }
-                    Text { text: "Dados em:"; font-size: 12px; color: Tema.tinta; opacity: 0.6; }
-                    Text { text: pasta; font-size: 12px; color: Tema.tinta; wrap: word-wrap; }
+            Text {
+                text: a.metricas != "" ? a.metricas : a.tipo + " · " + a.android;
+                font-size: 11px; color: Tema.tinta; opacity: 0.6; overflow: elide;
+            }
+        }
+        HorizontalLayout {
+            spacing: 6px; alignment: end;
+            VerticalLayout { alignment: center;
+                HorizontalLayout { spacing: 6px;
+                    if a.estado == Estado.desligado || a.estado == Estado.hibernado: Icone { glifo: "▶"; cor: Tema.verde; dica: "Ligar"; clicou => { acao("ligar"); } }
+                    if a.estado == Estado.ligado: Icone { glifo: "❚❚"; cor: Tema.azul; dica: "Pausar"; clicou => { acao("pausar"); } }
+                    if a.estado == Estado.pausado: Icone { glifo: "▶"; cor: Tema.verde; dica: "Retomar"; clicou => { acao("retomar"); } }
+                    if a.estado == Estado.ligado || a.estado == Estado.pausado: Icone { glifo: "☾"; cor: Tema.ciano; dica: "Hibernar"; clicou => { acao("hibernar"); } }
+                    if a.estado != Estado.desligado && a.estado != Estado.desligando: Icone { glifo: "■"; cor: Tema.vermelho; dica: "Desligar"; clicou => { acao("desligar"); } }
                 }
             }
         }
-        Bloco {
-            Text {
-                text: "A mesa chega na etapa R-4.";
-                font-size: 16px; font-weight: 700; color: Tema.tinta; opacity: 0.6;
+    }
+}
+
+// Um quadro da mesa: cabeçalho, a tela do Android e a coluna de botões.
+component Quadro inherits Bloco {
+    in property <Aparelho> a;
+    callback acao(string);
+    callback toque(float, float, string);
+    callback tecla(string);
+    property <bool> vivo: a.estado == Estado.ligado;
+    property <bool> com-botoes: a.estado == Estado.ligado || a.estado == Estado.pausado;
+
+    VerticalLayout {
+        padding: 8px; spacing: 6px;
+        HorizontalLayout {
+            height: 22px; spacing: 6px;
+            Ponto { estado: a.estado; y: (parent.height - self.height) / 2; }
+            Text { text: a.nome; font-size: 13px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; overflow: elide; }
+            Text { text: a.mensagem; font-size: 11px; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; horizontal-alignment: right; overflow: elide; }
+        }
+        HorizontalLayout {
+            spacing: 6px;
+            area := Rectangle {
+                // A tela ocupa o maior retângulo com a proporção do aparelho.
+                property <length> lw: min(self.width, self.height * a.proporcao);
+                property <length> lh: lw / a.proporcao;
+                tela := Rectangle {
+                    x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                    width: lw; height: lh;
+                    background: #000;
+                    border-radius: a.relogio ? lw / 2 : 6px;
+                    clip: true;
+                    if a.tem-tela: Image {
+                        width: parent.width; height: parent.height;
+                        source: a.tela; image-fit: fill;
+                        opacity: a.estado == Estado.ligado ? 1 : 0.45;
+                    }
+                    teclado := FocusScope {
+                        enabled: vivo;
+                        key-pressed(e) => {
+                            if e.modifiers.control || e.modifiers.meta { return reject; }
+                            tecla(e.text);
+                            accept
+                        }
+                        TouchArea {
+                            enabled: vivo;
+                            pointer-event(e) => {
+                                if e.button == PointerEventButton.left && e.kind == PointerEventKind.down {
+                                    teclado.focus();
+                                    toque(self.mouse-x / self.width, self.mouse-y / self.height, "down");
+                                }
+                                if e.button == PointerEventButton.left && e.kind == PointerEventKind.up {
+                                    toque(self.mouse-x / self.width, self.mouse-y / self.height, "up");
+                                }
+                            }
+                            moved => {
+                                if self.pressed { toque(self.mouse-x / self.width, self.mouse-y / self.height, "move"); }
+                            }
+                        }
+                    }
+                }
+                if a.estado == Estado.desligado || a.estado == Estado.hibernado: VerticalLayout {
+                    alignment: center;
+                    HorizontalLayout { alignment: center;
+                        Botao {
+                            texto: a.estado == Estado.hibernado ? "Acordar" : "Ligar";
+                            cor: a.estado == Estado.hibernado ? Tema.ciano : Tema.verde;
+                            clicou => { acao("ligar"); }
+                        }
+                    }
+                }
+                if a.estado == Estado.pausado: VerticalLayout {
+                    alignment: center;
+                    HorizontalLayout { alignment: center;
+                        Botao { texto: "Retomar"; cor: Tema.verde; clicou => { acao("retomar"); } }
+                    }
+                }
+            }
+            if com-botoes: VerticalLayout {
+                width: 30px; spacing: 5px; alignment: start;
+                Icone { glifo: "◀"; dica: "Voltar"; ativo: vivo; clicou => { acao("voltar"); } }
+                Icone { glifo: "●"; dica: "Início"; ativo: vivo; clicou => { acao("inicio"); } }
+                Icone { glifo: "▢"; dica: "Recentes"; ativo: vivo; clicou => { acao("recentes"); } }
+                Icone { glifo: "+"; dica: "Volume +"; ativo: vivo; clicou => { acao("volume+"); } }
+                Icone { glifo: "−"; dica: "Volume −"; ativo: vivo; clicou => { acao("volume-"); } }
+                if !a.relogio: Icone { glifo: "↻"; dica: "Girar"; ativo: vivo; clicou => { acao("girar"); } }
+                Icone { glifo: "⌗"; dica: "Captura de tela"; ativo: vivo; clicou => { acao("captura"); } }
+                Rectangle { height: 4px; }
+                if a.estado == Estado.ligado: Icone { glifo: "❚❚"; cor: Tema.azul; dica: "Pausar"; clicou => { acao("pausar"); } }
+                if a.estado == Estado.pausado: Icone { glifo: "▶"; cor: Tema.verde; dica: "Retomar"; clicou => { acao("retomar"); } }
+                Icone { glifo: "☾"; cor: Tema.ciano; dica: "Hibernar: libera a memória e guarda o estado"; clicou => { acao("hibernar"); } }
+                Icone { glifo: "■"; cor: Tema.vermelho; dica: "Desligar"; clicou => { acao("desligar"); } }
+            }
+        }
+    }
+}
+
+export component AppWindow inherits Window {
+    title: "MultiDroid Preview";
+    preferred-width: 1400px;
+    preferred-height: 860px;
+    min-width: 900px;
+    min-height: 560px;
+    background: Tema.fundo;
+    in property <string> versao;
+    in property <[Aparelho]> aparelhos;
+    in property <string> memoria;
+    in property <string> aviso;
+    in property <bool> sem-emulador;
+    callback acao(string, string);
+    callback toque(string, float, float, string);
+    callback tecla(string, string);
+
+    HorizontalLayout {
+        padding: 16px; spacing: 16px;
+        VerticalLayout {
+            width: 330px; spacing: 12px; alignment: start;
+            HorizontalLayout {
+                spacing: 10px;
+                Text { text: "MultiDroid"; font-size: 26px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; }
+                Text { text: "Preview " + versao; font-size: 12px; font-weight: 700; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; }
+            }
+            if memoria != "": Bloco {
+                height: 56px;
+                Text {
+                    x: 12px; width: parent.width - 24px; height: parent.height;
+                    text: memoria; font-size: 12px; font-weight: 700; color: Tema.tinta;
+                    vertical-alignment: center; wrap: word-wrap;
+                }
+            }
+            if sem-emulador: Bloco {
+                cor: Tema.amarelo; height: 64px;
+                Text {
+                    x: 12px; width: parent.width - 24px; height: parent.height;
+                    text: "Falta o emulador. Por enquanto, instale pela versão 0.2 do Mac; o instalador entra na etapa R-5.";
+                    font-size: 12px; font-weight: 700; color: Tema.tinta-sobre-acento; wrap: word-wrap; vertical-alignment: center;
+                }
+            }
+            for a in aparelhos: LinhaAparelho {
+                a: a;
+                acao(o) => { root.acao(a.nome, o); }
+            }
+            if aparelhos.length == 0: Text {
+                text: "Nenhum aparelho ainda. Crie um pela versão 0.2 do Mac; criar por aqui entra na etapa R-5.";
+                font-size: 13px; color: Tema.tinta; opacity: 0.6; wrap: word-wrap;
+            }
+            if aviso != "": Bloco {
+                cor: Tema.amarelo; height: 56px;
+                Text {
+                    x: 12px; width: parent.width - 24px; height: parent.height;
+                    text: aviso; font-size: 12px; font-weight: 700; color: Tema.tinta-sobre-acento; wrap: word-wrap; vertical-alignment: center;
+                }
+            }
+        }
+        mesa := Rectangle {
+            // Grade livre: 24 colunas de células quadradas que acompanham a janela.
+            property <length> celula: self.width / 24;
+            for a in aparelhos: Quadro {
+                x: a.x * mesa.celula;
+                y: a.y * mesa.celula;
+                width: a.w * mesa.celula - 10px;
+                height: a.h * mesa.celula - 10px;
+                a: a;
+                acao(o) => { root.acao(a.nome, o); }
+                toque(fx, fy, k) => { root.toque(a.nome, fx, fy, k); }
+                tecla(t) => { root.tecla(a.nome, t); }
             }
         }
     }

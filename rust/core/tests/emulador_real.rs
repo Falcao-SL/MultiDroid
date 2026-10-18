@@ -116,6 +116,28 @@ async fn liga_pausa_e_desliga_um_aparelho() {
         eprintln!("paused={want} em {:?}", t0.elapsed());
     }
     link.key("GoHome").await;
+    // Etapa R-4: quadros escalados chegando pelo transporte do sistema (MMAP no Linux).
+    let transporte = multidroid_core::screen::Transport::for_device("R3Teste");
+    let (fw, fh) = multidroid_core::screen::frame_size(Kind::Celular, "1080×2424");
+    let mut quadros = 0;
+    let mut tamanho = (0, 0);
+    let fluxo = multidroid_core::screen::stream(&link, fw, fh, &transporte, |f| {
+        tamanho = (f.width, f.height);
+        assert_eq!(f.rgba.len(), (f.width * f.height * 4) as usize);
+        assert!(f.rgba.chunks(4).all(|p| p[3] == 255));
+        quadros += 1;
+        quadros < 3
+    });
+    tokio::time::timeout(Duration::from_secs(60), fluxo)
+        .await
+        .expect("nenhum quadro em 60 s")
+        .unwrap();
+    eprintln!("{quadros} quadros de {tamanho:?} por {transporte:?}");
+    assert_eq!(tamanho, (fw, fh));
+    link.touch(540, 1200, true).await;
+    link.touch(540, 1200, false).await;
+    link.type_text("ok").await;
+
     let png = link.screenshot_png().await.expect("sem captura");
     assert_eq!(&png[1..4], b"PNG");
 

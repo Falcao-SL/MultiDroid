@@ -32,18 +32,20 @@ pub fn data_dir() -> PathBuf {
     }
 }
 
-/// Memória física do computador, em GB.
+const GIB: f64 = (1u64 << 30) as f64;
+
+/// Memória física do computador, em GB binários (24 num Mac de 24 GB, como a 0.2).
 pub fn physical_gb() -> f64 {
     let mut s = sysinfo::System::new();
     s.refresh_memory();
-    s.total_memory() as f64 / 1e9
+    s.total_memory() as f64 / GIB
 }
 
-/// Memória em uso e swap, em GB.
+/// Memória em uso e swap, em GB binários.
 pub fn memory_use_gb() -> (f64, f64) {
     let mut s = sysinfo::System::new();
     s.refresh_memory();
-    (s.used_memory() as f64 / 1e9, s.used_swap() as f64 / 1e9)
+    (s.used_memory() as f64 / GIB, s.used_swap() as f64 / GIB)
 }
 
 /// Onde as capturas de tela vão: <Imagens>/MultiDroid.
