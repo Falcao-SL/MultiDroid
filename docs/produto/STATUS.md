@@ -46,7 +46,7 @@ celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 
 ## Mac, Windows e Linux (2026-10-18)
 
-Decidido: um código em Rust com interface Slint nos três sistemas ([`spec/MULTIPLATAFORMA.md`](../spec/MULTIPLATAFORMA.md)), em `rust/`. A 0.2 SwiftUI continua sendo a versão publicada no Mac até a Rust alcançá-la. Etapa R-0 feita: workspace, núcleo lendo os tokens de design, janela Slint e CI nos três sistemas.
+Decidido: um código em Rust com interface Slint nos três sistemas ([`spec/MULTIPLATAFORMA.md`](../spec/MULTIPLATAFORMA.md)), em `rust/`. A 0.2 SwiftUI continua sendo a versão publicada no Mac até a Rust alcançá-la. Etapas R-0 e R-1 feitas: workspace, tokens, janela Slint, CI nos três sistemas, e o catálogo e o instalador de imagens em Rust (lê o que a 0.2 instalou, na mesma pasta).
 
 ## O que falta
 

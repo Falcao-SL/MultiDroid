@@ -76,6 +76,13 @@ core não sabe em que sistema está.
 | **R-7** | Windows: motor completo, pacote | VM Windows 11 ARM no Mac (tela); VM x86_64 alugada na nuvem (Androids) | instala, liga 2 celulares e mostra na mesa |
 | **R-8** | Release dos três pelo GitHub Actions | GitHub | uma tag gera `.dmg`, instalador do Windows e pacotes do Linux na mesma release |
 
+### Andamento
+
+| Etapa | Situação |
+|---|---|
+| R-0 | **Feita** (2026-10-18): workspace, tokens, janela Slint; CI verde no macOS, no Windows e no Linux |
+| R-1 | **Feita** (2026-10-18): `catalog`, `install` e `ini`. 12 testes com listas de exemplo (os XML do repositório oficial não entram no repositório do MultiDroid) e 2 testes contra o repositório real (`cargo test -- --ignored`): leem o emulador para os três hosts e instalam a imagem AOSP 33. A extração é feita pela biblioteca de zip, sem `ditto`. `cargo run -p multidroid-core --example instaladas` lista no Mac o que a 0.2 instalou |
+
 ## 4. Como testar cada sistema a partir do Mac
 
 O Mac do dono é um M4 com macOS 27, com virtualização aninhada.
