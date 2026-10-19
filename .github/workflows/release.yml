@@ -113,4 +113,4 @@ jobs:
           [ "${{ needs.versao.outputs.pre }}" = true ] && PRE="--prerelease"
           gh release create "$GITHUB_REF_NAME" out/* $PRE -R "$GITHUB_REPOSITORY" \
             --title "MultiDroid Preview ${{ needs.versao.outputs.nome }} (Mac, Windows e Linux)" \
-            --notes "Versão Rust em construção, para testar a instalação nos três sistemas. Ainda não liga aparelhos: a versão para usar é a 0.2 do Mac. Andamento em docs/spec/MULTIPLATAFORMA.md."
+            --notes "Pré-release da versão Rust, para testar. No Mac e no Linux liga aparelhos do emulador oficial e mostra a tela na mesa; no Windows instala e abre, mas ainda não liga aparelhos (etapa R-7). Para o uso do dia a dia no Mac, a versão é a 0.2. Andamento em docs/spec/MULTIPLATAFORMA.md."
