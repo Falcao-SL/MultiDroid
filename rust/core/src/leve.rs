@@ -66,9 +66,11 @@ pub fn screen(kind: Kind) -> (u32, u32, u32) {
     }
 }
 
-/// Podman se houver, senão Docker.
+/// Docker se houver, senão Podman. O Redroid precisa de contêiner privilegiado: o
+/// Podman sem root sai na hora (código 129, medido no CI), então ele só vale
+/// quando é o único e roda como root.
 pub fn runtime() -> Option<&'static str> {
-    ["podman", "docker"].into_iter().find(|r| {
+    ["docker", "podman"].into_iter().find(|r| {
         Command::new(r)
             .arg("--version")
             .output()
