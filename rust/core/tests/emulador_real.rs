@@ -151,7 +151,15 @@ async fn liga_pausa_e_desliga_um_aparelho() {
         .await
         .unwrap();
     assert!(saved, "o console não aceitou o kill");
-    assert!(!em.alive());
+    // O processo some da lista um instante antes de o sistema terminar de encerrá-lo.
+    let t2 = Instant::now();
+    while em.alive() {
+        assert!(
+            t2.elapsed() < Duration::from_secs(10),
+            "o emulador não saiu"
+        );
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
     assert!(!emulator::alive(pid));
     eprintln!("desligou salvando, total {:?}", start.elapsed());
 }
