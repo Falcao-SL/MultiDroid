@@ -106,7 +106,7 @@ fn liga_mostra_a_tela_e_guarda_os_dados() {
     assert_eq!(tamanho, (s.width, s.height));
     drop(s);
 
-    // O /data fica na pasta do aparelho: sobrevive a desligar e ligar.
+    // O /data fica no volume do aparelho: sobrevive a desligar e ligar.
     adb.shell(
         &l.serial(),
         "echo guardado > /data/local/tmp/multidroid-teste",
@@ -131,4 +131,9 @@ fn liga_mostra_a_tela_e_guarda_os_dados() {
     adb.disconnect(&l.serial());
     leve::delete(Some(rt), data, &l.name).unwrap();
     assert!(leve::load(data).is_empty());
+    let vols = std::process::Command::new(rt)
+        .args(["volume", "ls", "-q"])
+        .output()
+        .unwrap();
+    assert!(!String::from_utf8_lossy(&vols.stdout).contains(&leve::volume(&l.name)));
 }

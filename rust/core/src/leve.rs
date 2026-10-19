@@ -1,6 +1,9 @@
 //! Motor leve do Linux (LINUX.md): Android em contêiner Redroid, direto no kernel
-//! do PC, sem VM. Cada aparelho é um contêiner `multidroid-<nome>` com o /data numa
-//! pasta do MultiDroid, para os apps e as contas sobreviverem a desligar. A tela e o
+//! do PC, sem VM. Cada aparelho é um contêiner `multidroid-<nome>` com o /data num
+//! volume do Docker (`multidroid-<nome>-data`), para os apps e as contas
+//! sobreviverem a desligar. Volume, e não pasta: os arquivos do /data são do root
+//! do contêiner e o usuário não conseguiria apagá-los. A pasta do MultiDroid guarda
+//! só o leve.json. A tela e o
 //! toque passam pelo adb e pelo protocolo do scrcpy (`scrcpy.rs`).
 //!
 //! Na fase 0 (CI, Linux x86_64) 8 Androids 13 ligaram juntos com ~1,2 GB cada.
@@ -49,6 +52,10 @@ impl Leve {
 
 pub fn container(name: &str) -> String {
     format!("multidroid-{name}")
+}
+
+pub fn volume(name: &str) -> String {
+    format!("multidroid-{name}-data")
 }
 
 pub fn home(data: &Path) -> PathBuf {
@@ -126,7 +133,7 @@ pub fn create(data: &Path, name: &str, kind: Kind) -> Result<Leve, String> {
         dpi,
         port,
     };
-    std::fs::create_dir_all(dir.join("data")).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     std::fs::write(
         dir.join("leve.json"),
         serde_json::to_string_pretty(&l).map_err(|e| e.to_string())?,
@@ -166,7 +173,8 @@ pub fn start(rt: &str, data: &Path, l: &Leve) -> Result<(), String> {
     if run(rt, &["container", "inspect", &c]).is_ok() {
         return run(rt, &["start", &c]).map(|_| ());
     }
-    let vol = format!("{}:/data", home(data).join(&l.name).join("data").display());
+    let _ = data;
+    let vol = format!("{}:/data", volume(&l.name));
     let porta = format!("127.0.0.1:{}:5555", l.port);
     let mut args: Vec<String> = [
         "run",
@@ -202,35 +210,17 @@ pub fn pause(rt: &str, name: &str, pausar: bool) -> Result<(), String> {
     .map(|_| ())
 }
 
-/// Apaga o contêiner e a pasta do aparelho.
+/// Apaga o contêiner, o volume do /data e a pasta do aparelho.
 pub fn delete(rt: Option<&str>, data: &Path, name: &str) -> Result<(), String> {
     if let Some(rt) = rt {
         let _ = run(rt, &["rm", "-f", &container(name)]);
+        if run(rt, &["volume", "inspect", &volume(name)]).is_ok() {
+            run(rt, &["volume", "rm", &volume(name)])
+                .map_err(|e| format!("não apagou o volume: {e}"))?;
+        }
     }
     let dir = home(data).join(name);
-    // O /data do Android é do root do contêiner: o usuário não apaga. Apaga por
-    // dentro de um contêiner da própria imagem (já baixada), com o shell do Android.
-    if std::fs::remove_dir_all(&dir).is_err() {
-        let Some(rt) = rt else {
-            return Err("o /data do aparelho é do root; instale o Docker para apagar".into());
-        };
-        let d = format!("{}:/x", dir.display());
-        run(
-            rt,
-            &[
-                "run",
-                "--rm",
-                "--privileged",
-                "-v",
-                &d,
-                "--entrypoint",
-                "/system/bin/sh",
-                IMAGE,
-                "-c",
-                "rm -rf /x/data",
-            ],
-        )
-        .map_err(|e| format!("não apagou o /data: {e}"))?;
+    if dir.exists() {
         std::fs::remove_dir_all(&dir).map_err(|e| e.to_string())?;
     }
     Ok(())
