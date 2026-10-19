@@ -17,6 +17,8 @@ prost = "0.13"
 tonic = "0.12"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "net"] }
 memmap2 = "0.9"
+sha2 = "0.10"
+openh264 = "0.6"
 sysinfo = { version = "0.33", default-features = false, features = ["system", "disk"] }
 
 [build-dependencies]

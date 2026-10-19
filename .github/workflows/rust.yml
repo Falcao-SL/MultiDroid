@@ -75,3 +75,29 @@ jobs:
           path: sdk
           key: sdk-linux-emulador-aosp33-v1
       - run: cargo test -p multidroid-core --test emulador_real -- --ignored --nocapture
+
+  # Etapa R-6: motor leve no Linux x86_64. Liga um Android em Redroid (Docker,
+  # binder do kernel), mostra a tela pelo scrcpy e guarda os dados
+  # (core/tests/leve_real.rs).
+  leve-linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: rust
+    env:
+      MULTIDROID_SDK: ${{ github.workspace }}/sdk-leve
+    steps:
+      - uses: actions/checkout@v4
+      - name: binder no kernel
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "linux-modules-extra-$(uname -r)" || true
+          sudo modprobe binder_linux devices=binder,hwbinder,vndbinder
+          lsmod | grep binder
+      - run: docker pull -q redroid/redroid:13.0.0_64only-latest
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - run: cargo test -p multidroid-core --test leve_real -- --ignored --nocapture
