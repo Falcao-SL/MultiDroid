@@ -1,0 +1,76 @@
+# Etapa R-6, fase 0 do motor leve no Linux x86_64 (LINUX.md §5): Redroid em
+# contêiner, direto no kernel do PC, sem VM. Mede se o binder carrega no kernel
+# genérico, quanto tempo cada Android leva para ligar e quanta memória cada um
+# usa com 1, 4 e 8 ligados. Roda à mão ("Run workflow"); o resultado sai no resumo.
+name: leve-linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      imagem:
+        description: imagem do Redroid
+        default: redroid/redroid:13.0.0_64only-latest
+
+permissions:
+  contents: read
+
+jobs:
+  fase0:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      IMG: ${{ inputs.imagem }}
+    steps:
+      - name: binder no kernel
+        run: |
+          uname -r
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "linux-modules-extra-$(uname -r)" adb || sudo apt-get install -y -qq adb
+          sudo modprobe binder_linux devices=binder,hwbinder,vndbinder
+          lsmod | grep binder
+          echo "kernel $(uname -r): binder carregado" >> "$GITHUB_STEP_SUMMARY"
+      - name: imagem
+        run: docker pull -q "$IMG"
+      - name: ligar 1, 4 e 8 e medir
+        run: |
+          set -u
+          ligar() { # ligar <i>
+            docker run -d --privileged --name leve-$1 -p 127.0.0.1:$((5560+$1)):5555 "$IMG" \
+              androidboot.redroid_width=720 androidboot.redroid_height=1600 androidboot.redroid_dpi=320 \
+              androidboot.redroid_fps=30 androidboot.redroid_gpu_mode=guest androidboot.use_memfd=true >/dev/null
+          }
+          esperar() { # esperar <i>: segundos até sys.boot_completed=1
+            t0=$(date +%s)
+            for _ in $(seq 1 300); do
+              adb connect 127.0.0.1:$((5560+$1)) >/dev/null 2>&1
+              [ "$(adb -s 127.0.0.1:$((5560+$1)) shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && { echo $(( $(date +%s) - t0 )); return; }
+              sleep 2
+            done
+            echo falhou
+          }
+          medir() { # medir <n>: memória usada do sistema e de cada contêiner, em MB
+            sleep 30   # deixa o Android assentar depois do boot
+            usado=$(free -m | awk '/Mem:/ {print $3}')
+            cont=$(docker stats --no-stream --format '{{.MemUsage}}' | awk '{print $1}' | tr '\n' ' ')
+            echo "| $1 | $usado | $cont |" >> "$GITHUB_STEP_SUMMARY"
+          }
+          base=$(free -m | awk '/Mem:/ {print $3}')
+          echo "| Ligados | Memória usada do sistema (MB, base $base) | Cada contêiner |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          ligar 1; echo "boot do 1º: $(esperar 1) s"; medir 1
+          for i in 2 3 4; do ligar $i; done
+          for i in 2 3 4; do echo "boot do $iº: $(esperar $i) s"; done; medir 4
+          for i in 5 6 7 8; do ligar $i; done
+          for i in 5 6 7 8; do echo "boot do $iº: $(esperar $i) s"; done; medir 8
+          adb devices
+          for i in $(seq 1 8); do
+            echo "Android $i: $(adb -s 127.0.0.1:$((5560+i)) shell getprop ro.build.version.release 2>/dev/null | tr -d '\r') · boot=$(adb -s 127.0.0.1:$((5560+i)) shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')"
+          done | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: captura de uma tela pelo adb
+        run: |
+          adb -s 127.0.0.1:5561 exec-out screencap -p > tela-1.png
+          file tela-1.png | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: leve-tela
+          path: tela-1.png
