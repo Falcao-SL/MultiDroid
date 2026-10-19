@@ -95,6 +95,11 @@ pub fn msg_touch(action: u8, x: u32, y: u32, w: u16, h: u16) -> Vec<u8> {
     m
 }
 
+/// Gira o aparelho 90° (SC_CONTROL_MSG_TYPE_ROTATE_DEVICE).
+pub fn msg_rotate() -> Vec<u8> {
+    vec![11u8]
+}
+
 /// Voltar (ou ligar a tela, se estiver apagada).
 pub fn msg_back() -> Vec<u8> {
     vec![4u8, 0]

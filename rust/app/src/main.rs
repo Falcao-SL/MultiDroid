@@ -5,14 +5,18 @@
 
 slint::include_modules!();
 
+use multidroid_core::adb::Adb;
 use multidroid_core::catalog::{Host, RemotePackage};
 use multidroid_core::devices::{self, Device, Kind};
 use multidroid_core::emulator::{self, LaunchOptions, Launched, Link, Processes};
 use multidroid_core::install;
 use multidroid_core::state::{MAIN_DESK, State, grid};
 use multidroid_core::{catalog, platform, screen, tokens};
+use multidroid_core::{leve, scrcpy};
 use slint::{Model, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, VecModel};
 use std::collections::{BTreeMap, HashMap};
+use std::io::Write as _;
+use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -20,6 +24,93 @@ use std::time::{Duration, Instant};
 fn cor(hex: &str) -> slint::Color {
     let (r, g, b) = tokens::rgb(hex);
     slint::Color::from_rgb_u8(r, g, b)
+}
+
+/// Toque, texto e teclas de um aparelho leve: o socket de controle do scrcpy.
+#[derive(Clone)]
+struct CanalLeve {
+    ctl: Arc<Mutex<TcpStream>>,
+    w: u16,
+    h: u16,
+    adb: Adb,
+    serial: String,
+}
+
+impl CanalLeve {
+    fn enviar(&self, msg: &[u8]) {
+        if let Ok(mut s) = self.ctl.lock() {
+            let _ = s.write_all(msg);
+        }
+    }
+
+    fn tecla(&self, w3c: &str) {
+        if let Some(k) = scrcpy::keycode(w3c) {
+            self.enviar(&scrcpy::msg_keycode(false, k));
+            self.enviar(&scrcpy::msg_keycode(true, k));
+        }
+    }
+}
+
+/// Por onde falar com um aparelho ligado: gRPC no emulador, scrcpy no leve.
+#[derive(Clone)]
+enum Canal {
+    Emu(Link),
+    Leve(CanalLeve),
+}
+
+impl Canal {
+    async fn tecla(&self, w3c: &str) {
+        match self {
+            Canal::Emu(l) => l.key(w3c).await,
+            Canal::Leve(l) => l.tecla(w3c),
+        }
+    }
+
+    async fn texto(&self, t: &str) {
+        match self {
+            Canal::Emu(l) => l.type_text(t).await,
+            Canal::Leve(l) => l.enviar(&scrcpy::msg_text(t)),
+        }
+    }
+
+    /// Toque em frações da tela (0 a 1); `tipo` é down, move ou up.
+    async fn toque(&self, fx: f32, fy: f32, tipo: &str, tela: &str) {
+        let (fx, fy) = (fx.clamp(0.0, 1.0), fy.clamp(0.0, 1.0));
+        match self {
+            Canal::Emu(l) => {
+                let Some((w, h)) = tela
+                    .split_once('×')
+                    .and_then(|(a, b)| Some((a.parse::<f32>().ok()?, b.parse::<f32>().ok()?)))
+                else {
+                    return;
+                };
+                l.touch((fx * w) as i32, (fy * h) as i32, tipo != "up")
+                    .await
+            }
+            Canal::Leve(l) => {
+                let acao = match tipo {
+                    "down" => scrcpy::TOUCH_DOWN,
+                    "up" => scrcpy::TOUCH_UP,
+                    _ => scrcpy::TOUCH_MOVE,
+                };
+                let (x, y) = (fx * l.w as f32, fy * l.h as f32);
+                l.enviar(&scrcpy::msg_touch(acao, x as u32, y as u32, l.w, l.h));
+            }
+        }
+    }
+
+    async fn captura(&self) -> Option<Vec<u8>> {
+        match self {
+            Canal::Emu(l) => l.screenshot_png().await,
+            Canal::Leve(l) => {
+                let (a, s) = (l.adb.clone(), l.serial.clone());
+                tokio::task::spawn_blocking(move || a.screencap(&s).ok())
+                    .await
+                    .ok()
+                    .flatten()
+            }
+        }
+    }
 }
 
 /// O que está rodando de um aparelho agora.
@@ -42,6 +133,9 @@ struct Dev {
     cpu: f32,
     ultimo_uso: Instant,
     selecionado: bool,
+    /// Aparelho do motor leve (Redroid), só no Linux.
+    leve: Option<leve::Leve>,
+    canal_leve: Option<CanalLeve>,
 }
 
 impl Dev {
@@ -62,7 +156,23 @@ impl Dev {
             cpu: 0.0,
             ultimo_uso: Instant::now() - Duration::from_secs(3600),
             selecionado: false,
+            leve: None,
+            canal_leve: None,
         }
+    }
+
+    fn de_leve(l: leve::Leve) -> Dev {
+        let info = Device {
+            name: l.name.clone(),
+            kind: l.kind(),
+            api: "33".into(),
+            screen: format!("{}×{}", l.width, l.height),
+            dir: leve::home(&platform::data_dir()).join(&l.name),
+            image: l.image.clone(),
+        };
+        let mut d = Dev::new(info);
+        d.leve = Some(l);
+        d
     }
 
     fn rodando(&self) -> bool {
@@ -73,6 +183,7 @@ impl Dev {
 /// Um aparelho a criar quando a imagem dele terminar de baixar.
 #[derive(Clone)]
 struct Criar {
+    leve: bool,
     kind: Kind,
     image: String,
     nome: String,
@@ -123,6 +234,21 @@ impl Clone for Ctx {
     }
 }
 
+/// Os aparelhos do emulador e, no Linux, os leves.
+fn carregar() -> Vec<Dev> {
+    let mut v: Vec<Dev> = devices::load(&devices::avd_home())
+        .into_iter()
+        .map(Dev::new)
+        .collect();
+    for l in leve::load(&platform::data_dir()) {
+        if !v.iter().any(|d| d.info.name == l.name) {
+            v.push(Dev::de_leve(l));
+        }
+    }
+    v.sort_by(|a, b| a.info.name.cmp(&b.info.name));
+    v
+}
+
 fn state_path() -> std::path::PathBuf {
     platform::data_dir().join("state.json")
 }
@@ -147,7 +273,11 @@ fn linha(d: &Dev, st: &State) -> Aparelho {
     let s = spot.unwrap_or(multidroid_core::state::Spot { x: 0, y: 0, w, h });
     Aparelho {
         nome: d.info.name.as_str().into(),
-        tipo: d.info.kind.label().into(),
+        tipo: if d.leve.is_some() {
+            format!("{} leve", d.info.kind.label()).into()
+        } else {
+            d.info.kind.label().into()
+        },
         android: catalog::android_version(&d.info.api).into(),
         estado: d.estado,
         mensagem: d.mensagem.as_str().into(),
@@ -462,6 +592,9 @@ impl Ctx {
     }
 
     fn abrir_emulador(&self, nome: &str) {
+        if self.com(nome, |d, _| d.leve.is_some()) == Some(true) {
+            return self.ligar_leve(nome);
+        }
         let sdk = devices::sdk_root();
         if catalog::installed(catalog::EMULATOR, &sdk).is_none() {
             self.aviso("Baixe o emulador em Imagens antes de ligar");
@@ -594,46 +727,203 @@ impl Ctx {
                 if parar.load(Ordering::Relaxed) {
                     return false;
                 }
-                let buf =
-                    SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&f.rgba, f.width, f.height);
-                c.com(&nome, |d, _| d.quadro = Some(buf));
-                if !pendente.swap(true, Ordering::AcqRel) {
-                    let (app, ui, nome, pendente) =
-                        (c.app.clone(), c.ui.clone(), nome.clone(), pendente.clone());
-                    let _ = slint::invoke_from_event_loop(move || {
-                        pendente.store(false, Ordering::Release);
-                        let Some(ui) = ui.upgrade() else { return };
-                        let app = app.lock().unwrap();
-                        let model = ui.get_aparelhos();
-                        let Some(vm) = model.as_any().downcast_ref::<VecModel<Aparelho>>() else {
-                            return;
-                        };
-                        for i in 0..vm.row_count() {
-                            let mut r = vm.row_data(i).unwrap();
-                            if r.nome == nome.as_str() {
-                                if let Some(d) = app.devs.iter().find(|d| d.info.name == nome) {
-                                    r.tela = d
-                                        .quadro
-                                        .clone()
-                                        .map(slint::Image::from_rgba8)
-                                        .unwrap_or_default();
-                                    r.tem_tela = d.quadro.is_some();
-                                    r.proporcao = proporcao(d);
-                                }
-                                vm.set_row_data(i, r);
-                            }
-                        }
-                    });
-                }
+                c.entregar(&nome, &pendente, f);
                 true
             })
             .await;
         });
     }
 
+    /// Guarda o quadro e pede à interface para mostrar (sem empilhar quadros).
+    fn entregar(&self, nome: &str, pendente: &Arc<AtomicBool>, f: screen::Frame) {
+        let buf = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&f.rgba, f.width, f.height);
+        self.com(nome, |d, _| d.quadro = Some(buf));
+        if pendente.swap(true, Ordering::AcqRel) {
+            return;
+        }
+        let (app, ui, nome, pendente) = (
+            self.app.clone(),
+            self.ui.clone(),
+            nome.to_string(),
+            pendente.clone(),
+        );
+        let _ = slint::invoke_from_event_loop(move || {
+            pendente.store(false, Ordering::Release);
+            let Some(ui) = ui.upgrade() else { return };
+            let app = app.lock().unwrap();
+            let model = ui.get_aparelhos();
+            let Some(vm) = model.as_any().downcast_ref::<VecModel<Aparelho>>() else {
+                return;
+            };
+            for i in 0..vm.row_count() {
+                let mut r = vm.row_data(i).unwrap();
+                if r.nome == nome.as_str() {
+                    if let Some(d) = app.devs.iter().find(|d| d.info.name == nome) {
+                        r.tela = d
+                            .quadro
+                            .clone()
+                            .map(slint::Image::from_rgba8)
+                            .unwrap_or_default();
+                        r.tem_tela = d.quadro.is_some();
+                        r.proporcao = proporcao(d);
+                    }
+                    vm.set_row_data(i, r);
+                }
+            }
+        });
+    }
+
+    // MARK: motor leve (Redroid)
+
+    /// Liga um aparelho leve: contêiner, boot pelo adb, sessão do scrcpy e quadros.
+    fn ligar_leve(&self, nome: &str) {
+        let Some(rt) = leve::runtime() else {
+            return self.aviso("O motor leve precisa do Podman ou do Docker instalado");
+        };
+        if !leve::binder_ok() {
+            return self.aviso(
+                "O motor leve precisa do binder no kernel: sudo modprobe binder_linux devices=binder,hwbinder,vndbinder",
+            );
+        }
+        let Some(adb) = Adb::from_sdk(&devices::sdk_root()) else {
+            return self
+                .aviso("Baixe as ferramentas da plataforma (adb) em Imagens antes de ligar");
+        };
+        let Some(Some(l)) = self.com(nome, |d, _| {
+            if d.rodando() && d.estado != Estado::Externo {
+                return None;
+            }
+            d.estado = Estado::Ligando;
+            d.mensagem = "ligando…".into();
+            d.ultimo_uso = Instant::now();
+            d.leve.clone()
+        }) else {
+            return;
+        };
+        self.avisar();
+        let c = self.clone();
+        let nome = nome.to_string();
+        let pendente = self
+            .com(&nome, |d, _| d.quadro_pendente.clone())
+            .unwrap_or_default();
+        let parar = Arc::new(AtomicBool::new(false));
+        self.com(&nome, |d, _| d.parar_tela = Some(parar.clone()));
+        std::thread::spawn(move || {
+            let data = platform::data_dir();
+            let r = (|| -> Result<scrcpy::Session, String> {
+                leve::start(rt, &data, &l)?;
+                adb.wait_boot(&l.serial(), Duration::from_secs(240))?;
+                let jar = scrcpy::ensure_server(&data.join("scrcpy"))?;
+                let max = l.width.max(l.height).min(1600);
+                // Uma porta local por aparelho leve, para as sessões não se cruzarem.
+                let porta = 27183 + (l.port - leve::PORTA0);
+                scrcpy::Session::start(&adb, &l.serial(), &jar, porta, max)
+            })();
+            let mut s = match r {
+                Ok(s) => s,
+                Err(e) => {
+                    c.com(&nome, |d, _| {
+                        d.estado = Estado::Desligado;
+                        d.mensagem = String::new();
+                    });
+                    return c.aviso(format!("{nome} não ligou: {e}"));
+                }
+            };
+            let canal = CanalLeve {
+                ctl: Arc::new(Mutex::new(s.controller().expect("controle"))),
+                w: s.width as u16,
+                h: s.height as u16,
+                adb: adb.clone(),
+                serial: l.serial(),
+            };
+            c.com(&nome, |d, _| {
+                d.canal_leve = Some(canal);
+                d.estado = Estado::Ligado;
+                d.mensagem.clear();
+            });
+            c.avisar();
+            let Ok(mut dec) = scrcpy::Decoder::new() else {
+                return c.aviso("o decodificador de vídeo não abriu");
+            };
+            while !parar.load(Ordering::Relaxed) {
+                let Ok(p) = s.read_packet() else { break };
+                if let Ok(Some(f)) = dec.decode(&p.data) {
+                    c.entregar(&nome, &pendente, f);
+                }
+            }
+        });
+    }
+
+    fn pausar_leve(&self, nome: &str, pausar: bool) {
+        let ok = self.com(nome, |d, _| {
+            let ok = if pausar {
+                d.estado == Estado::Ligado
+            } else {
+                d.estado == Estado::Pausado
+            };
+            if ok {
+                d.estado = if pausar {
+                    Estado::Pausado
+                } else {
+                    Estado::Ligado
+                };
+                d.ultimo_uso = Instant::now();
+            }
+            ok
+        });
+        if ok != Some(true) {
+            return;
+        }
+        self.avisar();
+        let (c, nome) = (self.clone(), nome.to_string());
+        self.rt.spawn_blocking(move || {
+            if let Some(rt) = leve::runtime()
+                && let Err(e) = leve::pause(rt, &nome, pausar)
+            {
+                c.aviso(format!("{nome}: {e}"));
+            }
+        });
+    }
+
+    /// Desliga o contêiner (o /data fica guardado). Hibernar guarda a última tela; ao
+    /// acordar, o Android liga de novo com os apps e as contas como estavam no disco.
+    async fn terminar_leve(&self, nome: &str, hibernar: bool) {
+        let n = nome.to_string();
+        let r = tokio::task::spawn_blocking(move || match leve::runtime() {
+            Some(rt) => leve::stop(rt, &n),
+            None => Err("sem Podman nem Docker".into()),
+        })
+        .await
+        .unwrap_or_else(|e| Err(e.to_string()));
+        self.com(nome, |d, _| {
+            if let Some(p) = d.parar_tela.take() {
+                p.store(true, Ordering::Relaxed);
+            }
+            d.canal_leve = None;
+            d.memoria = 0;
+            d.cpu = 0.0;
+            d.mensagem.clear();
+            d.estado = if hibernar {
+                Estado::Hibernado
+            } else {
+                Estado::Desligado
+            };
+            if !hibernar {
+                d.quadro = None;
+            }
+        });
+        if let Err(e) = r {
+            self.aviso(format!("{nome}: {e}"));
+        }
+        self.avisar();
+    }
+
     // MARK: pausar, hibernar, desligar
 
     fn pausar(&self, nome: &str, pausar: bool) {
+        if self.com(nome, |d, _| d.leve.is_some()) == Some(true) {
+            return self.pausar_leve(nome, pausar);
+        }
         let Some(Some(link)) = self.com(nome, |d, _| {
             let ok = if pausar {
                 d.estado == Estado::Ligado
@@ -672,6 +962,20 @@ impl Ctx {
 
     /// Desligar e hibernar salvam o estado; hibernar guarda a última tela.
     fn desligar(&self, nome: &str, hibernar: bool) {
+        if self.com(nome, |d, _| {
+            d.leve.is_some()
+                && d.rodando()
+                && d.estado != Estado::Desligando
+                && (!hibernar || matches!(d.estado, Estado::Ligado | Estado::Pausado))
+        }) == Some(true)
+        {
+            self.com(nome, |d, _| d.estado = Estado::Desligando);
+            self.avisar();
+            let (c, nome) = (self.clone(), nome.to_string());
+            self.rt
+                .spawn(async move { c.terminar_leve(&nome, hibernar).await });
+            return;
+        }
         let alvo = self.com(nome, |d, _| {
             if d.estado == Estado::Hibernado && !hibernar {
                 d.estado = Estado::Desligado;
@@ -702,6 +1006,11 @@ impl Ctx {
 
     /// Hibernar ou desligar e só voltar quando o processo saiu (para abrir espaço).
     async fn desligar_e_esperar(&self, nome: &str, hibernar: bool) {
+        if self.com(nome, |d, _| d.leve.is_some()) == Some(true) {
+            self.com(nome, |d, _| d.estado = Estado::Desligando);
+            self.avisar();
+            return self.terminar_leve(nome, hibernar).await;
+        }
         let alvo = self.com(nome, |d, _| {
             if !matches!(d.estado, Estado::Ligado | Estado::Pausado) {
                 return None;
@@ -747,13 +1056,16 @@ impl Ctx {
 
     // MARK: botões, toque e teclado
 
-    fn com_link(&self, nome: &str) -> Option<Link> {
+    fn com_canal(&self, nome: &str) -> Option<Canal> {
         self.com(nome, |d, _| {
             d.ultimo_uso = Instant::now();
-            if d.estado == Estado::Ligado {
-                d.link.clone()
-            } else {
-                None
+            if d.estado != Estado::Ligado {
+                return None;
+            }
+            match (&d.canal_leve, &d.link) {
+                (Some(l), _) => Some(Canal::Leve(l.clone())),
+                (None, Some(l)) => Some(Canal::Emu(l.clone())),
+                _ => None,
             }
         })
         .flatten()
@@ -773,18 +1085,18 @@ impl Ctx {
             "duplicar" => return self.duplicar(nome),
             _ => {}
         }
-        let Some(link) = self.com_link(nome) else {
+        let Some(canal) = self.com_canal(nome) else {
             return;
         };
         let c = self.clone();
         let (nome, acao) = (nome.to_string(), acao.to_string());
         self.rt.spawn(async move {
             match acao.as_str() {
-                "voltar" => link.key("GoBack").await,
-                "inicio" => link.key("GoHome").await,
-                "recentes" => link.key("AppSwitch").await,
-                "volume+" => link.key("AudioVolumeUp").await,
-                "volume-" => link.key("AudioVolumeDown").await,
+                "voltar" => canal.tecla("GoBack").await,
+                "inicio" => canal.tecla("GoHome").await,
+                "recentes" => canal.tecla("AppSwitch").await,
+                "volume+" => canal.tecla("AudioVolumeUp").await,
+                "volume-" => canal.tecla("AudioVolumeDown").await,
                 "girar" => {
                     let paisagem = c
                         .com(&nome, |d, _| {
@@ -792,10 +1104,13 @@ impl Ctx {
                             d.paisagem
                         })
                         .unwrap_or(false);
-                    link.rotate(if paisagem { -90.0 } else { 0.0 }).await;
+                    match &canal {
+                        Canal::Emu(l) => l.rotate(if paisagem { -90.0 } else { 0.0 }).await,
+                        Canal::Leve(l) => l.enviar(&scrcpy::msg_rotate()),
+                    }
                 }
                 "captura" => {
-                    if let Some(png) = link.screenshot_png().await {
+                    if let Some(png) = canal.captura().await {
                         let dir = platform::pictures_dir();
                         let stamp = std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
@@ -816,26 +1131,19 @@ impl Ctx {
     }
 
     fn toque(&self, nome: &str, fx: f32, fy: f32, tipo: &str) {
-        let Some(link) = self.com_link(nome) else {
+        let Some(canal) = self.com_canal(nome) else {
             return;
         };
         let tela = self
             .com(nome, |d, _| d.info.screen.clone())
             .unwrap_or_default();
-        let Some((w, h)) = tela
-            .split_once('×')
-            .and_then(|(a, b)| Some((a.parse::<f32>().ok()?, b.parse::<f32>().ok()?)))
-        else {
-            return;
-        };
-        let x = (fx.clamp(0.0, 1.0) * w) as i32;
-        let y = (fy.clamp(0.0, 1.0) * h) as i32;
-        let down = tipo != "up";
-        self.rt.spawn(async move { link.touch(x, y, down).await });
+        let tipo = tipo.to_string();
+        self.rt
+            .spawn(async move { canal.toque(fx, fy, &tipo, &tela).await });
     }
 
     fn tecla(&self, nome: &str, texto: &str) {
-        let Some(link) = self.com_link(nome) else {
+        let Some(canal) = self.com_canal(nome) else {
             return;
         };
         // Teclas especiais do Slint viram os nomes W3C que o emulador entende.
@@ -862,8 +1170,8 @@ impl Ctx {
         }
         self.rt.spawn(async move {
             match especial {
-                Some(k) => link.key(k).await,
-                None => link.type_text(&texto).await,
+                Some(k) => canal.tecla(k).await,
+                None => canal.texto(&texto).await,
             }
         });
     }
@@ -940,18 +1248,18 @@ impl Ctx {
 
     /// Relê a pasta de aparelhos sem perder o que está rodando.
     fn recarregar(app: &mut App) {
-        let infos = devices::load(&devices::avd_home());
         let mut velhos: Vec<Dev> = std::mem::take(&mut app.devs);
-        app.devs = infos
+        app.devs = carregar()
             .into_iter()
             .map(
-                |i| match velhos.iter().position(|d| d.info.name == i.name) {
+                |n| match velhos.iter().position(|d| d.info.name == n.info.name) {
                     Some(k) => {
                         let mut d = velhos.remove(k);
-                        d.info = i;
+                        d.info = n.info;
+                        d.leve = n.leve;
                         d
                     }
-                    None => Dev::new(i),
+                    None => n,
                 },
             )
             .collect();
@@ -981,6 +1289,11 @@ impl Ctx {
         };
         if d.rodando() {
             app.aviso = format!("Desligue {nome} antes de duplicar");
+            drop(app);
+            return self.avisar();
+        }
+        if d.leve.is_some() {
+            app.aviso = "Duplicar ainda não vale para aparelho leve".into();
             drop(app);
             return self.avisar();
         }
@@ -1015,7 +1328,12 @@ impl Ctx {
             app.aviso = format!("Desligue {nome} antes de apagar");
         } else {
             let info = d.info.clone();
-            match devices::delete(&devices::avd_home(), &info) {
+            let r = if d.leve.is_some() {
+                leve::delete(leve::runtime(), &platform::data_dir(), nome)
+            } else {
+                devices::delete(&devices::avd_home(), &info)
+            };
+            match r {
                 Ok(()) => {
                     app.state.forget(nome);
                     Self::recarregar(&mut app);
@@ -1051,6 +1369,20 @@ impl Ctx {
                 "Dê um nome com letras, números, ponto, hífen ou sublinhado (sem espaço).".into();
         } else if app.devs.iter().any(|d| d.info.name == nome) {
             app.novo_erro = "Já existe um aparelho com esse nome.".into();
+        } else if c.leve {
+            match leve::create(&platform::data_dir(), &nome, c.kind) {
+                Ok(_) => {
+                    if !c.grupo.trim().is_empty() {
+                        app.state.groups.insert(nome.clone(), c.grupo.trim().into());
+                    }
+                    Self::recarregar(&mut app);
+                    app.aviso = format!("{nome} criado no motor leve");
+                    drop(app);
+                    self.mostrar("");
+                    return self.avisar();
+                }
+                Err(e) => app.novo_erro = e,
+            }
         } else if c.image.is_empty() {
             app.novo_erro = "Escolha uma imagem.".into();
         } else if catalog::installed(&c.image, &sdk).is_none() {
@@ -1302,13 +1634,41 @@ impl Ctx {
     }
 
     fn medir(&self, procs: &mut Processes) {
+        // Motor leve: memória de cada contêiner e quem já estava ligado ao abrir o app.
+        if let Some(rt) = leve::runtime().filter(|_| cfg!(target_os = "linux")) {
+            let mem = leve::memory(rt);
+            let ligados = leve::running(rt);
+            let mut adotar = vec![];
+            {
+                let mut app = self.app.lock().unwrap();
+                for d in app.devs.iter_mut().filter(|d| d.leve.is_some()) {
+                    d.memoria = mem
+                        .iter()
+                        .find(|(n, _)| n == &d.info.name)
+                        .map_or(0, |(_, b)| *b);
+                    let aceso = ligados.iter().any(|(n, _)| n == &d.info.name);
+                    if aceso && d.estado == Estado::Desligado && d.canal_leve.is_none() {
+                        d.estado = Estado::Externo;
+                        adotar.push(d.info.name.clone());
+                    }
+                }
+            }
+            for n in adotar {
+                self.ligar_leve(&n);
+            }
+        }
         let rodando = procs.emulators();
         self.adotar(&rodando);
         let (usada, swap) = platform::memory_use_gb();
         let total = platform::physical_gb();
         let mut app = self.app.lock().unwrap();
-        let mut soma = 0u64;
-        for d in app.devs.iter_mut() {
+        let mut soma: u64 = app
+            .devs
+            .iter()
+            .filter(|d| d.leve.is_some())
+            .map(|d| d.memoria)
+            .sum();
+        for d in app.devs.iter_mut().filter(|d| d.leve.is_none()) {
             match d.pid.and_then(|p| rodando.iter().find(|r| r.pid == p)) {
                 Some(r) => {
                     d.memoria = r.memory;
@@ -1362,6 +1722,9 @@ fn main() -> Result<(), slint::PlatformError> {
     tema.set_sombra_x(t.forma.sombra.x);
     tema.set_sombra_y(t.forma.sombra.y);
     ui.set_versao(env!("CARGO_PKG_VERSION").into());
+    // O motor leve só existe no Linux.
+    ui.set_tem_leve(cfg!(target_os = "linux"));
+    ui.set_novo_motor(if cfg!(target_os = "linux") { 1 } else { 0 });
 
     let runtime = tokio::runtime::Runtime::new().expect("sem runtime tokio");
     let infos = devices::load(&devices::avd_home());
@@ -1372,7 +1735,7 @@ fn main() -> Result<(), slint::PlatformError> {
         let _ = state.save(&state_path());
     }
     let app = Arc::new(Mutex::new(App {
-        devs: infos.into_iter().map(Dev::new).collect(),
+        devs: carregar(),
         state,
         aviso: String::new(),
         memoria: String::new(),
@@ -1432,8 +1795,9 @@ fn main() -> Result<(), slint::PlatformError> {
         c.avisar();
     });
     let c = ctx.clone();
-    ui.on_criar(move |t, img, nome, grupo| {
+    ui.on_criar(move |motor, t, img, nome, grupo| {
         c.criar(Criar {
+            leve: motor == 1,
             kind: tipo_de(t),
             image: img.to_string(),
             nome: nome.to_string(),

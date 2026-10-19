@@ -124,6 +124,9 @@ pub fn title(path: &str, host: Host) -> String {
     if path == EMULATOR {
         return "Emulador do Android".into();
     }
+    if path == crate::adb::PLATFORM_TOOLS {
+        return "Ferramentas da plataforma (adb)".into();
+    }
     let Some((api, tag)) = parts(path, host) else {
         return path.into();
     };
@@ -142,6 +145,9 @@ pub fn title(path: &str, host: Host) -> String {
 pub fn detail(path: &str, host: Host) -> String {
     if path == EMULATOR {
         return "Roda os aparelhos. Obrigatório.".into();
+    }
+    if path == crate::adb::PLATFORM_TOOLS {
+        return "Liga a tela e o toque dos aparelhos leves (Redroid). Obrigatório para o motor leve.".into();
     }
     let Some((api, tag)) = parts(path, host) else {
         return String::new();

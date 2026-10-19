@@ -120,6 +120,17 @@ pub fn fetch_remote(host: catalog::Host) -> (Vec<RemotePackage>, Vec<String>) {
         Ok(Ok(None)) => falhas.push("emulador (não há para este sistema)".into()),
         Ok(Err(e)) | Err(e) => falhas.push(format!("emulador ({e})")),
     }
+    // O motor leve só existe no Linux, e é só ele que usa o adb.
+    if cfg!(target_os = "linux") {
+        match get_text(&format!("{}repository2-3.xml", catalog::REPO)).map(|x| {
+            catalog::parse(&x, crate::adb::PLATFORM_TOOLS, catalog::REPO, host)
+                .map_err(|e| Error::Zip(e.to_string()))
+        }) {
+            Ok(Ok(Some(p))) => out.push(p),
+            Ok(Ok(None)) => {}
+            Ok(Err(e)) | Err(e) => falhas.push(format!("platform-tools ({e})")),
+        }
+    }
     for tag in catalog::TAGS {
         let url = catalog::tag_list_url(tag);
         let base = url

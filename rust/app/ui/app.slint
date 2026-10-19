@@ -469,6 +469,9 @@ export component AppWindow inherits Window {
     in property <string> licenca-texto;
     in property <[Opcao]> opcoes;
     in-out property <int> novo-tipo;
+    // 0 = completo (emulador), 1 = leve (Redroid, só no Linux)
+    in-out property <int> novo-motor;
+    in property <bool> tem-leve;
     in-out property <string> novo-imagem;
     in property <string> novo-erro;
     in property <string> novo-nota;
@@ -485,7 +488,7 @@ export component AppWindow inherits Window {
     callback licenca(bool);
     callback abrir-novo();
     callback novo-tipo-mudou(int);
-    callback criar(int, string, string, string);
+    callback criar(int, int, string, string, string);
     callback grupo(string, string);
     callback apagar(string);
 
@@ -650,6 +653,21 @@ export component AppWindow inherits Window {
         VerticalLayout {
             padding: 20px; spacing: 12px; alignment: start;
             Text { text: "Novo aparelho"; font-size: 22px; font-weight: 900; color: Tema.tinta; }
+            if tem-leve: HorizontalLayout {
+                spacing: 10px;
+                Botao {
+                    horizontal-stretch: 1; texto: "Leve (Redroid)"; cor: novo-motor == 1 ? Tema.azul : Tema.superficie;
+                    clicou => { root.novo-motor = 1; }
+                }
+                Botao {
+                    horizontal-stretch: 1; texto: "Completo (emulador)"; cor: novo-motor == 0 ? Tema.azul : Tema.superficie;
+                    clicou => { root.novo-motor = 0; }
+                }
+            }
+            if tem-leve && novo-motor == 1: Text {
+                text: "Android 13 em contêiner, direto no Linux: ~1,2 GB por aparelho, contra ~4,5 GB do emulador. Pede o Podman ou o Docker e o binder no kernel. Hibernar desliga e guarda os apps e as contas no disco.";
+                font-size: 12px; color: Tema.tinta; opacity: 0.75; wrap: word-wrap;
+            }
             HorizontalLayout {
                 spacing: 10px;
                 for t[i] in tipos: Botao {
@@ -658,11 +676,11 @@ export component AppWindow inherits Window {
                     clicou => { root.novo-tipo = i; root.novo-tipo-mudou(i); }
                 }
             }
-            if opcoes.length == 0: Text {
+            if novo-motor == 0 && opcoes.length == 0: Text {
                 text: imagens-carregando ? "Procurando imagens no repositório…" : (imagens-erro != "" ? imagens-erro : "Nenhuma imagem para este tipo.");
                 font-size: 12px; font-weight: 700; color: Tema.tinta; wrap: word-wrap;
             }
-            Flickable {
+            if novo-motor == 0: Flickable {
                 height: 230px;
                 content-height: ol.preferred-height;
                 ol := VerticalLayout {
@@ -673,7 +691,7 @@ export component AppWindow inherits Window {
                     }
                 }
             }
-            if novo-nota != "": Text { text: novo-nota; font-size: 11px; color: Tema.tinta; opacity: 0.75; wrap: word-wrap; }
+            if novo-motor == 0 && novo-nota != "": Text { text: novo-nota; font-size: 11px; color: Tema.tinta; opacity: 0.75; wrap: word-wrap; }
             nome := Campo { dica: "Nome (ex.: Conta-Trabalho)"; }
             grupo := Campo { dica: "Grupo (opcional)"; }
             if novo-erro != "": Text { text: novo-erro; font-size: 12px; font-weight: 700; color: Tema.vermelho; wrap: word-wrap; }
@@ -682,7 +700,7 @@ export component AppWindow inherits Window {
                 Botao { texto: "Cancelar"; clicou => { root.tela = ""; } }
                 Botao {
                     texto: novo-ocupado ? "Baixando…" : "Criar"; cor: Tema.azul; ativo: !novo-ocupado;
-                    clicou => { root.criar(root.novo-tipo, root.novo-imagem, nome.texto, grupo.texto); }
+                    clicou => { root.criar(root.novo-motor, root.novo-tipo, root.novo-imagem, nome.texto, grupo.texto); }
                 }
             }
         }
