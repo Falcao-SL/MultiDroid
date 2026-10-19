@@ -29,6 +29,30 @@ fn adb() -> Adb {
     Adb::from_sdk(&sdk).expect("adb instalado")
 }
 
+/// Contêineres, registro do Redroid e aparelhos do adb, para entender um boot que falhou.
+fn diagnostico(rt: &str, adb: &Adb, l: &leve::Leve) -> String {
+    let run = |exe: &std::path::Path, args: &[&str]| {
+        std::process::Command::new(exe)
+            .args(args)
+            .output()
+            .map(|o| {
+                format!(
+                    "{}{}",
+                    String::from_utf8_lossy(&o.stdout),
+                    String::from_utf8_lossy(&o.stderr)
+                )
+            })
+            .unwrap_or_default()
+    };
+    let rt = std::path::Path::new(rt);
+    format!(
+        "--- ps\n{}--- logs\n{}--- adb\n{}",
+        run(rt, &["ps", "-a"]),
+        run(rt, &["logs", "--tail", "80", &l.container()]),
+        run(&adb.exe, &["devices"])
+    )
+}
+
 #[test]
 #[ignore]
 fn liga_mostra_a_tela_e_guarda_os_dados() {
@@ -40,8 +64,9 @@ fn liga_mostra_a_tela_e_guarda_os_dados() {
     let l = leve::create(data, "R6Teste", Kind::Celular).unwrap();
     let t0 = Instant::now();
     leve::start(rt, data, &l).unwrap();
-    adb.wait_boot(&l.serial(), Duration::from_secs(240))
-        .unwrap();
+    if let Err(e) = adb.wait_boot(&l.serial(), Duration::from_secs(240)) {
+        panic!("{e}\n{}", diagnostico(rt, &adb, &l));
+    }
     eprintln!("ligou em {:?}", t0.elapsed());
 
     let jar = scrcpy::ensure_server(&data.join("scrcpy")).unwrap();
