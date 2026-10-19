@@ -137,3 +137,67 @@ fn liga_mostra_a_tela_e_guarda_os_dados() {
         .unwrap();
     assert!(!String::from_utf8_lossy(&vols.stdout).contains(&leve::volume(&l.name)));
 }
+
+/// Critério da R-6: 8 aparelhos leves ligados ao mesmo tempo, cada um com vídeo.
+#[test]
+#[ignore]
+fn oito_ligados_com_video() {
+    let rt = leve::runtime().expect("sem Docker nem Podman");
+    let adb = adb();
+    let t = tempfile::tempdir().unwrap();
+    let data = t.path();
+    let base = std::process::Command::new("free")
+        .arg("-m")
+        .output()
+        .unwrap();
+    let aparelhos: Vec<leve::Leve> = (1..=8)
+        .map(|i| leve::create(data, &format!("Oito{i}"), Kind::Celular).unwrap())
+        .collect();
+    let t0 = Instant::now();
+    for l in &aparelhos {
+        leve::start(rt, data, l).unwrap();
+    }
+    for l in &aparelhos {
+        if let Err(e) = adb.wait_boot(&l.serial(), Duration::from_secs(300)) {
+            panic!("{e}\n{}", diagnostico(rt, &adb, l));
+        }
+    }
+    eprintln!("8 ligados em {:?}", t0.elapsed());
+    let jar = scrcpy::ensure_server(&data.join("scrcpy")).unwrap();
+    let mut sessoes: Vec<scrcpy::Session> = aparelhos
+        .iter()
+        .enumerate()
+        .map(|(i, l)| {
+            scrcpy::Session::start(&adb, &l.serial(), &jar, 27300 + i as u16, 800).unwrap()
+        })
+        .collect();
+    for (i, s) in sessoes.iter_mut().enumerate() {
+        let mut dec = scrcpy::Decoder::new().unwrap();
+        let t1 = Instant::now();
+        let mut ok = false;
+        while !ok && t1.elapsed() < Duration::from_secs(30) {
+            let p = s.read_packet().unwrap();
+            ok = dec.decode(&p.data).unwrap().is_some();
+        }
+        assert!(ok, "Oito{} sem quadro", i + 1);
+    }
+    std::thread::sleep(Duration::from_secs(20));
+    let mem = leve::memory(rt);
+    let soma: u64 = mem.iter().map(|(_, b)| b).sum();
+    let depois = std::process::Command::new("free")
+        .arg("-m")
+        .output()
+        .unwrap();
+    eprintln!(
+        "8 com vídeo: contêineres somam {:.1} GB\nantes:\n{}depois:\n{}",
+        soma as f64 / (1u64 << 30) as f64,
+        String::from_utf8_lossy(&base.stdout),
+        String::from_utf8_lossy(&depois.stdout)
+    );
+    assert_eq!(mem.len(), 8);
+    drop(sessoes);
+    for l in &aparelhos {
+        adb.disconnect(&l.serial());
+        leve::delete(Some(rt), data, &l.name).unwrap();
+    }
+}

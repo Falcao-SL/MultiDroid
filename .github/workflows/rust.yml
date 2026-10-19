@@ -100,4 +100,4 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
-      - run: cargo test -p multidroid-core --test leve_real -- --ignored --nocapture
+      - run: cargo test -p multidroid-core --test leve_real -- --ignored --nocapture --test-threads 1
