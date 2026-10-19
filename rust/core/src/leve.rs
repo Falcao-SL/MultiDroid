@@ -208,26 +208,29 @@ pub fn delete(rt: Option<&str>, data: &Path, name: &str) -> Result<(), String> {
         let _ = run(rt, &["rm", "-f", &container(name)]);
     }
     let dir = home(data).join(name);
-    // O /data do Android é do usuário root do contêiner: apaga por dentro dele se precisar.
-    if std::fs::remove_dir_all(&dir).is_err()
-        && let Some(rt) = rt
-    {
-        // Com a própria imagem do Redroid, que já está baixada (o rm é o do Android).
+    // O /data do Android é do root do contêiner: o usuário não apaga. Apaga por
+    // dentro de um contêiner da própria imagem (já baixada), com o shell do Android.
+    if std::fs::remove_dir_all(&dir).is_err() {
+        let Some(rt) = rt else {
+            return Err("o /data do aparelho é do root; instale o Docker para apagar".into());
+        };
         let d = format!("{}:/x", dir.display());
-        let _ = run(
+        run(
             rt,
             &[
                 "run",
                 "--rm",
+                "--privileged",
                 "-v",
                 &d,
                 "--entrypoint",
-                "/system/bin/rm",
+                "/system/bin/sh",
                 IMAGE,
-                "-rf",
-                "/x/data",
+                "-c",
+                "rm -rf /x/data",
             ],
-        );
+        )
+        .map_err(|e| format!("não apagou o /data: {e}"))?;
         std::fs::remove_dir_all(&dir).map_err(|e| e.to_string())?;
     }
     Ok(())
