@@ -52,10 +52,10 @@ jobs:
             sleep 30   # deixa o Android assentar depois do boot
             usado=$(free -m | awk '/Mem:/ {print $3}')
             cont=$(docker stats --no-stream --format '{{.MemUsage}}' | awk '{print $1}' | tr '\n' ' ')
-            echo "| $1 | $usado | $cont |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| $1 | $usado | $cont |" | tee -a "$GITHUB_STEP_SUMMARY"
           }
           base=$(free -m | awk '/Mem:/ {print $3}')
-          echo "| Ligados | Memória usada do sistema (MB, base $base) | Cada contêiner |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Ligados | Memória usada do sistema (MB, base $base) | Cada contêiner |" | tee -a "$GITHUB_STEP_SUMMARY"
           echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
           ligar 1; echo "boot do 1º: $(esperar 1) s"; medir 1
           for i in 2 3 4; do ligar $i; done

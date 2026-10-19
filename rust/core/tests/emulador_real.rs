@@ -133,7 +133,12 @@ async fn liga_pausa_e_desliga_um_aparelho() {
         .expect("nenhum quadro em 60 s")
         .unwrap();
     eprintln!("{quadros} quadros de {tamanho:?} por {transporte:?}");
-    assert_eq!(tamanho, (fw, fh));
+    // O emulador arredonda para manter a proporção da tela: aceita 2 px de diferença.
+    assert!(
+        tamanho.0.abs_diff(fw) <= 2 && tamanho.1.abs_diff(fh) <= 2,
+        "{tamanho:?} longe de {:?}",
+        (fw, fh)
+    );
     link.touch(540, 1200, true).await;
     link.touch(540, 1200, false).await;
     link.type_text("ok").await;

@@ -5,6 +5,7 @@
 #   xcrun notarytool store-credentials notary --apple-id <e-mail> --team-id 6EZ89E2F5S
 # Uso: rust/scripts/release-mac.sh [tag]
 #   com a tag (v0.3.0-alpha.1), troca o .dmg da release pelo assinado.
+#   DO_CI=1 não compila: assina o app do .dmg que o CI pôs na release (pouco disco).
 # NOTARY_PROFILE troca o nome do perfil; NOTARIZE=0 só assina.
 set -euo pipefail
 cd "$(dirname "$0")/../app"
@@ -15,10 +16,21 @@ ID=$(security find-identity -v -p codesigning | sed -n 's/.*"\(Developer ID Appl
 VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' ../Cargo.toml | head -1)
 NOME=${TAG#v}; NOME=${NOME:-$VERSION}
 rm -rf ../target/packages
-# O packager monta o .app; a assinatura (hardened runtime + carimbo de tempo,
-# que a notarização exige) e o .dmg são feitos aqui, como no mac/scripts/release.sh.
-cargo packager --release -f app
+mkdir -p ../target/packages
 APP="../target/packages/MultiDroid Preview.app"
+if [ "${DO_CI:-0}" = 1 ]; then
+  [ -n "$TAG" ] || { echo "erro: DO_CI=1 precisa da tag" >&2; exit 1; }
+  CI=$(mktemp -d)
+  gh release download "$TAG" -R iramarfalcao/MultiDroid -p '*-mac-arm64.dmg' -D "$CI"
+  hdiutil attach "$CI"/*.dmg -mountpoint "$CI/mnt" -nobrowse -quiet
+  ditto "$CI/mnt/MultiDroid Preview.app" "$APP"
+  hdiutil detach "$CI/mnt" -quiet
+  rm -rf "$CI"
+else
+  # O packager monta o .app; a assinatura (hardened runtime + carimbo de tempo,
+  # que a notarização exige) e o .dmg são feitos aqui, como no mac/scripts/release.sh.
+  cargo packager --release -f app
+fi
 codesign --force --options runtime --timestamp --sign "$ID" "$APP"
 codesign --verify --strict --deep "$APP"
 DMG=../target/packages/MultiDroid-Preview-$NOME-mac-arm64.dmg
