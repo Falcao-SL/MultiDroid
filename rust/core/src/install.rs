@@ -8,6 +8,7 @@ use sha1::{Digest, Sha1};
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Debug)]
 pub enum Error {
@@ -17,6 +18,7 @@ pub enum Error {
     Zip(String),
     Empty,
     NoSpace { needed: u64 },
+    Cancelled,
 }
 
 impl std::fmt::Display for Error {
@@ -29,6 +31,7 @@ impl std::fmt::Display for Error {
             }
             Error::Zip(e) => write!(f, "não extraiu o arquivo: {e}"),
             Error::Empty => write!(f, "arquivo vazio"),
+            Error::Cancelled => write!(f, "download cancelado"),
             Error::NoSpace { needed } => write!(
                 f,
                 "falta espaço: precisa de {:.1} GB livres",
@@ -94,13 +97,63 @@ pub fn accept(pkg: &RemotePackage, sdk: &Path) -> io::Result<()> {
     )
 }
 
+// MARK: Catálogo remoto
+
+fn get_text(url: &str) -> Result<String, Error> {
+    ureq::get(url)
+        .call()
+        .map_err(|e| Error::Http(e.to_string()))?
+        .into_string()
+        .map_err(Error::Io)
+}
+
+/// O emulador e as imagens que o repositório oferece para este host. Cada lista é
+/// independente: uma que falhe não esconde as outras, e vira uma linha em `falhas`.
+pub fn fetch_remote(host: catalog::Host) -> (Vec<RemotePackage>, Vec<String>) {
+    let mut out = vec![];
+    let mut falhas = vec![];
+    match get_text(&format!("{}repository2-3.xml", catalog::REPO)).map(|x| {
+        catalog::parse(&x, catalog::EMULATOR, catalog::REPO, host)
+            .map_err(|e| Error::Zip(e.to_string()))
+    }) {
+        Ok(Ok(Some(p))) => out.push(p),
+        Ok(Ok(None)) => falhas.push("emulador (não há para este sistema)".into()),
+        Ok(Err(e)) | Err(e) => falhas.push(format!("emulador ({e})")),
+    }
+    for tag in catalog::TAGS {
+        let url = catalog::tag_list_url(tag);
+        let base = url
+            .rsplit_once('/')
+            .map(|(b, _)| format!("{b}/"))
+            .unwrap_or_default();
+        match get_text(&url).map(|x| catalog::images_in(&x, &base, host)) {
+            Ok(Ok(v)) => out.extend(v),
+            Ok(Err(e)) => falhas.push(format!("{tag} ({e})")),
+            Err(e) => falhas.push(format!("{tag} ({e})")),
+        }
+    }
+    (out, falhas)
+}
+
+/// Remove um pacote instalado (a pasta dele no SDK).
+pub fn remove(path: &str, sdk: &Path) -> io::Result<()> {
+    let d = catalog::dir(path, sdk);
+    if d.exists() {
+        fs::remove_dir_all(d)
+    } else {
+        Ok(())
+    }
+}
+
 // MARK: Download e extração
 
-/// Baixa `url` para `dest`, chamando `progress` com a fração de 0 a 1.
+/// Baixa `url` para `dest`, chamando `progress` com a fração de 0 a 1. Para quando
+/// `cancel` vira true.
 pub fn download(
     url: &str,
     dest: &Path,
     total: u64,
+    cancel: &AtomicBool,
     mut progress: impl FnMut(f64),
 ) -> Result<(), Error> {
     let resp = ureq::get(url)
@@ -111,6 +164,9 @@ pub fn download(
     let mut buf = vec![0u8; 1 << 20];
     let mut done: u64 = 0;
     loop {
+        if cancel.load(Ordering::Relaxed) {
+            return Err(Error::Cancelled);
+        }
         let n = reader.read(&mut buf)?;
         if n == 0 {
             break;
@@ -168,12 +224,19 @@ pub fn install(
     pkg: &RemotePackage,
     sdk: &Path,
     work: &Path,
+    cancel: &AtomicBool,
     progress: impl FnMut(f64),
 ) -> Result<PathBuf, Error> {
     fs::create_dir_all(work)?;
+    let free = crate::platform::free_space(work);
+    // Zip baixado + extraído: o dobro do tamanho, com folga.
+    let needed = pkg.size.saturating_mul(3);
+    if free.is_some_and(|f| f < needed) {
+        return Err(Error::NoSpace { needed });
+    }
     let zip = work.join(format!("dl-{}.zip", std::process::id()));
     let result = (|| {
-        download(&pkg.url, &zip, pkg.size, progress)?;
+        download(&pkg.url, &zip, pkg.size, cancel, progress)?;
         let got = file_sha1(&zip)?;
         if got != pkg.sha1 {
             return Err(Error::Checksum {

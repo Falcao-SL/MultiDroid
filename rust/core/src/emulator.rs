@@ -251,7 +251,13 @@ pub fn alive(pid: u32) -> bool {
     let mut sys = System::new();
     let p = Pid::from_u32(pid);
     sys.refresh_processes(ProcessesToUpdate::Some(&[p]), true);
-    sys.process(p).is_some()
+    // Um filho que já saiu e ainda não foi recolhido aparece como zumbi: está desligado.
+    sys.process(p).is_some_and(|p| {
+        !matches!(
+            p.status(),
+            sysinfo::ProcessStatus::Zombie | sysinfo::ProcessStatus::Dead
+        )
+    })
 }
 
 /// Desliga sem salvar (SIGTERM no Mac e no Linux, TerminateProcess no Windows).

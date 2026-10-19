@@ -41,6 +41,30 @@ export struct Aparelho {
     tela: image,
     tem-tela: bool,
     relogio: bool,
+    selecionado: bool,
+}
+
+// Um pacote da tela de Imagens (o emulador ou uma imagem de sistema).
+export struct Pacote {
+    path: string,
+    titulo: string,
+    detalhe: string,
+    nota: string,
+    // "Instalada · r4", "12 MB", "Baixando 45%", "Extraindo…"
+    situacao: string,
+    instalado: bool,
+    atualizar: bool,
+    ocupado: bool,
+    em-uso: bool,
+}
+
+// Uma imagem que serve para o tipo escolhido no Novo aparelho.
+export struct Opcao {
+    path: string,
+    titulo: string,
+    detalhe: string,
+    nota: string,
+    instalada: bool,
 }
 
 // Bloco neo-brutalista: borda grossa e sombra dura, sem desfoque.
@@ -99,7 +123,13 @@ component BotaoBase inherits Rectangle {
 
 component Botao inherits BotaoBase {
     min-width: self.largura-texto + 24px;
+    preferred-width: self.largura-texto + 32px;
     min-height: 36px;
+    preferred-height: 40px;
+    max-height: 44px;
+    // Não estica para ocupar a linha; quem quiser esticar passa outro valor.
+    horizontal-stretch: 0;
+    vertical-stretch: 0;
 }
 
 // Botão quadrado de ícone (glifo), para a coluna do quadro e as linhas do painel.
@@ -140,10 +170,21 @@ component LinhaAparelho inherits Bloco {
     height: 74px;
     HorizontalLayout {
         padding: 10px; spacing: 10px;
-        Bloco {
-            sombra: false;
+        sel := Rectangle {
             width: 34px; height: 46px;
-            cor: a.relogio ? Tema.roxo : Tema.azul;
+            Bloco {
+                sombra: false;
+                cor: a.selecionado ? Tema.amarelo : (a.relogio ? Tema.roxo : Tema.azul);
+                Text {
+                    text: a.selecionado ? "✓" : "";
+                    font-size: 18px; font-weight: 900; color: Tema.tinta-sobre-acento;
+                    horizontal-alignment: center; vertical-alignment: center;
+                }
+            }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => { acao("selecionar"); }
+            }
         }
         VerticalLayout {
             spacing: 2px; alignment: center;
@@ -167,6 +208,7 @@ component LinhaAparelho inherits Bloco {
                     if a.estado == Estado.pausado: Icone { glifo: "▶"; cor: Tema.verde; dica: "Retomar"; clicou => { acao("retomar"); } }
                     if a.estado == Estado.ligado || a.estado == Estado.pausado: Icone { glifo: "☾"; cor: Tema.ciano; dica: "Hibernar"; clicou => { acao("hibernar"); } }
                     if a.estado != Estado.desligado && a.estado != Estado.desligando: Icone { glifo: "■"; cor: Tema.vermelho; dica: "Desligar"; clicou => { acao("desligar"); } }
+                    Icone { glifo: "⋯"; dica: "Mais: duplicar, grupo, apagar"; clicou => { acao("menu"); } }
                 }
             }
         }
@@ -176,6 +218,14 @@ component LinhaAparelho inherits Bloco {
 // Um quadro da mesa: cabeçalho, a tela do Android e a coluna de botões.
 component Quadro inherits Bloco {
     in property <Aparelho> a;
+    in property <length> celula;
+    // Deslocamento e aumento enquanto arrasta, em pixels; viram células ao soltar.
+    in-out property <length> desloc-x;
+    in-out property <length> desloc-y;
+    in-out property <length> extra-w;
+    in-out property <length> extra-h;
+    callback mover(int, int);
+    callback redimensionar(int, int);
     callback acao(string);
     callback toque(float, float, string);
     callback tecla(string);
@@ -184,11 +234,39 @@ component Quadro inherits Bloco {
 
     VerticalLayout {
         padding: 8px; spacing: 6px;
-        HorizontalLayout {
-            height: 22px; spacing: 6px;
-            Ponto { estado: a.estado; y: (parent.height - self.height) / 2; }
-            Text { text: a.nome; font-size: 13px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; overflow: elide; }
-            Text { text: a.mensagem; font-size: 11px; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; horizontal-alignment: right; overflow: elide; }
+        cabecalho := Rectangle {
+            height: 22px;
+            HorizontalLayout {
+                spacing: 6px;
+                Ponto { estado: a.estado; y: (parent.height - self.height) / 2; }
+                Text { text: a.nome; font-size: 13px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; overflow: elide; }
+                Text { text: a.mensagem; font-size: 11px; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; horizontal-alignment: right; overflow: elide; }
+            }
+            // Arrastar pelo título muda o lugar na grade.
+            // Só conta o arrasto que começou com o botão descendo aqui.
+            TouchArea {
+                property <bool> arrastando;
+                mouse-cursor: move;
+                moved => {
+                    if arrastando && self.pressed {
+                        root.desloc-x += self.mouse-x - self.pressed-x;
+                        root.desloc-y += self.mouse-y - self.pressed-y;
+                    }
+                }
+                pointer-event(e) => {
+                    if e.button == PointerEventButton.left && e.kind == PointerEventKind.down {
+                        arrastando = true;
+                        root.desloc-x = 0; root.desloc-y = 0;
+                    }
+                    if e.kind == PointerEventKind.up || e.kind == PointerEventKind.cancel {
+                        if arrastando && e.kind == PointerEventKind.up {
+                            root.mover(round(root.desloc-x / root.celula), round(root.desloc-y / root.celula));
+                        }
+                        arrastando = false;
+                        root.desloc-x = 0; root.desloc-y = 0;
+                    }
+                }
+            }
         }
         HorizontalLayout {
             spacing: 6px;
@@ -265,6 +343,104 @@ component Quadro inherits Bloco {
             }
         }
     }
+    // O canto inferior direito muda o tamanho, em células.
+    Rectangle {
+        x: parent.width - 18px; y: parent.height - 18px;
+        width: 16px; height: 16px;
+        Text { text: "◢"; font-size: 12px; color: Tema.tinta; opacity: 0.5; horizontal-alignment: center; vertical-alignment: center; }
+        TouchArea {
+            property <bool> puxando;
+            mouse-cursor: nwse-resize;
+            moved => {
+                if puxando && self.pressed {
+                    root.extra-w += self.mouse-x - self.pressed-x;
+                    root.extra-h += self.mouse-y - self.pressed-y;
+                }
+            }
+            pointer-event(e) => {
+                if e.button == PointerEventButton.left && e.kind == PointerEventKind.down {
+                    puxando = true;
+                    root.extra-w = 0; root.extra-h = 0;
+                }
+                if e.kind == PointerEventKind.up || e.kind == PointerEventKind.cancel {
+                    if puxando && e.kind == PointerEventKind.up {
+                        root.redimensionar(round(root.extra-w / root.celula), round(root.extra-h / root.celula));
+                    }
+                    puxando = false;
+                    root.extra-w = 0; root.extra-h = 0;
+                }
+            }
+        }
+    }
+}
+
+// Campo de texto no estilo da casa.
+component Campo inherits Bloco {
+    in property <string> dica;
+    in-out property <string> texto <=> entrada.text;
+    sombra: false;
+    height: 40px;
+    entrada := TextInput {
+        x: 12px; width: parent.width - 24px; height: parent.height;
+        vertical-alignment: center; font-size: 14px; color: Tema.tinta;
+        single-line: true;
+    }
+    if entrada.text == "": Text {
+        x: 12px; height: parent.height; text: dica; font-size: 14px; color: Tema.tinta; opacity: 0.45;
+        vertical-alignment: center;
+    }
+}
+
+// Fundo escuro e uma caixa por cima: as telas de Imagens, Licença, Novo aparelho.
+component Sobreposta inherits Rectangle {
+    in property <length> largura: 640px;
+    in property <length> altura: 560px;
+    callback fechar();
+    background: #000000a0;
+    TouchArea { clicked => { fechar(); } }
+    Bloco {
+        x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+        width: min(largura, parent.width - 32px); height: min(altura, parent.height - 32px);
+        TouchArea {}
+        @children
+    }
+}
+
+component CartaoPacote inherits Bloco {
+    in property <Pacote> p;
+    callback pacote(string);
+    height: p.nota != "" ? 96px : 74px;
+    HorizontalLayout {
+        padding: 12px; spacing: 10px;
+        VerticalLayout {
+            spacing: 2px; alignment: center;
+            Text { text: p.titulo; font-size: 14px; font-weight: 900; color: Tema.tinta; overflow: elide; }
+            Text { text: p.detalhe; font-size: 11px; color: Tema.tinta; opacity: 0.6; overflow: elide; }
+            Text { text: p.situacao; font-size: 11px; font-weight: 700; color: Tema.tinta; overflow: elide; }
+            if p.nota != "": Text { text: p.nota; font-size: 11px; color: Tema.tinta; opacity: 0.75; wrap: word-wrap; }
+        }
+        VerticalLayout {
+            alignment: center; spacing: 6px;
+            if p.ocupado: Botao { texto: "Cancelar"; clicou => { pacote("cancelar"); } }
+            if !p.ocupado && !p.instalado: Botao { texto: "Baixar"; cor: Tema.azul; clicou => { pacote("baixar"); } }
+            if !p.ocupado && p.atualizar: Botao { texto: "Atualizar"; cor: Tema.azul; ativo: !p.em-uso; dica: p.em-uso ? "Desligue os aparelhos que usam esta imagem" : "Atualizar"; clicou => { pacote("baixar"); } }
+            if !p.ocupado && p.instalado && !p.atualizar: Botao { texto: "Remover"; ativo: !p.em-uso; dica: p.em-uso ? "Desligue os aparelhos que usam esta imagem" : "Remover"; clicou => { pacote("remover"); } }
+        }
+    }
+}
+
+component CartaoOpcao inherits Bloco {
+    in property <Opcao> o;
+    in property <bool> escolhida;
+    callback escolher();
+    cor: escolhida ? Tema.azul : Tema.superficie;
+    height: 58px;
+    VerticalLayout {
+        padding-left: 12px; padding-right: 12px; alignment: center; spacing: 2px;
+        Text { text: o.titulo + (o.instalada ? "" : " · baixar"); font-size: 13px; font-weight: 900; color: escolhida ? Tema.tinta-sobre-acento : Tema.tinta; overflow: elide; }
+        Text { text: o.detalhe; font-size: 11px; color: escolhida ? Tema.tinta-sobre-acento : Tema.tinta; opacity: 0.7; overflow: elide; }
+    }
+    TouchArea { mouse-cursor: pointer; clicked => { escolher(); } }
 }
 
 export component AppWindow inherits Window {
@@ -277,11 +453,41 @@ export component AppWindow inherits Window {
     in property <string> versao;
     in property <[Aparelho]> aparelhos;
     in property <string> memoria;
+    in property <float> teto;
     in property <string> aviso;
     in property <bool> sem-emulador;
+    in property <int> selecionados;
+    // linhas ocupadas na grade (o maior y + h)
+    in property <int> linhas;
+    // "", "imagens", "licenca", "novo", "menu", "apagar", "grupo"
+    in-out property <string> tela;
+    in-out property <string> alvo;
+    in property <[Pacote]> pacotes;
+    in property <string> imagens-erro;
+    in property <bool> imagens-carregando;
+    in property <string> licenca-titulo;
+    in property <string> licenca-texto;
+    in property <[Opcao]> opcoes;
+    in-out property <int> novo-tipo;
+    in-out property <string> novo-imagem;
+    in property <string> novo-erro;
+    in property <string> novo-nota;
+    in property <bool> novo-ocupado;
     callback acao(string, string);
+    callback lote(string);
     callback toque(string, float, float, string);
     callback tecla(string, string);
+    callback mover(string, int, int);
+    callback redimensionar(string, int, int);
+    callback teto-mudou(int);
+    callback abrir-imagens();
+    callback pacote(string, string);
+    callback licenca(bool);
+    callback abrir-novo();
+    callback novo-tipo-mudou(int);
+    callback criar(int, string, string, string);
+    callback grupo(string, string);
+    callback apagar(string);
 
     HorizontalLayout {
         padding: 16px; spacing: 16px;
@@ -292,28 +498,66 @@ export component AppWindow inherits Window {
                 Text { text: "MultiDroid"; font-size: 26px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; }
                 Text { text: "Preview " + versao; font-size: 12px; font-weight: 700; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; }
             }
+            HorizontalLayout {
+                spacing: 10px;
+                Botao { texto: "+ Novo aparelho"; cor: Tema.azul; clicou => { abrir-novo(); } }
+                Botao { texto: "Imagens"; clicou => { abrir-imagens(); } }
+            }
             if memoria != "": Bloco {
-                height: 56px;
-                Text {
-                    x: 12px; width: parent.width - 24px; height: parent.height;
-                    text: memoria; font-size: 12px; font-weight: 700; color: Tema.tinta;
-                    vertical-alignment: center; wrap: word-wrap;
+                height: 96px;
+                VerticalLayout {
+                    padding: 12px; spacing: 8px;
+                    Text { text: memoria; font-size: 12px; font-weight: 700; color: Tema.tinta; wrap: word-wrap; }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { text: "Teto dos aparelhos"; font-size: 12px; font-weight: 800; color: Tema.tinta; vertical-alignment: center; }
+                        Icone { glifo: "−"; dica: "Diminuir o teto"; ativo: teto > 4; clicou => { teto-mudou(-1); } }
+                        Text { text: round(teto) + " GB"; font-size: 14px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; min-width: 48px; horizontal-alignment: center; }
+                        Icone { glifo: "+"; dica: "Aumentar o teto"; clicou => { teto-mudou(1); } }
+                    }
                 }
             }
             if sem-emulador: Bloco {
-                cor: Tema.amarelo; height: 64px;
-                Text {
-                    x: 12px; width: parent.width - 24px; height: parent.height;
-                    text: "Falta o emulador. Por enquanto, instale pela versão 0.2 do Mac; o instalador entra na etapa R-5.";
-                    font-size: 12px; font-weight: 700; color: Tema.tinta-sobre-acento; wrap: word-wrap; vertical-alignment: center;
+                cor: Tema.amarelo; height: 56px;
+                HorizontalLayout {
+                    padding: 10px; spacing: 8px;
+                    Text { text: "Falta o emulador para ligar os aparelhos."; font-size: 12px; font-weight: 700; color: Tema.tinta-sobre-acento; wrap: word-wrap; vertical-alignment: center; }
+                    Botao { texto: "Abrir Imagens"; cor: Tema.superficie; clicou => { abrir-imagens(); } }
                 }
             }
-            for a in aparelhos: LinhaAparelho {
-                a: a;
-                acao(o) => { root.acao(a.nome, o); }
+            if selecionados > 0: Bloco {
+                cor: Tema.amarelo; height: 92px;
+                VerticalLayout {
+                    padding: 10px; spacing: 8px;
+                    HorizontalLayout {
+                        Text { text: selecionados + (selecionados == 1 ? " selecionado" : " selecionados"); font-size: 12px; font-weight: 900; color: Tema.tinta-sobre-acento; vertical-alignment: center; }
+                        Botao { texto: "Limpar"; cor: Tema.superficie; tamanho-fonte: 12px; clicou => { lote("limpar"); } }
+                    }
+                    HorizontalLayout {
+                        spacing: 6px;
+                        Botao { texto: "Ligar"; cor: Tema.verde; tamanho-fonte: 12px; clicou => { lote("ligar"); } }
+                        Botao { texto: "Pausar"; cor: Tema.azul; tamanho-fonte: 12px; clicou => { lote("pausar"); } }
+                        Botao { texto: "Hibernar"; cor: Tema.ciano; tamanho-fonte: 12px; clicou => { lote("hibernar"); } }
+                        Botao { texto: "Desligar"; cor: Tema.vermelho; tamanho-fonte: 12px; clicou => { lote("desligar"); } }
+                    }
+                }
+            }
+            Flickable {
+                content-height: lista.preferred-height;
+                lista := VerticalLayout {
+                    spacing: 12px; alignment: start;
+                    padding-right: Tema.sombra-x; padding-bottom: Tema.sombra-y;
+                    for a in aparelhos: LinhaAparelho {
+                        a: a;
+                        acao(o) => {
+                            if o == "menu" { root.alvo = a.nome; root.tela = "menu"; }
+                            else { root.acao(a.nome, o); }
+                        }
+                    }
+                }
             }
             if aparelhos.length == 0: Text {
-                text: "Nenhum aparelho ainda. Crie um pela versão 0.2 do Mac; criar por aqui entra na etapa R-5.";
+                text: "Nenhum aparelho ainda. Crie o primeiro em + Novo aparelho.";
                 font-size: 13px; color: Tema.tinta; opacity: 0.6; wrap: word-wrap;
             }
             if aviso != "": Bloco {
@@ -324,18 +568,165 @@ export component AppWindow inherits Window {
                 }
             }
         }
-        mesa := Rectangle {
-            // Grade livre: 24 colunas de células quadradas que acompanham a janela.
+        mesa := Flickable {
+            // Grade livre: 24 colunas de células quadradas que acompanham a janela;
+            // rola na vertical quando os quadros passam da altura.
             property <length> celula: self.width / 24;
+            content-width: self.width;
+            content-height: max(self.height, linhas * celula + 20px);
             for a in aparelhos: Quadro {
-                x: a.x * mesa.celula;
-                y: a.y * mesa.celula;
-                width: a.w * mesa.celula - 10px;
-                height: a.h * mesa.celula - 10px;
+                x: a.x * mesa.celula + self.desloc-x;
+                y: a.y * mesa.celula + self.desloc-y;
+                width: max(4 * mesa.celula, a.w * mesa.celula + self.extra-w) - 10px;
+                height: max(5 * mesa.celula, a.h * mesa.celula + self.extra-h) - 10px;
+                z: self.desloc-x != 0 || self.desloc-y != 0 || self.extra-w != 0 || self.extra-h != 0 ? 10 : 0;
+                celula: mesa.celula;
                 a: a;
                 acao(o) => { root.acao(a.nome, o); }
                 toque(fx, fy, k) => { root.toque(a.nome, fx, fy, k); }
                 tecla(t) => { root.tecla(a.nome, t); }
+                mover(dx, dy) => { root.mover(a.nome, dx, dy); }
+                redimensionar(dw, dh) => { root.redimensionar(a.nome, dw, dh); }
+            }
+            if aparelhos.length == 0: VerticalLayout {
+                alignment: center;
+                Text { text: "A mesa está vazia."; font-size: 18px; font-weight: 900; color: Tema.tinta; horizontal-alignment: center; }
+                Text { text: sem-emulador ? "Baixe o emulador em Imagens e crie um aparelho." : "Crie um aparelho em + Novo aparelho."; font-size: 13px; color: Tema.tinta; opacity: 0.6; horizontal-alignment: center; }
+            }
+        }
+    }
+
+    if tela == "imagens": Sobreposta {
+        largura: 720px; altura: 640px;
+        fechar => { root.tela = ""; }
+        VerticalLayout {
+            padding: 20px; spacing: 12px; alignment: start;
+            HorizontalLayout {
+                Text { text: "Imagens"; font-size: 22px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; }
+                Botao { texto: "Fechar"; clicou => { root.tela = ""; } }
+            }
+            Text {
+                text: imagens-carregando ? "Lendo o repositório oficial…" : "O emulador e as imagens de sistema vêm do repositório oficial do Android, conferidos pelo SHA-1. Cada imagem tem a licença dela, que você aceita antes de baixar.";
+                font-size: 12px; color: Tema.tinta; opacity: 0.7; wrap: word-wrap;
+            }
+            if imagens-erro != "": Text { text: imagens-erro; font-size: 12px; font-weight: 700; color: Tema.vermelho; wrap: word-wrap; }
+            Flickable {
+                content-height: pl.preferred-height;
+                pl := VerticalLayout {
+                    spacing: 10px; padding-right: Tema.sombra-x; padding-bottom: Tema.sombra-y;
+                    for p in pacotes: CartaoPacote { p: p; pacote(a) => { root.pacote(p.path, a); } }
+                }
+            }
+        }
+    }
+
+    if tela == "licenca": Sobreposta {
+        largura: 720px; altura: 640px;
+        fechar => { root.licenca(false); }
+        VerticalLayout {
+            padding: 20px; spacing: 12px; alignment: start;
+            Text { text: "Licença: " + licenca-titulo; font-size: 18px; font-weight: 900; color: Tema.tinta; wrap: word-wrap; }
+            Text { text: "Para baixar, aceite a licença do pacote. O aceite fica gravado como o sdkmanager grava."; font-size: 12px; color: Tema.tinta; opacity: 0.7; wrap: word-wrap; }
+            Bloco {
+                sombra: false;
+                Flickable {
+                    x: 12px; width: parent.width - 24px;
+                    content-height: lt.preferred-height;
+                    lt := Text { width: parent.width; text: licenca-texto; font-size: 11px; color: Tema.tinta; wrap: word-wrap; }
+                }
+            }
+            HorizontalLayout {
+                spacing: 10px; alignment: end;
+                Botao { texto: "Recusar"; clicou => { root.licenca(false); } }
+                Botao { texto: "Aceitar e baixar"; cor: Tema.azul; clicou => { root.licenca(true); } }
+            }
+        }
+    }
+
+    if tela == "novo": Sobreposta {
+        largura: 620px; altura: 680px;
+        fechar => { root.tela = ""; }
+        property <[string]> tipos: ["Celular", "Tablet", "Dobrável", "Relógio"];
+        VerticalLayout {
+            padding: 20px; spacing: 12px; alignment: start;
+            Text { text: "Novo aparelho"; font-size: 22px; font-weight: 900; color: Tema.tinta; }
+            HorizontalLayout {
+                spacing: 10px;
+                for t[i] in tipos: Botao {
+                    horizontal-stretch: 1;
+                    texto: t; cor: novo-tipo == i ? Tema.azul : Tema.superficie;
+                    clicou => { root.novo-tipo = i; root.novo-tipo-mudou(i); }
+                }
+            }
+            if opcoes.length == 0: Text {
+                text: imagens-carregando ? "Procurando imagens no repositório…" : (imagens-erro != "" ? imagens-erro : "Nenhuma imagem para este tipo.");
+                font-size: 12px; font-weight: 700; color: Tema.tinta; wrap: word-wrap;
+            }
+            Flickable {
+                height: 230px;
+                content-height: ol.preferred-height;
+                ol := VerticalLayout {
+                    spacing: 8px; padding-right: Tema.sombra-x; padding-bottom: Tema.sombra-y;
+                    for o in opcoes: CartaoOpcao {
+                        o: o; escolhida: o.path == root.novo-imagem;
+                        escolher => { root.novo-imagem = o.path; }
+                    }
+                }
+            }
+            if novo-nota != "": Text { text: novo-nota; font-size: 11px; color: Tema.tinta; opacity: 0.75; wrap: word-wrap; }
+            nome := Campo { dica: "Nome (ex.: Conta-Trabalho)"; }
+            grupo := Campo { dica: "Grupo (opcional)"; }
+            if novo-erro != "": Text { text: novo-erro; font-size: 12px; font-weight: 700; color: Tema.vermelho; wrap: word-wrap; }
+            HorizontalLayout {
+                spacing: 10px; alignment: end;
+                Botao { texto: "Cancelar"; clicou => { root.tela = ""; } }
+                Botao {
+                    texto: novo-ocupado ? "Baixando…" : "Criar"; cor: Tema.azul; ativo: !novo-ocupado;
+                    clicou => { root.criar(root.novo-tipo, root.novo-imagem, nome.texto, grupo.texto); }
+                }
+            }
+        }
+    }
+
+    if tela == "menu": Sobreposta {
+        largura: 360px; altura: 270px;
+        fechar => { root.tela = ""; }
+        VerticalLayout {
+            padding: 20px; spacing: 10px; alignment: start;
+            Text { text: alvo; font-size: 20px; font-weight: 900; color: Tema.tinta; overflow: elide; }
+            Botao { texto: "Duplicar"; clicou => { root.tela = ""; root.acao(root.alvo, "duplicar"); } }
+            Botao { texto: "Grupo…"; clicou => { root.tela = "grupo"; } }
+            Botao { texto: "Apagar…"; cor: Tema.vermelho; clicou => { root.tela = "apagar"; } }
+            Botao { texto: "Cancelar"; clicou => { root.tela = ""; } }
+        }
+    }
+
+    if tela == "grupo": Sobreposta {
+        largura: 400px; altura: 230px;
+        fechar => { root.tela = ""; }
+        VerticalLayout {
+            padding: 20px; spacing: 12px; alignment: start;
+            Text { text: "Grupo de " + alvo; font-size: 18px; font-weight: 900; color: Tema.tinta; overflow: elide; }
+            g := Campo { dica: "Nome do grupo (vazio tira do grupo)"; }
+            HorizontalLayout {
+                spacing: 10px; alignment: end;
+                Botao { texto: "Cancelar"; clicou => { root.tela = ""; } }
+                Botao { texto: "Salvar"; cor: Tema.azul; clicou => { root.tela = ""; root.grupo(root.alvo, g.texto); } }
+            }
+        }
+    }
+
+    if tela == "apagar": Sobreposta {
+        largura: 440px; altura: 200px;
+        fechar => { root.tela = ""; }
+        VerticalLayout {
+            padding: 20px; spacing: 12px; alignment: start;
+            Text { text: "Apagar " + alvo + "?"; font-size: 18px; font-weight: 900; color: Tema.tinta; overflow: elide; }
+            Text { text: "O aparelho e tudo o que está nele (contas, apps, fotos) somem deste computador."; font-size: 13px; color: Tema.tinta; wrap: word-wrap; }
+            HorizontalLayout {
+                spacing: 10px; alignment: end;
+                Botao { texto: "Cancelar"; clicou => { root.tela = ""; } }
+                Botao { texto: "Apagar"; cor: Tema.vermelho; clicou => { root.tela = ""; root.apagar(root.alvo); } }
             }
         }
     }

@@ -16,6 +16,10 @@ pub fn home() -> PathBuf {
 /// Onde o MultiDroid guarda emulador, imagens, aparelhos e preferências.
 /// No Mac é a mesma pasta da 0.2, para a versão Rust abrir o que ela criou.
 pub fn data_dir() -> PathBuf {
+    // MULTIDROID_DATA troca a pasta (testes, ou dados em outro disco).
+    if let Some(d) = std::env::var_os("MULTIDROID_DATA") {
+        return PathBuf::from(d);
+    }
     let home = home();
     if cfg!(target_os = "macos") {
         home.join("Library/Application Support/MultiDroid")
@@ -46,6 +50,19 @@ pub fn memory_use_gb() -> (f64, f64) {
     let mut s = sysinfo::System::new();
     s.refresh_memory();
     (s.used_memory() as f64 / GIB, s.used_swap() as f64 / GIB)
+}
+
+/// Espaço livre no disco de `path`, em bytes (o disco cujo ponto de montagem é o
+/// prefixo mais longo do caminho). None se não souber.
+pub fn free_space(path: &Path) -> Option<u64> {
+    let disks = sysinfo::Disks::new_with_refreshed_list();
+    let p = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    disks
+        .list()
+        .iter()
+        .filter(|d| p.starts_with(d.mount_point()))
+        .max_by_key(|d| d.mount_point().as_os_str().len())
+        .map(|d| d.available_space())
 }
 
 /// Onde as capturas de tela vão: <Imagens>/MultiDroid.

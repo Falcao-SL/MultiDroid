@@ -51,7 +51,9 @@ fn instala_a_imagem_aosp_33_de_verdade() {
         .unwrap();
     let t = std::env::temp_dir().join("multidroid-teste-real");
     let _ = std::fs::remove_dir_all(&t);
-    let dst = multidroid_core::install::install(&pkg, &t.join("sdk"), &t, |_| {}).unwrap();
+    let dst =
+        multidroid_core::install::install(&pkg, &t.join("sdk"), &t, &Default::default(), |_| {})
+            .unwrap();
     assert!(dst.join("system.img").is_file());
     assert!(catalog::installed(&path, &t.join("sdk")).is_some());
     let _ = std::fs::remove_dir_all(&t);

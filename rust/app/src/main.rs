@@ -5,11 +5,14 @@
 
 slint::include_modules!();
 
+use multidroid_core::catalog::{Host, RemotePackage};
 use multidroid_core::devices::{self, Device, Kind};
 use multidroid_core::emulator::{self, LaunchOptions, Launched, Link, Processes};
-use multidroid_core::state::{MAIN_DESK, State};
+use multidroid_core::install;
+use multidroid_core::state::{MAIN_DESK, State, grid};
 use multidroid_core::{catalog, platform, screen, tokens};
 use slint::{Model, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, VecModel};
+use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -38,6 +41,7 @@ struct Dev {
     memoria: u64,
     cpu: f32,
     ultimo_uso: Instant,
+    selecionado: bool,
 }
 
 impl Dev {
@@ -57,6 +61,7 @@ impl Dev {
             memoria: 0,
             cpu: 0.0,
             ultimo_uso: Instant::now() - Duration::from_secs(3600),
+            selecionado: false,
         }
     }
 
@@ -65,11 +70,39 @@ impl Dev {
     }
 }
 
+/// Um aparelho a criar quando a imagem dele terminar de baixar.
+#[derive(Clone)]
+struct Criar {
+    kind: Kind,
+    image: String,
+    nome: String,
+    grupo: String,
+}
+
+/// A tela de Imagens: o que o repositório oferece, o que está instalado e os downloads.
+#[derive(Default)]
+struct Imagens {
+    remoto: Vec<RemotePackage>,
+    instalado: BTreeMap<String, String>,
+    /// path → (fração, fase)
+    progresso: HashMap<String, (f64, String)>,
+    cancelar: HashMap<String, Arc<AtomicBool>>,
+    erro: String,
+    carregando: bool,
+    lido: bool,
+    /// Pacote esperando o aceite da licença, e o aparelho a criar depois.
+    licenca: Option<(RemotePackage, Option<Criar>)>,
+    /// Aparelhos esperando a imagem baixar.
+    criar_depois: Vec<Criar>,
+}
+
 struct App {
     devs: Vec<Dev>,
     state: State,
     aviso: String,
     memoria: String,
+    img: Imagens,
+    novo_erro: String,
 }
 
 type Shared = Arc<Mutex<App>>;
@@ -141,7 +174,115 @@ fn linha(d: &Dev, st: &State) -> Aparelho {
             .unwrap_or_default(),
         tem_tela: d.quadro.is_some(),
         relogio: d.info.kind == Kind::Relogio,
+        selecionado: d.selecionado,
     }
+}
+
+fn host() -> Host {
+    Host::current()
+}
+
+fn mb(bytes: u64) -> String {
+    if bytes >= 1 << 30 {
+        gb(bytes)
+    } else {
+        format!("{} MB", bytes >> 20)
+    }
+}
+
+/// Em uso: o emulador por qualquer aparelho ligado; uma imagem pelos que a usam.
+fn em_uso(app: &App, path: &str) -> bool {
+    app.devs
+        .iter()
+        .any(|d| d.rodando() && (path == catalog::EMULATOR || d.info.image == path))
+}
+
+/// As linhas da tela de Imagens: o emulador primeiro, depois as imagens da mais nova à mais antiga.
+fn pacotes(app: &App) -> Vec<Pacote> {
+    let h = host();
+    let mut paths: Vec<String> = app.img.remoto.iter().map(|p| p.path.clone()).collect();
+    paths.extend(app.img.instalado.keys().cloned());
+    paths.sort();
+    paths.dedup();
+    paths.sort_by(|a, b| {
+        let k = |p: &str| (p != catalog::EMULATOR, -catalog::api_number(p, h));
+        k(a).partial_cmp(&k(b))
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then(b.cmp(a))
+    });
+    paths
+        .iter()
+        .map(|p| {
+            let remoto = app.img.remoto.iter().find(|r| &r.path == p);
+            let inst = app.img.instalado.get(p);
+            let prog = app.img.progresso.get(p);
+            let situacao = match (prog, inst, remoto) {
+                (Some((f, fase)), _, _) if fase == "baixando" => format!("Baixando {:.0}%", f * 100.0),
+                (Some((_, fase)), _, _) => format!("{fase}…"),
+                (None, Some(v), Some(r)) if &r.revision != v && !r.revision.is_empty() => {
+                    format!("Instalada · r{v} · nova r{} ({})", r.revision, mb(r.size))
+                }
+                (None, Some(v), _) => format!("Instalada · r{v}"),
+                (None, None, Some(r)) => mb(r.size),
+                (None, None, None) => String::new(),
+            };
+            Pacote {
+                path: p.as_str().into(),
+                titulo: catalog::title(p, h).into(),
+                detalhe: catalog::detail(p, h).into(),
+                nota: catalog::note(p, h).unwrap_or_default().into(),
+                situacao: situacao.into(),
+                instalado: inst.is_some(),
+                atualizar: matches!((inst, remoto), (Some(v), Some(r)) if &r.revision != v && !r.revision.is_empty()),
+                ocupado: prog.is_some(),
+                em_uso: em_uso(app, p),
+            }
+        })
+        .collect()
+}
+
+fn tipo_de(i: i32) -> Kind {
+    Kind::ALL
+        .get(i.max(0) as usize)
+        .copied()
+        .unwrap_or(Kind::Celular)
+}
+
+/// As imagens que servem para o tipo: instaladas primeiro, depois as do repositório.
+fn opcoes(app: &App, kind: Kind) -> Vec<Opcao> {
+    let h = host();
+    let wear = kind == Kind::Relogio;
+    let mut v: Vec<(bool, String)> = app
+        .img
+        .instalado
+        .keys()
+        .filter(|p| *p != catalog::EMULATOR && catalog::is_wear(p, h) == wear)
+        .map(|p| (true, p.clone()))
+        .collect();
+    for r in &app.img.remoto {
+        if r.path != catalog::EMULATOR
+            && catalog::is_wear(&r.path, h) == wear
+            && !app.img.instalado.contains_key(&r.path)
+        {
+            v.push((false, r.path.clone()));
+        }
+    }
+    v.sort_by(|a, b| {
+        b.0.cmp(&a.0).then(
+            catalog::api_number(&b.1, h)
+                .partial_cmp(&catalog::api_number(&a.1, h))
+                .unwrap_or(std::cmp::Ordering::Equal),
+        )
+    });
+    v.into_iter()
+        .map(|(inst, p)| Opcao {
+            path: p.as_str().into(),
+            titulo: catalog::title(&p, h).into(),
+            detalhe: catalog::detail(&p, h).into(),
+            nota: catalog::note(&p, h).unwrap_or_default().into(),
+            instalada: inst,
+        })
+        .collect()
 }
 
 /// Atualiza a interface a partir do estado (só na thread da interface).
@@ -172,6 +313,55 @@ fn sincronizar(app: &App, ui: &AppWindow) {
     }
     ui.set_aviso(app.aviso.as_str().into());
     ui.set_memoria(app.memoria.as_str().into());
+    ui.set_teto(app.state.ceiling_gb as f32);
+    ui.set_linhas(
+        app.state
+            .spots
+            .values()
+            .map(|s| s.y + s.h)
+            .max()
+            .unwrap_or(0),
+    );
+    ui.set_selecionados(app.devs.iter().filter(|d| d.selecionado).count() as i32);
+    ui.set_sem_emulador(!app.img.instalado.contains_key(catalog::EMULATOR));
+    ui.set_pacotes(ModelRc::new(VecModel::from(pacotes(app))));
+    ui.set_imagens_erro(app.img.erro.as_str().into());
+    ui.set_imagens_carregando(app.img.carregando);
+    let kind = tipo_de(ui.get_novo_tipo());
+    let ops = opcoes(app, kind);
+    if ui.get_novo_imagem().is_empty() || !ops.iter().any(|o| o.path == ui.get_novo_imagem()) {
+        let pref = catalog::default_image(kind == Kind::Relogio, host());
+        let escolha = ops
+            .iter()
+            .find(|o| o.path == pref.as_str() && o.instalada)
+            .or(ops.iter().find(|o| o.instalada))
+            .or(ops.iter().find(|o| o.path == pref.as_str()))
+            .or(ops.first())
+            .map(|o| o.path.clone())
+            .unwrap_or_default();
+        ui.set_novo_imagem(escolha);
+    }
+    let img = ui.get_novo_imagem().to_string();
+    let mut nota = catalog::note(&img, host()).unwrap_or_default();
+    if let Some(r) = app.img.remoto.iter().find(|r| r.path == img)
+        && !app.img.instalado.contains_key(&img)
+    {
+        nota = format!("{nota}\nBaixa {} antes de criar.", mb(r.size))
+            .trim()
+            .to_string();
+    }
+    let custo = format!("{:.1}", kind.estimate_gb()).replace('.', ",");
+    nota = format!("{nota}\nCusta cerca de {custo} GB de memória ligado.")
+        .trim()
+        .to_string();
+    ui.set_novo_nota(nota.as_str().into());
+    ui.set_opcoes(ModelRc::new(VecModel::from(ops)));
+    ui.set_novo_erro(app.novo_erro.as_str().into());
+    ui.set_novo_ocupado(app.img.progresso.contains_key(&img));
+    if let Some((p, _)) = &app.img.licenca {
+        ui.set_licenca_titulo(catalog::title(&p.path, host()).into());
+        ui.set_licenca_texto(p.license_text.as_str().into());
+    }
 }
 
 impl Ctx {
@@ -204,10 +394,77 @@ impl Ctx {
 
     // MARK: ligar e conectar
 
+    /// Memória que os ligados vão usar com `nome` também ligado, em GB.
+    fn projetado(app: &App, nome: &str) -> f64 {
+        let gib = (1u64 << 30) as f64;
+        app.devs
+            .iter()
+            .filter(|d| d.rodando() || d.info.name == nome)
+            .map(|d| (d.memoria as f64 / gib).max(d.info.kind.estimate_gb()))
+            .sum()
+    }
+
+    /// Liga (ou acorda) um aparelho. Se não couber no teto de memória, os aparelhos
+    /// sem uso há mais tempo hibernam antes, até caber.
     fn ligar(&self, nome: &str) {
+        let (cabe, teto) = {
+            let app = self.app.lock().unwrap();
+            (
+                Self::projetado(&app, nome) <= app.state.ceiling_gb,
+                app.state.ceiling_gb,
+            )
+        };
+        if cabe {
+            return self.abrir_emulador(nome);
+        }
+        self.com(nome, |d, _| d.mensagem = "abrindo espaço…".into());
+        self.avisar();
+        let c = self.clone();
+        let nome = nome.to_string();
+        self.rt.spawn(async move {
+            loop {
+                let vitima = {
+                    let app = c.app.lock().unwrap();
+                    if Self::projetado(&app, &nome) <= app.state.ceiling_gb {
+                        None
+                    } else {
+                        Some(
+                            app.devs
+                                .iter()
+                                .filter(|d| {
+                                    d.info.name != nome
+                                        && matches!(d.estado, Estado::Ligado | Estado::Pausado)
+                                })
+                                .min_by_key(|d| d.ultimo_uso)
+                                .map(|d| d.info.name.clone()),
+                        )
+                    }
+                };
+                match vitima {
+                    None => break,
+                    Some(None) => {
+                        c.com(&nome, |d, _| d.mensagem.clear());
+                        c.aviso(format!(
+                            "{nome} não liga: nem hibernando os outros cabe no teto de {teto:.0} GB"
+                        ));
+                        return;
+                    }
+                    Some(Some(v)) => {
+                        c.aviso(format!("{v} hibernou para {nome} ligar"));
+                        c.desligar_e_esperar(&v, true).await;
+                    }
+                }
+            }
+            c.com(&nome, |d, _| d.mensagem.clear());
+            let c2 = c.clone();
+            let _ = slint::invoke_from_event_loop(move || c2.abrir_emulador(&nome));
+        });
+    }
+
+    fn abrir_emulador(&self, nome: &str) {
         let sdk = devices::sdk_root();
         if catalog::installed(catalog::EMULATOR, &sdk).is_none() {
-            self.aviso("Falta o emulador: instale pela versão 0.2 por enquanto");
+            self.aviso("Baixe o emulador em Imagens antes de ligar");
             return;
         }
         let pronto = self.com(nome, |d, app| {
@@ -439,32 +696,53 @@ impl Ctx {
         };
         let c = self.clone();
         let nome = nome.to_string();
-        self.rt.spawn(async move {
-            tokio::task::spawn_blocking(move || emulator::shutdown(pid, console))
-                .await
-                .ok();
-            c.com(&nome, |d, _| {
-                if let Some(ch) = d.child.as_mut() {
-                    ch.alive();
-                }
-                d.child = None;
-                d.link = None;
-                d.pid = None;
-                d.console = None;
-                d.memoria = 0;
-                d.cpu = 0.0;
-                d.mensagem.clear();
-                d.estado = if hibernar {
-                    Estado::Hibernado
-                } else {
-                    Estado::Desligado
-                };
-                if !hibernar {
-                    d.quadro = None;
-                }
-            });
-            c.avisar();
+        self.rt
+            .spawn(async move { c.terminar(&nome, pid, console, hibernar).await });
+    }
+
+    /// Hibernar ou desligar e só voltar quando o processo saiu (para abrir espaço).
+    async fn desligar_e_esperar(&self, nome: &str, hibernar: bool) {
+        let alvo = self.com(nome, |d, _| {
+            if !matches!(d.estado, Estado::Ligado | Estado::Pausado) {
+                return None;
+            }
+            d.estado = Estado::Desligando;
+            if let Some(p) = d.parar_tela.take() {
+                p.store(true, Ordering::Relaxed);
+            }
+            Some((d.pid?, d.console?))
         });
+        self.avisar();
+        if let Some(Some((pid, console))) = alvo {
+            self.terminar(nome, pid, console, hibernar).await;
+        }
+    }
+
+    async fn terminar(&self, nome: &str, pid: u32, console: u16, hibernar: bool) {
+        tokio::task::spawn_blocking(move || emulator::shutdown(pid, console))
+            .await
+            .ok();
+        self.com(nome, |d, _| {
+            if let Some(ch) = d.child.as_mut() {
+                ch.alive();
+            }
+            d.child = None;
+            d.link = None;
+            d.pid = None;
+            d.console = None;
+            d.memoria = 0;
+            d.cpu = 0.0;
+            d.mensagem.clear();
+            d.estado = if hibernar {
+                Estado::Hibernado
+            } else {
+                Estado::Desligado
+            };
+            if !hibernar {
+                d.quadro = None;
+            }
+        });
+        self.avisar();
     }
 
     // MARK: botões, toque e teclado
@@ -488,6 +766,11 @@ impl Ctx {
             "retomar" => return self.pausar(nome, false),
             "hibernar" => return self.desligar(nome, true),
             "desligar" => return self.desligar(nome, false),
+            "selecionar" => {
+                self.com(nome, |d, _| d.selecionado = !d.selecionado);
+                return self.avisar();
+            }
+            "duplicar" => return self.duplicar(nome),
             _ => {}
         }
         let Some(link) = self.com_link(nome) else {
@@ -581,6 +864,409 @@ impl Ctx {
             match especial {
                 Some(k) => link.key(k).await,
                 None => link.type_text(&texto).await,
+            }
+        });
+    }
+
+    // MARK: lote, grade, teto
+
+    fn lote(&self, acao: &str) {
+        let nomes: Vec<String> = {
+            let mut app = self.app.lock().unwrap();
+            if acao == "limpar" {
+                app.devs.iter_mut().for_each(|d| d.selecionado = false);
+                drop(app);
+                return self.avisar();
+            }
+            app.devs
+                .iter()
+                .filter(|d| d.selecionado)
+                .map(|d| d.info.name.clone())
+                .collect()
+        };
+        for n in nomes {
+            self.acao(&n, acao);
+        }
+    }
+
+    fn salvar(app: &App) {
+        if let Err(e) = app.state.save(&state_path()) {
+            eprintln!("não salvou o state.json: {e}");
+        }
+    }
+
+    /// Arrasta (`crescer = false`) ou redimensiona um quadro, em células, e empurra para
+    /// baixo quem ficar embaixo.
+    fn mover(&self, nome: &str, dx: i32, dy: i32, crescer: bool) {
+        if dx == 0 && dy == 0 {
+            return self.avisar();
+        }
+        let mut app = self.app.lock().unwrap();
+        let Some(mut s) = app.state.spots.get(nome).copied() else {
+            return;
+        };
+        if crescer {
+            s.w = (s.w + dx).clamp(grid::MIN_W, grid::COLS - s.x);
+            s.h = (s.h + dy).max(grid::MIN_H);
+        } else {
+            s.x = (s.x + dx).clamp(0, grid::COLS - s.w);
+            s.y = (s.y + dy).max(0);
+        }
+        let mesa = app.state.desk_of(nome).to_string();
+        let mesmos: BTreeMap<String, _> = app
+            .state
+            .spots
+            .iter()
+            .filter(|(n, _)| app.state.desk_of(n) == mesa)
+            .map(|(n, v)| (n.clone(), *v))
+            .collect();
+        let novo = grid::place(nome, s, &mesmos);
+        app.state.spots.extend(novo);
+        Self::salvar(&app);
+        drop(app);
+        self.avisar();
+    }
+
+    fn teto(&self, passo: i32) {
+        let mut app = self.app.lock().unwrap();
+        let max = platform::physical_gb().floor();
+        app.state.ceiling_gb = (app.state.ceiling_gb + passo as f64).clamp(4.0, max);
+        Self::salvar(&app);
+        drop(app);
+        self.avisar();
+    }
+
+    // MARK: criar, duplicar, apagar, grupo
+
+    /// Relê a pasta de aparelhos sem perder o que está rodando.
+    fn recarregar(app: &mut App) {
+        let infos = devices::load(&devices::avd_home());
+        let mut velhos: Vec<Dev> = std::mem::take(&mut app.devs);
+        app.devs = infos
+            .into_iter()
+            .map(
+                |i| match velhos.iter().position(|d| d.info.name == i.name) {
+                    Some(k) => {
+                        let mut d = velhos.remove(k);
+                        d.info = i;
+                        d
+                    }
+                    None => Dev::new(i),
+                },
+            )
+            .collect();
+        let infos: Vec<Device> = app.devs.iter().map(|d| d.info.clone()).collect();
+        let nomes: Vec<String> = infos.iter().map(|d| d.name.clone()).collect();
+        app.state.order.retain(|n| nomes.contains(n));
+        for n in &nomes {
+            if !app.state.order.contains(n) {
+                app.state.order.push(n.clone());
+            }
+        }
+        let mut st = app.state.clone();
+        let mesa: Vec<&Device> = st
+            .ordered(&infos)
+            .into_iter()
+            .filter(|d| app.state.desk_of(&d.name) == MAIN_DESK)
+            .collect();
+        st.ensure_spots(&mesa);
+        app.state = st;
+        Self::salvar(app);
+    }
+
+    fn duplicar(&self, nome: &str) {
+        let mut app = self.app.lock().unwrap();
+        let Some(d) = app.devs.iter().find(|d| d.info.name == nome) else {
+            return;
+        };
+        if d.rodando() {
+            app.aviso = format!("Desligue {nome} antes de duplicar");
+            drop(app);
+            return self.avisar();
+        }
+        let info = d.info.clone();
+        let mut n = 2;
+        while app
+            .devs
+            .iter()
+            .any(|d| d.info.name == format!("{nome}-{n}"))
+        {
+            n += 1;
+        }
+        let novo = format!("{nome}-{n}");
+        match devices::duplicate(&devices::avd_home(), &info, &novo) {
+            Ok(()) => {
+                app.state.copy_from(nome, &novo);
+                Self::recarregar(&mut app);
+                app.aviso = format!("{novo} criado a partir de {nome}");
+            }
+            Err(e) => app.aviso = format!("Não duplicou: {e}"),
+        }
+        drop(app);
+        self.avisar();
+    }
+
+    fn apagar(&self, nome: &str) {
+        let mut app = self.app.lock().unwrap();
+        let Some(d) = app.devs.iter().find(|d| d.info.name == nome) else {
+            return;
+        };
+        if d.rodando() {
+            app.aviso = format!("Desligue {nome} antes de apagar");
+        } else {
+            let info = d.info.clone();
+            match devices::delete(&devices::avd_home(), &info) {
+                Ok(()) => {
+                    app.state.forget(nome);
+                    Self::recarregar(&mut app);
+                    app.aviso = format!("{nome} foi apagado");
+                }
+                Err(e) => app.aviso = format!("Não apagou: {e}"),
+            }
+        }
+        drop(app);
+        self.avisar();
+    }
+
+    fn grupo(&self, nome: &str, grupo: &str) {
+        let mut app = self.app.lock().unwrap();
+        let g = grupo.trim();
+        if g.is_empty() {
+            app.state.groups.remove(nome);
+        } else {
+            app.state.groups.insert(nome.into(), g.into());
+        }
+        Self::salvar(&app);
+        drop(app);
+        self.avisar();
+    }
+
+    fn criar(&self, c: Criar) {
+        let sdk = devices::sdk_root();
+        let mut app = self.app.lock().unwrap();
+        app.novo_erro.clear();
+        let nome = c.nome.trim().to_string();
+        if !devices::valid_name(&nome) {
+            app.novo_erro =
+                "Dê um nome com letras, números, ponto, hífen ou sublinhado (sem espaço).".into();
+        } else if app.devs.iter().any(|d| d.info.name == nome) {
+            app.novo_erro = "Já existe um aparelho com esse nome.".into();
+        } else if c.image.is_empty() {
+            app.novo_erro = "Escolha uma imagem.".into();
+        } else if catalog::installed(&c.image, &sdk).is_none() {
+            // Baixa a imagem antes (com a licença) e cria quando terminar.
+            drop(app);
+            let image = c.image.clone();
+            return self.baixar(&image, Some(Criar { nome, ..c }));
+        } else {
+            match devices::create(&devices::avd_home(), &sdk, &nome, c.kind, &c.image, host()) {
+                Ok(()) => {
+                    if !c.grupo.trim().is_empty() {
+                        app.state.groups.insert(nome.clone(), c.grupo.trim().into());
+                    }
+                    Self::recarregar(&mut app);
+                    app.aviso = format!("{nome} criado");
+                    drop(app);
+                    self.mostrar("");
+                    return self.avisar();
+                }
+                Err(e) => app.novo_erro = e,
+            }
+        }
+        drop(app);
+        self.avisar();
+    }
+
+    /// Troca a tela sobreposta ("" fecha).
+    fn mostrar(&self, tela: &'static str) {
+        let ui = self.ui.clone();
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Some(ui) = ui.upgrade() {
+                ui.set_tela(tela.into());
+            }
+        });
+    }
+
+    // MARK: imagens
+
+    fn ler_instalados(app: &mut App) {
+        let sdk = devices::sdk_root();
+        app.img.instalado = catalog::scan_installed(&sdk, host());
+        if let Some(v) = catalog::installed(catalog::EMULATOR, &sdk) {
+            app.img.instalado.insert(catalog::EMULATOR.into(), v);
+        }
+    }
+
+    /// Lê o repositório (uma vez por abertura do app, ou de novo se falhou).
+    fn ler_repositorio(&self) {
+        {
+            let mut app = self.app.lock().unwrap();
+            Self::ler_instalados(&mut app);
+            if app.img.carregando || (app.img.lido && app.img.erro.is_empty()) {
+                drop(app);
+                return self.avisar();
+            }
+            app.img.carregando = true;
+        }
+        self.avisar();
+        let c = self.clone();
+        self.rt.spawn(async move {
+            let (remoto, falhas) = tokio::task::spawn_blocking(|| install::fetch_remote(host()))
+                .await
+                .unwrap_or_default();
+            let mut app = c.app.lock().unwrap();
+            app.img.remoto = remoto;
+            app.img.erro = if falhas.is_empty() {
+                String::new()
+            } else {
+                format!("Não li do repositório: {}", falhas.join("; "))
+            };
+            app.img.carregando = false;
+            app.img.lido = true;
+            drop(app);
+            c.avisar();
+        });
+    }
+
+    fn pacote(&self, path: &str, acao: &str) {
+        match acao {
+            "baixar" => self.baixar(path, None),
+            "cancelar" => {
+                if let Some(f) = self.app.lock().unwrap().img.cancelar.get(path) {
+                    f.store(true, Ordering::Relaxed);
+                }
+            }
+            "remover" => {
+                let mut app = self.app.lock().unwrap();
+                if em_uso(&app, path) {
+                    app.aviso = "Desligue os aparelhos que usam esta imagem antes".into();
+                } else if let Err(e) = install::remove(path, &devices::sdk_root()) {
+                    app.aviso = format!("Não removeu: {e}");
+                }
+                Self::ler_instalados(&mut app);
+                drop(app);
+                self.avisar();
+            }
+            _ => {}
+        }
+    }
+
+    /// Pede o aceite da licença, se faltar, e baixa.
+    fn baixar(&self, path: &str, depois: Option<Criar>) {
+        let sdk = devices::sdk_root();
+        let mut app = self.app.lock().unwrap();
+        let Some(pkg) = app.img.remoto.iter().find(|r| r.path == path).cloned() else {
+            app.novo_erro =
+                "Esta imagem não está no repositório agora; tente de novo em Imagens.".into();
+            drop(app);
+            return self.avisar();
+        };
+        if em_uso(&app, path) {
+            app.aviso = "Desligue os aparelhos que usam esta imagem antes de atualizar".into();
+            drop(app);
+            return self.avisar();
+        }
+        if !install::accepted(&pkg, &sdk) {
+            app.img.licenca = Some((pkg, depois));
+            drop(app);
+            self.avisar();
+            return self.mostrar("licenca");
+        }
+        drop(app);
+        self.instalar(pkg, depois);
+    }
+
+    fn licenca(&self, aceitou: bool) {
+        let pend = self.app.lock().unwrap().img.licenca.take();
+        let Some((pkg, depois)) = pend else {
+            return self.mostrar("");
+        };
+        let volta = if depois.is_some() { "novo" } else { "imagens" };
+        if !aceitou {
+            return self.mostrar(volta);
+        }
+        if let Err(e) = install::accept(&pkg, &devices::sdk_root()) {
+            self.aviso(format!("Não gravou o aceite: {e}"));
+            return self.mostrar("");
+        }
+        self.mostrar(volta);
+        self.instalar(pkg, depois);
+    }
+
+    fn instalar(&self, pkg: RemotePackage, depois: Option<Criar>) {
+        let cancel = Arc::new(AtomicBool::new(false));
+        {
+            let mut app = self.app.lock().unwrap();
+            if let Some(d) = depois {
+                app.img.criar_depois.push(d);
+            }
+            if app.img.progresso.contains_key(&pkg.path) {
+                return;
+            }
+            app.img
+                .progresso
+                .insert(pkg.path.clone(), (0.0, "baixando".into()));
+            app.img.cancelar.insert(pkg.path.clone(), cancel.clone());
+        }
+        self.avisar();
+        let c = self.clone();
+        self.rt.spawn(async move {
+            let path = pkg.path.clone();
+            let c2 = c.clone();
+            let r = tokio::task::spawn_blocking(move || {
+                let sdk = devices::sdk_root();
+                let mut ultimo = -1.0;
+                let p = pkg.path.clone();
+                let work = platform::data_dir().join("downloads");
+                install::install(&pkg, &sdk, &work, &cancel, |f| {
+                    if f - ultimo >= 0.01 || f >= 1.0 {
+                        ultimo = f;
+                        let fase = if f >= 1.0 {
+                            "Conferindo e extraindo"
+                        } else {
+                            "baixando"
+                        };
+                        c2.app
+                            .lock()
+                            .unwrap()
+                            .img
+                            .progresso
+                            .insert(p.clone(), (f, fase.into()));
+                        c2.avisar();
+                    }
+                })
+            })
+            .await;
+            let erro = match r {
+                Ok(Ok(_)) => None,
+                Ok(Err(install::Error::Cancelled)) => Some(String::new()),
+                Ok(Err(e)) => Some(e.to_string()),
+                Err(e) => Some(e.to_string()),
+            };
+            let criar: Vec<Criar> = {
+                let mut app = c.app.lock().unwrap();
+                app.img.progresso.remove(&path);
+                app.img.cancelar.remove(&path);
+                Self::ler_instalados(&mut app);
+                let (prontos, resto): (Vec<Criar>, Vec<Criar>) =
+                    std::mem::take(&mut app.img.criar_depois)
+                        .into_iter()
+                        .partition(|d| d.image == path);
+                app.img.criar_depois = resto;
+                match &erro {
+                    Some(e) if !e.is_empty() => {
+                        app.aviso = format!("{}: {e}", catalog::title(&path, host()));
+                        app.novo_erro = app.aviso.clone();
+                        vec![]
+                    }
+                    Some(_) => vec![],
+                    None => prontos,
+                }
+            };
+            c.avisar();
+            for d in criar {
+                let c3 = c.clone();
+                let _ = slint::invoke_from_event_loop(move || c3.criar(d));
             }
         });
     }
@@ -690,8 +1376,10 @@ fn main() -> Result<(), slint::PlatformError> {
         state,
         aviso: String::new(),
         memoria: String::new(),
+        img: Imagens::default(),
+        novo_erro: String::new(),
     }));
-    ui.set_sem_emulador(catalog::installed(catalog::EMULATOR, &devices::sdk_root()).is_none());
+    Ctx::ler_instalados(&mut app.lock().unwrap());
     let ctx = Ctx {
         app: app.clone(),
         ui: ui.as_weak(),
@@ -705,6 +1393,57 @@ fn main() -> Result<(), slint::PlatformError> {
     ui.on_toque(move |n, x, y, k| c.toque(&n, x, y, &k));
     let c = ctx.clone();
     ui.on_tecla(move |n, t| c.tecla(&n, &t));
+    let c = ctx.clone();
+    ui.on_lote(move |a| c.lote(&a));
+    let c = ctx.clone();
+    ui.on_mover(move |n, dx, dy| c.mover(&n, dx, dy, false));
+    let c = ctx.clone();
+    ui.on_redimensionar(move |n, dw, dh| c.mover(&n, dw, dh, true));
+    let c = ctx.clone();
+    ui.on_teto_mudou(move |p| c.teto(p));
+    let c = ctx.clone();
+    let w = ui.as_weak();
+    ui.on_abrir_imagens(move || {
+        if let Some(ui) = w.upgrade() {
+            ui.set_tela("imagens".into());
+        }
+        c.ler_repositorio();
+    });
+    let c = ctx.clone();
+    ui.on_pacote(move |p, a| c.pacote(&p, &a));
+    let c = ctx.clone();
+    ui.on_licenca(move |ok| c.licenca(ok));
+    let c = ctx.clone();
+    let w = ui.as_weak();
+    ui.on_abrir_novo(move || {
+        if let Some(ui) = w.upgrade() {
+            c.app.lock().unwrap().novo_erro.clear();
+            ui.set_novo_imagem("".into());
+            ui.set_tela("novo".into());
+        }
+        c.ler_repositorio();
+    });
+    let c = ctx.clone();
+    let w = ui.as_weak();
+    ui.on_novo_tipo_mudou(move |_| {
+        if let Some(ui) = w.upgrade() {
+            ui.set_novo_imagem("".into());
+        }
+        c.avisar();
+    });
+    let c = ctx.clone();
+    ui.on_criar(move |t, img, nome, grupo| {
+        c.criar(Criar {
+            kind: tipo_de(t),
+            image: img.to_string(),
+            nome: nome.to_string(),
+            grupo: grupo.to_string(),
+        })
+    });
+    let c = ctx.clone();
+    ui.on_grupo(move |n, g| c.grupo(&n, &g));
+    let c = ctx.clone();
+    ui.on_apagar(move |n| c.apagar(&n));
 
     // Métricas e aparelhos abertos por fora, a cada 2 s, fora da interface.
     let c = ctx.clone();

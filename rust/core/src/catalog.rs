@@ -138,6 +138,60 @@ pub fn title(path: &str, host: Host) -> String {
     }
 }
 
+/// Uma linha sob o título: para que serve e o que vem junto.
+pub fn detail(path: &str, host: Host) -> String {
+    if path == EMULATOR {
+        return "Roda os aparelhos. Obrigatório.".into();
+    }
+    let Some((api, tag)) = parts(path, host) else {
+        return String::new();
+    };
+    let uso = if tag.starts_with("android-wear") {
+        "Relógio"
+    } else {
+        "Celular, tablet e dobrável"
+    };
+    let extra = match tag {
+        "google_apis_playstore" => " · com Play Store",
+        "google_apis" => " · sem Play Store; apps por APK",
+        "default" => " · sem nenhum app do Google; apps por APK",
+        _ => "",
+    };
+    format!("{uso} · API {api}{extra}")
+}
+
+/// A imagem sugerida ao criar cada tipo: Android 13, a mais leve medida.
+pub fn default_image(wear: bool, host: Host) -> String {
+    let tag = if wear {
+        "android-wear"
+    } else {
+        "google_apis_playstore"
+    };
+    format!("system-images;android-33;{tag};{}", host.abi)
+}
+
+/// O que a fase 0 mediu (MAC.md §3) e vale avisar antes de baixar.
+pub fn note(path: &str, host: Host) -> Option<String> {
+    let (api, tag) = parts(path, host)?;
+    let n: u32 = api.split('.').next()?.parse().ok()?;
+    let wear = tag.starts_with("android-wear");
+    Some(match (wear, tag, n) {
+        (false, "google_apis_playstore", 33) => {
+            "Recomendada: a mais leve, com Play Store (o emulador usa 2 GB de RAM; ~4,6 GB por celular).".into()
+        }
+        (false, "google_apis_playstore", 36) => {
+            "Recomendada: a mais nova que ainda é leve, com Play Store (2,5 GB de RAM; ~5,3 GB por celular).".into()
+        }
+        (true, _, 33) => "Recomendada: a única versão do Wear OS que liga neste emulador.".into(),
+        (true, _, n) if n > 33 => "Não ligou neste emulador nos testes do MultiDroid.".into(),
+        (_, _, n) if n >= 37 => "O emulador força 4 GB de RAM nesta versão: ~6,5 GB por celular.".into(),
+        (_, _, n) if n >= 34 => {
+            "O emulador força 2,5 GB de RAM nesta versão: ~0,7 GB a mais por celular que o Android 13.".into()
+        }
+        _ => return None,
+    })
+}
+
 /// Um pacote como o repositório o oferece.
 #[derive(Clone, Debug, PartialEq)]
 pub struct RemotePackage {
@@ -319,6 +373,40 @@ pub fn scan_installed(root: &Path, host: Host) -> BTreeMap<String, String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn notas_e_detalhes_como_na_02() {
+        let h = Host::MAC_ARM;
+        let play33 = default_image(false, h);
+        assert_eq!(
+            play33,
+            "system-images;android-33;google_apis_playstore;arm64-v8a"
+        );
+        assert!(
+            note(&play33, h)
+                .unwrap()
+                .starts_with("Recomendada: a mais leve")
+        );
+        assert!(
+            note("system-images;android-34;android-wear;arm64-v8a", h)
+                .unwrap()
+                .starts_with("Não ligou")
+        );
+        assert!(
+            note("system-images;android-37;default;arm64-v8a", h)
+                .unwrap()
+                .contains("4 GB")
+        );
+        assert_eq!(note("system-images;android-31;default;arm64-v8a", h), None);
+        assert_eq!(
+            detail("system-images;android-33;android-wear;arm64-v8a", h),
+            "Relógio · API 33"
+        );
+        assert_eq!(
+            default_image(true, Host::LINUX_X64),
+            "system-images;android-33;android-wear;x86_64"
+        );
+    }
+
     use super::*;
 
     const MAC: Host = Host::MAC_ARM;

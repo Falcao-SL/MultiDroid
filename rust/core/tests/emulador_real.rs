@@ -30,7 +30,7 @@ fn ensure(path: &str, list_url: &str, sdk: &Path, host: Host) {
         .unwrap_or_else(|| panic!("{path} não está no repositório"));
     eprintln!("baixando {path} ({} MB)", pkg.size >> 20);
     install::accept(&pkg, sdk).unwrap();
-    install::install(&pkg, sdk, &sdk.join(".work"), |_| {}).unwrap();
+    install::install(&pkg, sdk, &sdk.join(".work"), &Default::default(), |_| {}).unwrap();
 }
 
 #[tokio::test(flavor = "multi_thread")]
