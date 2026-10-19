@@ -46,7 +46,7 @@ celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 
 ## Mac, Windows e Linux (2026-10-18)
 
-Decidido: um código em Rust com interface Slint nos três sistemas ([`spec/MULTIPLATAFORMA.md`](../spec/MULTIPLATAFORMA.md)), em `rust/`. A 0.2 SwiftUI continua sendo a versão publicada no Mac até a Rust alcançá-la. Etapas R-0 e R-1 feitas: workspace, tokens, janela Slint, CI nos três sistemas, e o catálogo e o instalador de imagens em Rust (lê o que a 0.2 instalou, na mesma pasta).
+Decidido: um código em Rust com interface Slint nos três sistemas ([`spec/MULTIPLATAFORMA.md`](../spec/MULTIPLATAFORMA.md)), em `rust/`. A 0.2 SwiftUI continua sendo a versão publicada no Mac até a Rust alcançá-la. Etapas R-0 a R-5 feitas em código (2026-10-18): catálogo e instalador, aparelhos e o `state.json` da 0.2, emulador por gRPC, mesa com a tela por MMAP, Imagens, Novo aparelho, teto, lote e grade. O emulador real liga, pausa, mostra a tela e desliga no CI do Linux. A R-6 tem a fase 0 (8 Androids em Redroid no Linux, ~1,2 GB cada); a R-7 espera uma VM Windows x86_64 alugada. Os pacotes dos três sistemas saem por tag como "MultiDroid Preview" em pré-release (R-8). Pendente no Mac: ligar 4 celulares e 1 relógio e medir a memória, o que pede espaço em disco (o emulador quer 7,4 GB livres por aparelho novo).
 
 ## O que falta
 
