@@ -1,18 +1,19 @@
 # Status — MultiDroid
 
-> Atualizado em **2026-10-18**. Fonte única de "em que pé está".
+> Atualizado em **2026-10-21**. Fonte única de "em que pé está".
 
 | Campo | Valor |
 |---|---|
 | **Estágio** | **Publicado: 0.2 no GitHub Releases** (2026-10-18), código aberto. Fase 1 quase toda feita; fase 2 não começou |
-| **Plataformas** | macOS 26, Apple Silicon (só Mac) |
+| **Plataformas** | Publicado: macOS 26, Apple Silicon. Em pré-release: Mac, Windows e Linux pela versão Rust (Preview 0.3) |
 | **Stack** | Swift Package em `mac/`: SwiftUI + gRPC sobre o Android Emulator oficial |
 | **Versão** | 0.2 (build 2), assinada com Developer ID (`scripts/build-app.sh`); notarização e `.dmg` por `scripts/release.sh` |
 | **Identificador** | `com.falcaosl.multidroid` · Apple Team `6EZ89E2F5S` |
 | **Distribuição** | `.dmg` assinado e notarizado no GitHub Releases, fora da Mac App Store (decisão M-6); repositório público |
 | **Site** | https://multidroid.falcaosl.com (em `site/`, inglês) |
 | **Monetização** | **Nenhuma: código aberto, GPL-3.0** (2026-10-10; [MONETIZACAO.md](MONETIZACAO.md)) |
-| **Próximo marco** | Fechar o critério da fase 1: criar, duplicar e organizar 4 celulares + 1 relógio em menos de 5 minutos num Mac limpo |
+| **Versão Rust** | Preview 0.3 em `rust/` (Rust + Slint), inglês como língua principal e português como tradução. No Mac: 4 celulares + 1 relógio ligados com toque, teclas e texto, e memória igual à 0.2 (~115 MB com 5 aparelhos, renderizador por software), medidos em 2026-10-21. Linux (motor leve) só testado no CI sem tela; Windows sem aparelho ligado ainda. Ver [`../spec/MULTIPLATAFORMA.md`](../spec/MULTIPLATAFORMA.md) |
+| **Próximo marco** | Mac: várias mesas e importar do Android Studio pela interface, para a Rust substituir a 0.2. Linux e Windows: testar em máquinas nativas |
 
 Em 2026-10-09 o MultiDroid passou a ser só o app de Mac. O plano dos apps de
 celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
