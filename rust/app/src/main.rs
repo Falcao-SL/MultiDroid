@@ -1235,6 +1235,23 @@ impl Ctx {
         self.avisar();
     }
 
+    /// Organizar: encaixa os aparelhos da mesa principal em `linhas` linhas visíveis.
+    fn organizar(&self, linhas: i32) {
+        let mut app = self.app.lock().unwrap();
+        let infos: Vec<Device> = app.devs.iter().map(|d| d.info.clone()).collect();
+        let mut st = app.state.clone();
+        let mesa: Vec<&Device> = st
+            .ordered(&infos)
+            .into_iter()
+            .filter(|d| app.state.desk_of(&d.name) == MAIN_DESK)
+            .collect();
+        st.fit_spots(&mesa, linhas);
+        app.state = st;
+        Self::salvar(&app);
+        drop(app);
+        self.avisar();
+    }
+
     fn teto(&self, passo: i32) {
         let mut app = self.app.lock().unwrap();
         let max = platform::physical_gb().floor();
@@ -1772,6 +1789,8 @@ fn main() -> Result<(), slint::PlatformError> {
     ui.on_mover(move |n, dx, dy| c.mover(&n, dx, dy, false));
     let c = ctx.clone();
     ui.on_redimensionar(move |n, dw, dh| c.mover(&n, dw, dh, true));
+    let c = ctx.clone();
+    ui.on_organizar(move |linhas| c.organizar(linhas));
     let c = ctx.clone();
     ui.on_teto_mudou(move |p| c.teto(p));
     let c = ctx.clone();

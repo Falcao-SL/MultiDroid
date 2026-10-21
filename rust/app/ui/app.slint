@@ -511,6 +511,7 @@ export component AppWindow inherits Window {
     callback tecla(string, string);
     callback mover(string, int, int);
     callback redimensionar(string, int, int);
+    callback organizar(int);
     callback teto-mudou(int);
     callback abrir-imagens();
     callback pacote(string, string);
@@ -600,6 +601,17 @@ export component AppWindow inherits Window {
                 }
             }
         }
+        VerticalLayout {
+        spacing: 8px;
+        if aparelhos.length > 0: HorizontalLayout {
+            spacing: 10px; height: 36px;
+            Text { text: "Arraste pelo título · redimensione pelo canto"; font-size: 11px; font-weight: 700; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; overflow: elide; }
+            // Encaixa todos os quadros da mesa na altura visível da janela.
+            Botao {
+                texto: "Organizar"; tamanho-fonte: 12px;
+                clicou => { root.organizar(floor(mesa.height / mesa.celula)); }
+            }
+        }
         mesa := Flickable {
             // Grade livre: 24 colunas de células quadradas que acompanham a janela;
             // rola na vertical quando os quadros passam da altura.
@@ -625,6 +637,7 @@ export component AppWindow inherits Window {
                 Text { text: "A mesa está vazia."; font-size: 18px; font-weight: 900; color: Tema.tinta; horizontal-alignment: center; }
                 Text { text: sem-emulador ? "Baixe o emulador em Imagens e crie um aparelho." : "Crie um aparelho em + Novo aparelho."; font-size: 13px; color: Tema.tinta; opacity: 0.6; horizontal-alignment: center; }
             }
+        }
         }
     }
 

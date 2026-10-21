@@ -175,6 +175,14 @@ impl State {
         }
     }
 
+    /// Organizar a mesa para caber em `linhas` linhas visíveis (ver `grid::encaixar`).
+    pub fn fit_spots(&mut self, list: &[&Device], linhas: i32) {
+        let padroes: Vec<(i32, i32)> = list.iter().map(|d| d.kind.grid_size()).collect();
+        for (d, s) in list.iter().zip(grid::encaixar(&padroes, linhas)) {
+            self.spots.insert(d.name.clone(), s);
+        }
+    }
+
     /// Um aparelho novo ou duplicado herda grupo e mesa.
     pub fn copy_from(&mut self, from: &str, to: &str) {
         if let Some(g) = self.groups.get(from).cloned() {
@@ -215,6 +223,33 @@ pub mod grid {
             }
         }
         unreachable!()
+    }
+
+    /// Organizar: o maior tamanho em que todos os quadros cabem em `linhas`
+    /// linhas visíveis, mantendo a proporção do tamanho padrão de cada um e a
+    /// ordem da lista. Se nem no mínimo couberem, devolve o mínimo (a mesa rola).
+    pub fn encaixar(padroes: &[(i32, i32)], linhas: i32) -> Vec<Spot> {
+        let arrumar = |f: f64| -> Vec<Spot> {
+            let mut postos: Vec<Spot> = vec![];
+            for &(w, h) in padroes {
+                let w = ((w as f64 * f).round() as i32).clamp(MIN_W, COLS);
+                let h = ((h as f64 * f).round() as i32).max(MIN_H);
+                let s = first_free(w, h, &postos);
+                postos.push(s);
+            }
+            postos
+        };
+        let fundo = |v: &[Spot]| v.iter().map(|s| s.y + s.h).max().unwrap_or(0);
+        // De 4× o padrão para baixo, em passos de 2%: o primeiro que cabe é o maior.
+        let mut f = 4.0;
+        while f > 0.1 {
+            let v = arrumar(f);
+            if fundo(&v) <= linhas.max(MIN_H) {
+                return v;
+            }
+            f -= 0.02;
+        }
+        arrumar(0.0)
     }
 
     /// Põe `id` em `spot` e empurra para baixo, em cascata, quem colidir.
@@ -369,5 +404,36 @@ mod tests {
         assert_eq!(out["A"].y, 4);
         assert_eq!(out["B"].y, 18);
         assert_eq!(grid::first_free(30, 2, &[]).w, grid::COLS);
+    }
+
+    #[test]
+    fn encaixar_cabe_na_altura_e_nao_se_sobrepoe() {
+        // 4 celulares e 1 relógio em 19 linhas: no padrão (7×14) não cabem.
+        let padroes = [(7, 14), (7, 14), (7, 14), (7, 14), (6, 6)];
+        let v = grid::encaixar(&padroes, 19);
+        assert!(v.iter().all(|s| s.y + s.h <= 19), "{v:?}");
+        assert!(v.iter().all(|s| s.x + s.w <= grid::COLS));
+        for (i, a) in v.iter().enumerate() {
+            for b in &v[i + 1..] {
+                assert!(!a.intersects(b), "{a:?} {b:?}");
+            }
+        }
+        // Mantém a proporção dos celulares (1:2) e todos do mesmo tamanho.
+        assert!(v[..4].windows(2).all(|p| p[0].w == p[1].w && p[0].h == p[1].h));
+        assert!((v[0].h as f64 / v[0].w as f64 - 2.0).abs() < 0.35, "{:?}", v[0]);
+    }
+
+    #[test]
+    fn encaixar_aumenta_quando_sobra_espaco() {
+        // Um celular sozinho numa mesa alta cresce além do padrão.
+        let v = grid::encaixar(&[(7, 14)], 40);
+        assert!(v[0].h > 14 && v[0].h <= 40, "{v:?}");
+    }
+
+    #[test]
+    fn encaixar_usa_o_minimo_quando_nao_cabe() {
+        let padroes = vec![(7, 14); 30];
+        let v = grid::encaixar(&padroes, 6);
+        assert!(v.iter().all(|s| s.w == grid::MIN_W && s.h == grid::MIN_H), "{:?}", v[0]);
     }
 }
