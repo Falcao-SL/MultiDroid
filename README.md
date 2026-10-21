@@ -20,20 +20,20 @@ O MultiDroid não automatiza contas nem burla a verificação de integridade dos
 
 ![A mesa do MultiDroid com três celulares e um relógio ligados ao mesmo tempo, ao lado do painel com a memória e a CPU de cada aparelho](docs/screenshots/mesa-ligada.webp)
 
-*A mesa com três celulares e um relógio ligados ao mesmo tempo, num Mac de 24 GB. Cada quadro tem os botões do aparelho ao lado da tela: voltar, início, recentes, volume, girar, digitar, captura, pausar, hibernar e desligar.*
+*A mesa com três celulares e um relógio ligados ao mesmo tempo, num Mac de 24 GB. Cada quadro tem os botões do aparelho ao lado da tela: voltar, início, recentes, volume, girar, captura, pausar, hibernar e desligar; o ícone no canto de cima organiza a mesa para caber na janela.*
 
 <table>
 <tr>
-<td width="32%"><img src="docs/screenshots/painel.webp" alt="O painel com a memória do Mac, o teto de memória dos aparelhos e quatro aparelhos ligados com memória e CPU"></td>
-<td><img src="docs/screenshots/mesa-desligada.webp" alt="A mesa com os aparelhos desligados, cada um com o botão Ligar"></td>
+<td width="32%"><img src="docs/screenshots/painel.webp" alt="O painel com a memória do Mac, o teto de memória dos aparelhos e três celulares e um relógio ligados, com memória e CPU"></td>
+<td><img src="docs/screenshots/mesa-desligada.webp" alt="A mesa com os aparelhos desligados, cada um com o botão Start"></td>
 </tr>
 <tr>
 <td><em>O painel: memória do Mac, o teto dos aparelhos (acima dele o MultiDroid hiberna quem está há mais tempo sem uso) e cada aparelho com estado, memória e CPU.</em></td>
-<td><em>A mesma mesa com os aparelhos desligados: cada quadro mostra o tipo, a versão do Android e o botão Ligar.</em></td>
+<td><em>A mesma mesa com os aparelhos desligados: cada quadro mostra o botão Start (Ligar), e o painel, o tipo e a versão do Android.</em></td>
 </tr>
 </table>
 
-Capturas do app real (0.2), com imagens Android sem apps do Google. A 0.2 é em português; a versão Rust tem o inglês como língua principal (desde 2026-10-21).
+Capturas da MultiDroid Preview 0.3 (versão Rust, em inglês), de 2026-10-21: a interface real desenhada fora da tela pelo mesmo renderizador do app (`rust/app/examples/capturas.rs`), com as telas e a memória e a CPU medidas de quatro aparelhos ligados (Android 13 com Google Play e Wear OS 13). A 0.2, a versão publicada, é em português e muda pouco no visual.
 
 ## Funcionalidades
 

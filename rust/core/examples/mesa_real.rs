@@ -6,7 +6,8 @@
 //! na mesa principal do state.json. Com DEIXAR=1 os aparelhos ficam ligados, para
 //! um app (0.2 ou Rust) adotá-los e a memória dos dois ser comparada.
 //! CAPTURAS=<pasta> grava a tela de cada etapa; SO_DESLIGAR=1 só desliga os cinco;
-//! AGITAR=<s> mexe as cinco telas por s segundos (para medir o app desenhando).
+//! AGITAR=<s> mexe as cinco telas por s segundos (para medir o app desenhando);
+//! SO_LIGAR=1 só liga e sai; APENAS=Celular1,Relogio1 limita a esses.
 
 use multidroid_core::catalog::{self, EMULATOR, Host, REPO};
 use multidroid_core::devices::{self, Kind};
@@ -132,7 +133,12 @@ async fn main() {
     let mut ligados = vec![];
     let mut adotados = vec![];
     let rodando = Processes::new().emulators();
+    // APENAS=Celular1,Relogio1 limita a quais dos cinco o exemplo se aplica.
+    let apenas: Option<Vec<String>> = std::env::var("APENAS").ok().map(|v| v.split(',').map(str::to_string).collect());
     for (nome, kind) in APARELHOS {
+        if apenas.as_ref().is_some_and(|a| !a.iter().any(|n| n == nome)) {
+            continue;
+        }
         if let Some(r) = rodando.iter().find(|r| r.avd == nome) {
             eprintln!("{nome}: já ligado (pid {}), adotado", r.pid);
             adotados.push((nome, kind, r.pid, r.grpc.expect("sem porta gRPC"), r.console));
@@ -188,6 +194,14 @@ async fn main() {
         links.push((*nome, *kind, link));
     }
     eprintln!("os cinco ligados em {:?}", inicio.elapsed());
+
+    // SO_LIGAR=1: liga, espera o boot e sai deixando ligados.
+    if std::env::var_os("SO_LIGAR").is_some() {
+        for (_, _, l) in ligados {
+            std::mem::forget(l);
+        }
+        return;
+    }
 
     // AGITAR=<segundos>: alterna a tela de recentes nos cinco a cada segundo, para
     // medir o app desenhando cinco telas em movimento, e sai sem interagir mais.

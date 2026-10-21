@@ -1,0 +1,4 @@
+{
+  "prompt": "Origin: offscreen render of the real MultiDroid Preview 0.3 app UI (the Slint software renderer the app uses on Mac), made by rust/app/examples/capturas.rs with the live screens and the measured memory and CPU of four running Android Emulator devices (three Android 13 phones with Google Play and a Wear OS 13 watch). Not a window capture, not generated.",
+  "createdAt": "2026-10-21T14:50:52.000Z"
+}
