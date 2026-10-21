@@ -2972,6 +2972,7 @@ dependencies = [
  "png 0.17.16",
  "slint",
  "slint-build",
+ "sys-locale",
  "tokio",
 ]
 

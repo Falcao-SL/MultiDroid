@@ -87,7 +87,7 @@ pub fn clone_dir(src: &Path, dst: &Path) -> io::Result<()> {
     if dst.exists() {
         return Err(io::Error::new(
             io::ErrorKind::AlreadyExists,
-            "the destination already exists",
+            crate::idioma::t("the destination already exists"),
         ));
     }
     let cmd = if cfg!(target_os = "macos") {

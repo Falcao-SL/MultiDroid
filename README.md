@@ -88,7 +88,7 @@ Do [`docs/produto/STATUS.md`](docs/produto/STATUS.md) e de [`docs/spec/MAC.md`](
 - Desenho da tela por Metal (decisão M-2); hoje é desenhada como imagem no SwiftUI.
 - Versão Rust (Mac, Windows e Linux): Linux com motor leve feito e testado só no CI sem tela (R-6); Windows compila e empacota, mas nenhum aparelho ligou ainda (R-7); no Mac o app já gasta o mesmo que a 0.2 (~115 MB com 5 aparelhos, renderizador por software, medido em 2026-10-21); falta conferir a janela com 4 celulares e 1 relógio e fechar a R-5 (várias mesas, importar do Android Studio pela interface). Ver [`docs/spec/MULTIPLATAFORMA.md`](docs/spec/MULTIPLATAFORMA.md) §3. Os testes de Linux e Windows serão feitos em máquinas nativas.
 - Pipeline de build e release no GitHub Actions (a criar); Homebrew cask depois da primeira release notarizada.
-- Versão Rust em inglês; o português e outros idiomas entram como tradução (ainda não feita). A 0.2 segue em português. Revisar com advogado a licença das imagens do Google (o app não as redistribui: cada pessoa baixa do Google e aceita a licença).
+- Versão Rust: inglês como língua principal e português como tradução, escolhida pelo idioma do sistema (`MULTIDROID_LANG=en|pt` força uma). A interface usa `@tr` com `rust/app/translations/pt_BR`; as mensagens do Rust, `multidroid_core::idioma`. Texto novo precisa entrar nos dois. A 0.2 segue em português. Revisar com advogado a licença das imagens do Google (o app não as redistribui: cada pessoa baixa do Google e aceita a licença).
 
 Riscos registrados: licença das imagens Play e Wear, apps que bloqueiam emulador, memória em Macs de 8 a 16 GB e mudanças na API do emulador ([`MAC.md`](docs/spec/MAC.md) §5).
 

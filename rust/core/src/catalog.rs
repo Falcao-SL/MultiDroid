@@ -122,10 +122,10 @@ pub fn android_version(api: &str) -> String {
 /// Nome que a interface mostra (o mesmo texto do app SwiftUI).
 pub fn title(path: &str, host: Host) -> String {
     if path == EMULATOR {
-        return "Android Emulator".into();
+        return crate::idioma::t("Android Emulator").into();
     }
     if path == crate::adb::PLATFORM_TOOLS {
-        return "Platform tools (adb)".into();
+        return crate::idioma::t("Platform tools (adb)").into();
     }
     let Some((api, tag)) = parts(path, host) else {
         return path.into();
@@ -135,32 +135,32 @@ pub fn title(path: &str, host: Host) -> String {
         return format!("Wear OS (Android {v})");
     }
     match tag {
-        "google_apis_playstore" => format!("Android {v} with Google Play"),
-        "google_apis" => format!("Android {v} with Google APIs"),
-        _ => format!("Android {v} without Google (AOSP)"),
+        "google_apis_playstore" => crate::idioma::tf("Android {v} with Google Play", &[("v", &v)]),
+        "google_apis" => crate::idioma::tf("Android {v} with Google APIs", &[("v", &v)]),
+        _ => crate::idioma::tf("Android {v} without Google (AOSP)", &[("v", &v)]),
     }
 }
 
 /// Uma linha sob o título: para que serve e o que vem junto.
 pub fn detail(path: &str, host: Host) -> String {
     if path == EMULATOR {
-        return "Runs the devices. Required.".into();
+        return crate::idioma::t("Runs the devices. Required.").into();
     }
     if path == crate::adb::PLATFORM_TOOLS {
-        return "Connects the screen and touch of light devices (Redroid). Required for the light engine.".into();
+        return crate::idioma::t("Connects the screen and touch of light devices (Redroid). Required for the light engine.").into();
     }
     let Some((api, tag)) = parts(path, host) else {
         return String::new();
     };
     let uso = if tag.starts_with("android-wear") {
-        "Watch"
+        crate::idioma::t("Watch")
     } else {
-        "Phone, tablet and foldable"
+        crate::idioma::t("Phone, tablet and foldable")
     };
     let extra = match tag {
-        "google_apis_playstore" => " · with Play Store",
-        "google_apis" => " · no Play Store; apps by APK",
-        "default" => " · no Google apps at all; apps by APK",
+        "google_apis_playstore" => crate::idioma::t(" · with Play Store"),
+        "google_apis" => crate::idioma::t(" · no Play Store; apps by APK"),
+        "default" => crate::idioma::t(" · no Google apps at all; apps by APK"),
         _ => "",
     };
     format!("{uso} · API {api}{extra}")
@@ -183,16 +183,16 @@ pub fn note(path: &str, host: Host) -> Option<String> {
     let wear = tag.starts_with("android-wear");
     Some(match (wear, tag, n) {
         (false, "google_apis_playstore", 33) => {
-            "Recommended: the lightest, with Play Store (the emulator uses 2 GB of RAM; ~4.6 GB per phone).".into()
+            crate::idioma::t("Recommended: the lightest, with Play Store (the emulator uses 2 GB of RAM; ~4.6 GB per phone).").into()
         }
         (false, "google_apis_playstore", 36) => {
-            "Recommended: the newest that is still light, with Play Store (2.5 GB of RAM; ~5.3 GB per phone).".into()
+            crate::idioma::t("Recommended: the newest that is still light, with Play Store (2.5 GB of RAM; ~5.3 GB per phone).").into()
         }
-        (true, _, 33) => "Recommended: the only Wear OS version that starts on this emulator.".into(),
-        (true, _, n) if n > 33 => "Didn't start on this emulator in MultiDroid's tests.".into(),
-        (_, _, n) if n >= 37 => "The emulator forces 4 GB of RAM on this version: ~6.5 GB per phone.".into(),
+        (true, _, 33) => crate::idioma::t("Recommended: the only Wear OS version that starts on this emulator.").into(),
+        (true, _, n) if n > 33 => crate::idioma::t("Didn't start on this emulator in MultiDroid's tests.").into(),
+        (_, _, n) if n >= 37 => crate::idioma::t("The emulator forces 4 GB of RAM on this version: ~6.5 GB per phone.").into(),
         (_, _, n) if n >= 34 => {
-            "The emulator forces 2.5 GB of RAM on this version: ~0.7 GB more per phone than Android 13.".into()
+            crate::idioma::t("The emulator forces 2.5 GB of RAM on this version: ~0.7 GB more per phone than Android 13.").into()
         }
         _ => return None,
     })

@@ -9,6 +9,7 @@ use multidroid_core::adb::Adb;
 use multidroid_core::catalog::{Host, RemotePackage};
 use multidroid_core::devices::{self, Device, Kind};
 use multidroid_core::emulator::{self, LaunchOptions, Launched, Link, Processes};
+use multidroid_core::idioma;
 use multidroid_core::install;
 use multidroid_core::state::{MAIN_DESK, State, grid};
 use multidroid_core::{catalog, platform, screen, tokens};
@@ -254,7 +255,7 @@ fn state_path() -> std::path::PathBuf {
 }
 
 fn gb(bytes: u64) -> String {
-    format!("{:.1} GB", bytes as f64 / (1u64 << 30) as f64)
+    format!("{} GB", idioma::num(bytes as f64 / (1u64 << 30) as f64, 1))
 }
 
 /// Proporção da tela (largura / altura), girada se estiver em paisagem.
@@ -274,7 +275,7 @@ fn linha(d: &Dev, st: &State) -> Aparelho {
     Aparelho {
         nome: d.info.name.as_str().into(),
         tipo: if d.leve.is_some() {
-            format!("{} light", d.info.kind.display()).into()
+            idioma::tf("{kind} light", &[("kind", &d.info.kind.display())]).into()
         } else {
             d.info.kind.display().into()
         },
@@ -347,12 +348,12 @@ fn pacotes(app: &App) -> Vec<Pacote> {
             let inst = app.img.instalado.get(p);
             let prog = app.img.progresso.get(p);
             let situacao = match (prog, inst, remoto) {
-                (Some((f, fase)), _, _) if fase == "baixando" => format!("Downloading {:.0}%", f * 100.0),
-                (Some((_, fase)), _, _) => format!("{fase}…"),
+                (Some((f, fase)), _, _) if fase == "baixando" => idioma::tf("Downloading {pct}%", &[("pct", &format!("{:.0}", f * 100.0))]),
+                (Some((_, fase)), _, _) => format!("{}…", if fase == "Verifying and extracting" { idioma::t("Verifying and extracting") } else { fase.as_str() }),
                 (None, Some(v), Some(r)) if &r.revision != v && !r.revision.is_empty() => {
-                    format!("Installed · r{v} · new r{} ({})", r.revision, mb(r.size))
+                    idioma::tf("Installed · r{v} · new r{nova} ({mb})", &[("v", v), ("nova", &r.revision), ("mb", &mb(r.size))])
                 }
-                (None, Some(v), _) => format!("Installed · r{v}"),
+                (None, Some(v), _) => idioma::tf("Installed · r{v}", &[("v", v)]),
                 (None, None, Some(r)) => mb(r.size),
                 (None, None, None) => String::new(),
             };
@@ -476,12 +477,12 @@ fn sincronizar(app: &App, ui: &AppWindow) {
     if let Some(r) = app.img.remoto.iter().find(|r| r.path == img)
         && !app.img.instalado.contains_key(&img)
     {
-        nota = format!("{nota}\nDownloads {} before creating.", mb(r.size))
+        nota = format!("{nota}\n{}", idioma::tf("Downloads {mb} before creating.", &[("mb", &mb(r.size))]))
             .trim()
             .to_string();
     }
-    let custo = format!("{:.1}", kind.estimate_gb());
-    nota = format!("{nota}\nUses about {custo} GB of memory while on.")
+    let custo = idioma::num(kind.estimate_gb(), 1);
+    nota = format!("{nota}\n{}", idioma::tf("Uses about {custo} GB of memory while on.", &[("custo", &custo)]))
         .trim()
         .to_string();
     ui.set_novo_nota(nota.as_str().into());
@@ -547,7 +548,7 @@ impl Ctx {
         if cabe {
             return self.abrir_emulador(nome);
         }
-        self.com(nome, |d, _| d.mensagem = "making room…".into());
+        self.com(nome, |d, _| d.mensagem = idioma::t("making room…").into());
         self.avisar();
         let c = self.clone();
         let nome = nome.to_string();
@@ -574,13 +575,14 @@ impl Ctx {
                     None => break,
                     Some(None) => {
                         c.com(&nome, |d, _| d.mensagem.clear());
-                        c.aviso(format!(
-                            "{nome} can't start: it doesn't fit under the {teto:.0} GB ceiling even after hibernating the others"
+                        c.aviso(idioma::tf(
+                            "{nome} can't start: it doesn't fit under the {teto} GB ceiling even after hibernating the others",
+                            &[("nome", &nome), ("teto", &format!("{teto:.0}"))],
                         ));
                         return;
                     }
                     Some(Some(v)) => {
-                        c.aviso(format!("{v} hibernated so {nome} could start"));
+                        c.aviso(idioma::tf("{v} hibernated so {nome} could start", &[("v", &v), ("nome", &nome)]));
                         c.desligar_e_esperar(&v, true).await;
                     }
                 }
@@ -597,7 +599,7 @@ impl Ctx {
         }
         let sdk = devices::sdk_root();
         if catalog::installed(catalog::EMULATOR, &sdk).is_none() {
-            self.aviso("Download the emulator in Images before starting");
+            self.aviso(idioma::t("Download the emulator in Images before starting"));
             return;
         }
         let pronto = self.com(nome, |d, app| {
@@ -605,10 +607,9 @@ impl Ctx {
                 return Err(String::new());
             }
             if catalog::installed(&d.info.image, &sdk).is_none() {
-                return Err(format!(
-                    "{} uses {}, which isn't installed",
-                    d.info.name,
-                    catalog::title(&d.info.image, catalog::Host::current())
+                return Err(idioma::tf(
+                    "{nome} uses {imagem}, which isn't installed",
+                    &[("nome", &d.info.name), ("imagem", &catalog::title(&d.info.image, catalog::Host::current()))],
                 ));
             }
             let usadas: Vec<u16> = app.devs.iter().filter_map(|o| o.console).collect();
@@ -627,13 +628,13 @@ impl Ctx {
                 gpu: emulator::gpu_mode(),
             };
             let l = emulator::launch(&d.info.name, &fora, &opts)
-                .map_err(|e| format!("the emulator didn't open: {e}"))?;
+                .map_err(|e| idioma::tf("the emulator didn't open: {e}", &[("e", &e)]))?;
             let r = (l.pid(), l.grpc);
             d.pid = Some(l.pid());
             d.console = Some(l.console);
             d.child = Some(l);
             d.estado = Estado::Ligando;
-            d.mensagem = "starting…".into();
+            d.mensagem = idioma::t("starting…").into();
             d.ultimo_uso = Instant::now();
             Ok(r)
         });
@@ -668,7 +669,7 @@ impl Ctx {
             d.pid = None;
             d.console = None;
             d.child = None;
-            d.mensagem = "the emulator closed while starting".into();
+            d.mensagem = idioma::t("the emulator closed while starting").into();
         });
         self.avisar();
     }
@@ -677,7 +678,7 @@ impl Ctx {
         let link = match Link::connect(grpc, token).await {
             Ok(l) => l,
             Err(e) => {
-                self.com(nome, |d, _| d.mensagem = format!("no gRPC connection: {e}"));
+                self.com(nome, |d, _| d.mensagem = idioma::tf("no gRPC connection: {e}", &[("e", &e)]));
                 return self.avisar();
             }
         };
@@ -778,23 +779,23 @@ impl Ctx {
     /// Liga um aparelho leve: contêiner, boot pelo adb, sessão do scrcpy e quadros.
     fn ligar_leve(&self, nome: &str) {
         let Some(rt) = leve::runtime() else {
-            return self.aviso("The light engine needs Docker installed");
+            return self.aviso(idioma::t("The light engine needs Docker installed"));
         };
         if !leve::binder_ok() {
-            return self.aviso(
+            return self.aviso(idioma::t(
                 "The light engine needs binder in the kernel: sudo modprobe binder_linux devices=binder,hwbinder,vndbinder",
-            );
+            ));
         }
         let Some(adb) = Adb::from_sdk(&devices::sdk_root()) else {
             return self
-                .aviso("Download the platform tools (adb) in Images before starting");
+                .aviso(idioma::t("Download the platform tools (adb) in Images before starting"));
         };
         let Some(Some(l)) = self.com(nome, |d, _| {
             if d.rodando() && d.estado != Estado::Externo {
                 return None;
             }
             d.estado = Estado::Ligando;
-            d.mensagem = "starting…".into();
+            d.mensagem = idioma::t("starting…").into();
             d.ultimo_uso = Instant::now();
             d.leve.clone()
         }) else {
@@ -826,7 +827,7 @@ impl Ctx {
                         d.estado = Estado::Desligado;
                         d.mensagem = String::new();
                     });
-                    return c.aviso(format!("{nome} didn't start: {e}"));
+                    return c.aviso(idioma::tf("{nome} didn't start: {e}", &[("nome", &nome), ("e", &e)]));
                 }
             };
             let canal = CanalLeve {
@@ -843,7 +844,7 @@ impl Ctx {
             });
             c.avisar();
             let Ok(mut dec) = scrcpy::Decoder::new() else {
-                return c.aviso("the video decoder didn't open");
+                return c.aviso(idioma::t("the video decoder didn't open"));
             };
             while !parar.load(Ordering::Relaxed) {
                 let Ok(p) = s.read_packet() else { break };
@@ -891,7 +892,7 @@ impl Ctx {
         let n = nome.to_string();
         let r = tokio::task::spawn_blocking(move || match leve::runtime() {
             Some(rt) => leve::stop(rt, &n),
-            None => Err("no Podman or Docker".into()),
+            None => Err(idioma::t("no Podman or Docker").into()),
         })
         .await
         .unwrap_or_else(|e| Err(e.to_string()));
@@ -1119,9 +1120,9 @@ impl Ctx {
                         let ok = std::fs::create_dir_all(&dir).is_ok()
                             && std::fs::write(dir.join(format!("{nome}-{stamp}.png")), png).is_ok();
                         c.aviso(if ok {
-                            format!("Screenshot saved to {}", dir.display())
+                            idioma::tf("Screenshot saved to {pasta}", &[("pasta", &dir.display())])
                         } else {
-                            "The screenshot wasn't saved".into()
+                            idioma::t("The screenshot wasn't saved").into()
                         });
                     }
                 }
@@ -1305,12 +1306,12 @@ impl Ctx {
             return;
         };
         if d.rodando() {
-            app.aviso = format!("Shut down {nome} before duplicating");
+            app.aviso = idioma::tf("Shut down {nome} before duplicating", &[("nome", &nome)]);
             drop(app);
             return self.avisar();
         }
         if d.leve.is_some() {
-            app.aviso = "Duplicating doesn't work for light devices yet".into();
+            app.aviso = idioma::t("Duplicating doesn't work for light devices yet").into();
             drop(app);
             return self.avisar();
         }
@@ -1328,9 +1329,9 @@ impl Ctx {
             Ok(()) => {
                 app.state.copy_from(nome, &novo);
                 Self::recarregar(&mut app);
-                app.aviso = format!("{novo} created from {nome}");
+                app.aviso = idioma::tf("{novo} created from {nome}", &[("novo", &novo), ("nome", &nome)]);
             }
-            Err(e) => app.aviso = format!("Couldn't duplicate: {e}"),
+            Err(e) => app.aviso = idioma::tf("Couldn't duplicate: {e}", &[("e", &e)]),
         }
         drop(app);
         self.avisar();
@@ -1342,7 +1343,7 @@ impl Ctx {
             return;
         };
         if d.rodando() {
-            app.aviso = format!("Shut down {nome} before deleting");
+            app.aviso = idioma::tf("Shut down {nome} before deleting", &[("nome", &nome)]);
         } else {
             let info = d.info.clone();
             let r = if d.leve.is_some() {
@@ -1354,9 +1355,9 @@ impl Ctx {
                 Ok(()) => {
                     app.state.forget(nome);
                     Self::recarregar(&mut app);
-                    app.aviso = format!("{nome} was deleted");
+                    app.aviso = idioma::tf("{nome} was deleted", &[("nome", &nome)]);
                 }
-                Err(e) => app.aviso = format!("Couldn't delete: {e}"),
+                Err(e) => app.aviso = idioma::tf("Couldn't delete: {e}", &[("e", &e)]),
             }
         }
         drop(app);
@@ -1383,9 +1384,9 @@ impl Ctx {
         let nome = c.nome.trim().to_string();
         if !devices::valid_name(&nome) {
             app.novo_erro =
-                "Use a name with letters, numbers, dot, hyphen or underscore (no spaces).".into();
+                idioma::t("Use a name with letters, numbers, dot, hyphen or underscore (no spaces).").into();
         } else if app.devs.iter().any(|d| d.info.name == nome) {
-            app.novo_erro = "A device with that name already exists.".into();
+            app.novo_erro = idioma::t("A device with that name already exists.").into();
         } else if c.leve {
             match leve::create(&platform::data_dir(), &nome, c.kind) {
                 Ok(_) => {
@@ -1393,7 +1394,7 @@ impl Ctx {
                         app.state.groups.insert(nome.clone(), c.grupo.trim().into());
                     }
                     Self::recarregar(&mut app);
-                    app.aviso = format!("{nome} created on the light engine");
+                    app.aviso = idioma::tf("{nome} created on the light engine", &[("nome", &nome)]);
                     drop(app);
                     self.mostrar("");
                     return self.avisar();
@@ -1401,7 +1402,7 @@ impl Ctx {
                 Err(e) => app.novo_erro = e,
             }
         } else if c.image.is_empty() {
-            app.novo_erro = "Choose an image.".into();
+            app.novo_erro = idioma::t("Choose an image.").into();
         } else if catalog::installed(&c.image, &sdk).is_none() {
             // Baixa a imagem antes (com a licença) e cria quando terminar.
             drop(app);
@@ -1414,7 +1415,7 @@ impl Ctx {
                         app.state.groups.insert(nome.clone(), c.grupo.trim().into());
                     }
                     Self::recarregar(&mut app);
-                    app.aviso = format!("{nome} created");
+                    app.aviso = idioma::tf("{nome} created", &[("nome", &nome)]);
                     drop(app);
                     self.mostrar("");
                     return self.avisar();
@@ -1468,7 +1469,7 @@ impl Ctx {
             app.img.erro = if falhas.is_empty() {
                 String::new()
             } else {
-                format!("Couldn't read the repository: {}", falhas.join("; "))
+                idioma::tf("Couldn't read the repository: {falhas}", &[("falhas", &falhas.join("; "))])
             };
             app.img.carregando = false;
             app.img.lido = true;
@@ -1488,9 +1489,9 @@ impl Ctx {
             "remover" => {
                 let mut app = self.app.lock().unwrap();
                 if em_uso(&app, path) {
-                    app.aviso = "Shut down the devices that use this image first".into();
+                    app.aviso = idioma::t("Shut down the devices that use this image first").into();
                 } else if let Err(e) = install::remove(path, &devices::sdk_root()) {
-                    app.aviso = format!("Couldn't remove: {e}");
+                    app.aviso = idioma::tf("Couldn't remove: {e}", &[("e", &e)]);
                 }
                 Self::ler_instalados(&mut app);
                 drop(app);
@@ -1506,12 +1507,12 @@ impl Ctx {
         let mut app = self.app.lock().unwrap();
         let Some(pkg) = app.img.remoto.iter().find(|r| r.path == path).cloned() else {
             app.novo_erro =
-                "This image isn't in the repository right now; try again in Images.".into();
+                idioma::t("This image isn't in the repository right now; try again in Images.").into();
             drop(app);
             return self.avisar();
         };
         if em_uso(&app, path) {
-            app.aviso = "Shut down the devices that use this image before updating".into();
+            app.aviso = idioma::t("Shut down the devices that use this image before updating").into();
             drop(app);
             return self.avisar();
         }
@@ -1535,7 +1536,7 @@ impl Ctx {
             return self.mostrar(volta);
         }
         if let Err(e) = install::accept(&pkg, &devices::sdk_root()) {
-            self.aviso(format!("Couldn't record the acceptance: {e}"));
+            self.aviso(idioma::tf("Couldn't record the acceptance: {e}", &[("e", &e)]));
             return self.mostrar("");
         }
         self.mostrar(volta);
@@ -1702,13 +1703,15 @@ impl Ctx {
                 None => {}
             }
         }
-        app.memoria = format!(
-            "Computer memory: {:.1} of {:.0} GB\nDevices {} · swap {:.1} GB · ceiling {:.0} GB",
-            usada,
-            total,
-            gb(soma),
-            swap,
-            app.state.ceiling_gb
+        app.memoria = idioma::tf(
+            "Computer memory: {usada} of {total} GB\nDevices {aparelhos} · swap {swap} GB · ceiling {teto} GB",
+            &[
+                ("usada", &idioma::num(usada, 1)),
+                ("total", &idioma::num(total, 0)),
+                ("aparelhos", &gb(soma)),
+                ("swap", &idioma::num(swap, 1)),
+                ("teto", &idioma::num(app.state.ceiling_gb, 0)),
+            ],
         )
         .replace('.', ",");
     }
@@ -1727,6 +1730,15 @@ fn main() -> Result<(), slint::PlatformError> {
             .select()?;
     }
     let ui = AppWindow::new()?;
+    // Inglês é a língua principal; português quando o sistema está em português.
+    // MULTIDROID_LANG=en|pt força um dos dois. O Slint (@tr) e as mensagens do
+    // Rust (idioma::t) seguem a mesma escolha.
+    let pt = match std::env::var("MULTIDROID_LANG") {
+        Ok(l) => idioma::eh_portugues(&l),
+        Err(_) => sys_locale::get_locale().is_some_and(|l| idioma::eh_portugues(&l)),
+    };
+    idioma::usar_portugues(pt);
+    let _ = slint::select_bundled_translation(if pt { "pt_BR" } else { "en" });
     let tema = ui.global::<Tema>();
     // Tema escuro dos tokens, o mesmo das capturas da 0.2.
     let e = &t.cor.escuro;

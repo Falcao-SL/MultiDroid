@@ -48,6 +48,10 @@ fn main() {
     slint::platform::set_platform(Box::new(Fora(janela.clone()))).unwrap();
 
     let ui = AppWindow::new().unwrap();
+    // MULTIDROID_LANG=pt desenha em português, como o app num sistema em português.
+    let pt = std::env::var("MULTIDROID_LANG").is_ok_and(|l| multidroid_core::idioma::eh_portugues(&l));
+    multidroid_core::idioma::usar_portugues(pt);
+    let _ = slint::select_bundled_translation(if pt { "pt_BR" } else { "en" });
     // O tema escuro dos tokens, como no main.rs.
     let cor = |hex: &str| {
         let (r, g, b) = tokens::rgb(hex);

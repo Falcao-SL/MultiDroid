@@ -385,7 +385,7 @@ impl Link {
         let auth = Auth(
             format!("Bearer {token}")
                 .parse()
-                .map_err(|_| "invalid token".to_string())?,
+                .map_err(|_| crate::idioma::t("invalid token").to_string())?,
         );
         let api = EmulatorControllerClient::with_interceptor(channel, auth)
             // PNG de tela cheia passa dos 4 MB padrão.

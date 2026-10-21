@@ -3,6 +3,7 @@
 //! de zip, sem chamar `ditto` nem `unzip` (o ditto não lê alguns zips do repositório,
 //! como o do Wear OS 33 r04 e o do AOSP 33 r02).
 
+use crate::idioma as t;
 use crate::catalog::{self, RemotePackage};
 use sha1::{Digest, Sha1};
 use std::fs::{self, File};
@@ -25,17 +26,17 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Error::Io(e) => write!(f, "{e}"),
-            Error::Http(e) => write!(f, "o download falhou: {e}"),
+            Error::Http(e) => write!(f, "{}", t::tf("the download failed: {e}", &[("e", e)])),
             Error::Checksum { .. } => {
-                write!(f, "the downloaded file doesn't match the published SHA-1")
+                write!(f, "{}", t::t("the downloaded file doesn't match the published SHA-1"))
             }
-            Error::Zip(e) => write!(f, "couldn't extract the file: {e}"),
-            Error::Empty => write!(f, "arquivo vazio"),
-            Error::Cancelled => write!(f, "download cancelado"),
+            Error::Zip(e) => write!(f, "{}", t::tf("couldn't extract the file: {e}", &[("e", e)])),
+            Error::Empty => write!(f, "{}", t::t("empty file")),
+            Error::Cancelled => write!(f, "{}", t::t("download cancelled")),
             Error::NoSpace { needed } => write!(
                 f,
-                "not enough space: needs {:.1} GB free",
-                *needed as f64 / 1e9
+                "{}",
+                t::tf("not enough space: needs {gb} GB free", &[("gb", &t::num(*needed as f64 / 1e9, 1))])
             ),
         }
     }
@@ -117,7 +118,7 @@ pub fn fetch_remote(host: catalog::Host) -> (Vec<RemotePackage>, Vec<String>) {
             .map_err(|e| Error::Zip(e.to_string()))
     }) {
         Ok(Ok(Some(p))) => out.push(p),
-        Ok(Ok(None)) => falhas.push("emulator (not available for this system)".into()),
+        Ok(Ok(None)) => falhas.push(t::t("emulator (not available for this system)").into()),
         Ok(Err(e)) | Err(e) => falhas.push(format!("emulador ({e})")),
     }
     // O motor leve só existe no Linux, e é só ele que usa o adb.

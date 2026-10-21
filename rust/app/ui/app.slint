@@ -182,13 +182,13 @@ component Ponto inherits Rectangle {
 
 export global Rotulo {
     pure public function de(e: Estado) -> string {
-        if e == Estado.ligado { return "on"; }
-        if e == Estado.pausado { return "paused"; }
-        if e == Estado.hibernado { return "hibernating"; }
-        if e == Estado.ligando { return "starting…"; }
-        if e == Estado.desligando { return "shutting down…"; }
-        if e == Estado.externo { return "opened outside MultiDroid"; }
-        return "off";
+        if e == Estado.ligado { return @tr("on"); }
+        if e == Estado.pausado { return @tr("paused"); }
+        if e == Estado.hibernado { return @tr("hibernating"); }
+        if e == Estado.ligando { return @tr("starting…"); }
+        if e == Estado.desligando { return @tr("shutting down…"); }
+        if e == Estado.externo { return @tr("opened outside MultiDroid"); }
+        return @tr("off");
     }
 }
 
@@ -231,12 +231,12 @@ component LinhaAparelho inherits Bloco {
             spacing: 6px; alignment: end;
             VerticalLayout { alignment: center;
                 HorizontalLayout { spacing: 6px;
-                    if a.estado == Estado.desligado || a.estado == Estado.hibernado: Icone { icone: @image-url("../icons/ui/retomar.svg"); cor: Tema.verde; dica: "Start"; clicou => { acao("ligar"); } }
-                    if a.estado == Estado.ligado: Icone { icone: @image-url("../icons/ui/pausar.svg"); cor: Tema.azul; dica: "Pause"; clicou => { acao("pausar"); } }
-                    if a.estado == Estado.pausado: Icone { icone: @image-url("../icons/ui/retomar.svg"); cor: Tema.verde; dica: "Resume"; clicou => { acao("retomar"); } }
-                    if a.estado == Estado.ligado || a.estado == Estado.pausado: Icone { icone: @image-url("../icons/ui/hibernar.svg"); cor: Tema.ciano; dica: "Hibernate"; clicou => { acao("hibernar"); } }
-                    if a.estado != Estado.desligado && a.estado != Estado.desligando: Icone { icone: @image-url("../icons/ui/desligar.svg"); cor: Tema.vermelho; dica: "Shut down"; clicou => { acao("desligar"); } }
-                    Icone { icone: @image-url("../icons/ui/mais.svg"); dica: "More: duplicate, group, delete"; clicou => { acao("menu"); } }
+                    if a.estado == Estado.desligado || a.estado == Estado.hibernado: Icone { icone: @image-url("../icons/ui/retomar.svg"); cor: Tema.verde; dica: @tr("Start"); clicou => { acao("ligar"); } }
+                    if a.estado == Estado.ligado: Icone { icone: @image-url("../icons/ui/pausar.svg"); cor: Tema.azul; dica: @tr("Pause"); clicou => { acao("pausar"); } }
+                    if a.estado == Estado.pausado: Icone { icone: @image-url("../icons/ui/retomar.svg"); cor: Tema.verde; dica: @tr("Resume"); clicou => { acao("retomar"); } }
+                    if a.estado == Estado.ligado || a.estado == Estado.pausado: Icone { icone: @image-url("../icons/ui/hibernar.svg"); cor: Tema.ciano; dica: @tr("Hibernate"); clicou => { acao("hibernar"); } }
+                    if a.estado != Estado.desligado && a.estado != Estado.desligando: Icone { icone: @image-url("../icons/ui/desligar.svg"); cor: Tema.vermelho; dica: @tr("Shut down"); clicou => { acao("desligar"); } }
+                    Icone { icone: @image-url("../icons/ui/mais.svg"); dica: @tr("More: duplicate, group, delete"); clicou => { acao("menu"); } }
                 }
             }
         }
@@ -250,13 +250,13 @@ component BotoesNavegacao inherits VerticalLayout {
     in property <length> lado: 30px;
     callback acao(string);
     spacing: 5px; alignment: start;
-    Icone { lado: root.lado; icone: @image-url("../icons/ui/voltar.svg"); dica: "Back"; ativo: vivo; clicou => { acao("voltar"); } }
-    Icone { lado: root.lado; icone: @image-url("../icons/ui/inicio.svg"); dica: "Home"; ativo: vivo; clicou => { acao("inicio"); } }
-    Icone { lado: root.lado; icone: @image-url("../icons/ui/recentes.svg"); dica: "Recents"; ativo: vivo; clicou => { acao("recentes"); } }
-    Icone { lado: root.lado; icone: @image-url("../icons/ui/volume-mais.svg"); dica: "Volume +"; ativo: vivo; clicou => { acao("volume+"); } }
-    Icone { lado: root.lado; icone: @image-url("../icons/ui/volume-menos.svg"); dica: "Volume −"; ativo: vivo; clicou => { acao("volume-"); } }
-    if !a.relogio: Icone { lado: root.lado; icone: @image-url("../icons/ui/girar.svg"); dica: "Rotate"; ativo: vivo; clicou => { acao("girar"); } }
-    Icone { lado: root.lado; icone: @image-url("../icons/ui/captura.svg"); dica: "Screenshot"; ativo: vivo; clicou => { acao("captura"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/voltar.svg"); dica: @tr("Back"); ativo: vivo; clicou => { acao("voltar"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/inicio.svg"); dica: @tr("Home"); ativo: vivo; clicou => { acao("inicio"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/recentes.svg"); dica: @tr("Recents"); ativo: vivo; clicou => { acao("recentes"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/volume-mais.svg"); dica: @tr("Volume +"); ativo: vivo; clicou => { acao("volume+"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/volume-menos.svg"); dica: @tr("Volume −"); ativo: vivo; clicou => { acao("volume-"); } }
+    if !a.relogio: Icone { lado: root.lado; icone: @image-url("../icons/ui/girar.svg"); dica: @tr("Rotate"); ativo: vivo; clicou => { acao("girar"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/captura.svg"); dica: @tr("Screenshot"); ativo: vivo; clicou => { acao("captura"); } }
 }
 
 // Pausar ou retomar, hibernar e desligar.
@@ -265,10 +265,10 @@ component BotoesEstado inherits VerticalLayout {
     in property <length> lado: 30px;
     callback acao(string);
     spacing: 5px; alignment: start;
-    if a.estado == Estado.ligado: Icone { lado: root.lado; icone: @image-url("../icons/ui/pausar.svg"); cor: Tema.azul; dica: "Pause"; clicou => { acao("pausar"); } }
-    if a.estado == Estado.pausado: Icone { lado: root.lado; icone: @image-url("../icons/ui/retomar.svg"); cor: Tema.verde; dica: "Resume"; clicou => { acao("retomar"); } }
-    Icone { lado: root.lado; icone: @image-url("../icons/ui/hibernar.svg"); cor: Tema.ciano; dica: "Hibernate: frees the memory and keeps the state"; clicou => { acao("hibernar"); } }
-    Icone { lado: root.lado; icone: @image-url("../icons/ui/desligar.svg"); cor: Tema.vermelho; dica: "Shut down"; clicou => { acao("desligar"); } }
+    if a.estado == Estado.ligado: Icone { lado: root.lado; icone: @image-url("../icons/ui/pausar.svg"); cor: Tema.azul; dica: @tr("Pause"); clicou => { acao("pausar"); } }
+    if a.estado == Estado.pausado: Icone { lado: root.lado; icone: @image-url("../icons/ui/retomar.svg"); cor: Tema.verde; dica: @tr("Resume"); clicou => { acao("retomar"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/hibernar.svg"); cor: Tema.ciano; dica: @tr("Hibernate: frees the memory and keeps the state"); clicou => { acao("hibernar"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/desligar.svg"); cor: Tema.vermelho; dica: @tr("Shut down"); clicou => { acao("desligar"); } }
 }
 
 // Um quadro da mesa: cabeçalho, a tela do Android e a coluna de botões.
@@ -386,7 +386,7 @@ component Quadro inherits Bloco {
                     alignment: center;
                     HorizontalLayout { alignment: center;
                         Botao {
-                            texto: a.estado == Estado.hibernado ? "Wake" : "Start";
+                            texto: a.estado == Estado.hibernado ? @tr("Wake") : @tr("Start");
                             cor: a.estado == Estado.hibernado ? Tema.ciano : Tema.verde;
                             clicou => { acao("ligar"); }
                         }
@@ -395,7 +395,7 @@ component Quadro inherits Bloco {
                 if a.estado == Estado.pausado: VerticalLayout {
                     alignment: center;
                     HorizontalLayout { alignment: center;
-                        Botao { texto: "Resume"; cor: Tema.verde; clicou => { acao("retomar"); } }
+                        Botao { texto: @tr("Resume"); cor: Tema.verde; clicou => { acao("retomar"); } }
                     }
                 }
             }
@@ -493,10 +493,10 @@ component CartaoPacote inherits Bloco {
         }
         VerticalLayout {
             alignment: center; spacing: 6px;
-            if p.ocupado: Botao { texto: "Cancel"; clicou => { pacote("cancelar"); } }
-            if !p.ocupado && !p.instalado: Botao { texto: "Download"; cor: Tema.azul; clicou => { pacote("baixar"); } }
-            if !p.ocupado && p.atualizar: Botao { texto: "Update"; cor: Tema.azul; ativo: !p.em-uso; dica: p.em-uso ? "Shut down the devices that use this image" : "Update"; clicou => { pacote("baixar"); } }
-            if !p.ocupado && p.instalado && !p.atualizar: Botao { texto: "Remove"; ativo: !p.em-uso; dica: p.em-uso ? "Shut down the devices that use this image" : "Remove"; clicou => { pacote("remover"); } }
+            if p.ocupado: Botao { texto: @tr("Cancel"); clicou => { pacote("cancelar"); } }
+            if !p.ocupado && !p.instalado: Botao { texto: @tr("Download"); cor: Tema.azul; clicou => { pacote("baixar"); } }
+            if !p.ocupado && p.atualizar: Botao { texto: @tr("Update"); cor: Tema.azul; ativo: !p.em-uso; dica: p.em-uso ? @tr("Shut down the devices that use this image") : @tr("Update"); clicou => { pacote("baixar"); } }
+            if !p.ocupado && p.instalado && !p.atualizar: Botao { texto: @tr("Remove"); ativo: !p.em-uso; dica: p.em-uso ? @tr("Shut down the devices that use this image") : @tr("Remove"); clicou => { pacote("remover"); } }
         }
     }
 }
@@ -509,7 +509,7 @@ component CartaoOpcao inherits Bloco {
     height: 58px;
     VerticalLayout {
         padding-left: 12px; padding-right: 12px; alignment: center; spacing: 2px;
-        Text { text: o.titulo + (o.instalada ? "" : " · download"); font-size: 13px; font-weight: 900; color: escolhida ? Tema.tinta-sobre-acento : Tema.tinta; overflow: elide; }
+        Text { text: o.instalada ? o.titulo : @tr("{} · download", o.titulo); font-size: 13px; font-weight: 900; color: escolhida ? Tema.tinta-sobre-acento : Tema.tinta; overflow: elide; }
         Text { text: o.detalhe; font-size: 11px; color: escolhida ? Tema.tinta-sobre-acento : Tema.tinta; opacity: 0.7; overflow: elide; }
     }
     TouchArea { mouse-cursor: pointer; clicked => { escolher(); } }
@@ -572,12 +572,12 @@ export component AppWindow inherits Window {
             HorizontalLayout {
                 spacing: 10px;
                 Text { text: "MultiDroid"; font-size: 26px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; }
-                Text { text: "Preview " + versao; font-size: 12px; font-weight: 700; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; }
+                Text { text: @tr("Preview {}", versao); font-size: 12px; font-weight: 700; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; }
             }
             HorizontalLayout {
                 spacing: 10px;
-                Botao { texto: "+ New device"; cor: Tema.azul; clicou => { abrir-novo(); } }
-                Botao { texto: "Images"; clicou => { abrir-imagens(); } }
+                Botao { texto: @tr("+ New device"); cor: Tema.azul; clicou => { abrir-novo(); } }
+                Botao { texto: @tr("Images"); clicou => { abrir-imagens(); } }
             }
             if memoria != "": Bloco {
                 height: 96px;
@@ -586,10 +586,10 @@ export component AppWindow inherits Window {
                     Text { text: memoria; font-size: 12px; font-weight: 700; color: Tema.tinta; wrap: word-wrap; }
                     HorizontalLayout {
                         spacing: 8px;
-                        Text { text: "Memory ceiling"; font-size: 12px; font-weight: 800; color: Tema.tinta; vertical-alignment: center; }
-                        Icone { icone: @image-url("../icons/ui/volume-menos.svg"); dica: "Lower the ceiling"; ativo: teto > 4; clicou => { teto-mudou(-1); } }
+                        Text { text: @tr("Memory ceiling"); font-size: 12px; font-weight: 800; color: Tema.tinta; vertical-alignment: center; }
+                        Icone { icone: @image-url("../icons/ui/volume-menos.svg"); dica: @tr("Lower the ceiling"); ativo: teto > 4; clicou => { teto-mudou(-1); } }
                         Text { text: round(teto) + " GB"; font-size: 14px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; min-width: 48px; horizontal-alignment: center; }
-                        Icone { icone: @image-url("../icons/ui/volume-mais.svg"); dica: "Raise the ceiling"; clicou => { teto-mudou(1); } }
+                        Icone { icone: @image-url("../icons/ui/volume-mais.svg"); dica: @tr("Raise the ceiling"); clicou => { teto-mudou(1); } }
                     }
                 }
             }
@@ -597,8 +597,8 @@ export component AppWindow inherits Window {
                 cor: Tema.amarelo; height: 56px;
                 HorizontalLayout {
                     padding: 10px; spacing: 8px;
-                    Text { text: "The emulator is needed to start devices."; font-size: 12px; font-weight: 700; color: Tema.tinta-sobre-acento; wrap: word-wrap; vertical-alignment: center; }
-                    Botao { texto: "Open Images"; cor: Tema.superficie; clicou => { abrir-imagens(); } }
+                    Text { text: @tr("The emulator is needed to start devices."); font-size: 12px; font-weight: 700; color: Tema.tinta-sobre-acento; wrap: word-wrap; vertical-alignment: center; }
+                    Botao { texto: @tr("Open Images"); cor: Tema.superficie; clicou => { abrir-imagens(); } }
                 }
             }
             if selecionados > 0: Bloco {
@@ -606,15 +606,15 @@ export component AppWindow inherits Window {
                 VerticalLayout {
                     padding: 10px; spacing: 8px;
                     HorizontalLayout {
-                        Text { text: selecionados + " selected"; font-size: 12px; font-weight: 900; color: Tema.tinta-sobre-acento; vertical-alignment: center; }
-                        Botao { texto: "Clear"; cor: Tema.superficie; tamanho-fonte: 12px; clicou => { lote("limpar"); } }
+                        Text { text: @tr("{} selected", selecionados); font-size: 12px; font-weight: 900; color: Tema.tinta-sobre-acento; vertical-alignment: center; }
+                        Botao { texto: @tr("Clear"); cor: Tema.superficie; tamanho-fonte: 12px; clicou => { lote("limpar"); } }
                     }
                     HorizontalLayout {
                         spacing: 6px;
-                        Botao { texto: "Start"; cor: Tema.verde; tamanho-fonte: 12px; clicou => { lote("ligar"); } }
-                        Botao { texto: "Pause"; cor: Tema.azul; tamanho-fonte: 12px; clicou => { lote("pausar"); } }
-                        Botao { texto: "Hibernate"; cor: Tema.ciano; tamanho-fonte: 12px; clicou => { lote("hibernar"); } }
-                        Botao { texto: "Shut down"; cor: Tema.vermelho; tamanho-fonte: 12px; clicou => { lote("desligar"); } }
+                        Botao { texto: @tr("Start"); cor: Tema.verde; tamanho-fonte: 12px; clicou => { lote("ligar"); } }
+                        Botao { texto: @tr("Pause"); cor: Tema.azul; tamanho-fonte: 12px; clicou => { lote("pausar"); } }
+                        Botao { texto: @tr("Hibernate"); cor: Tema.ciano; tamanho-fonte: 12px; clicou => { lote("hibernar"); } }
+                        Botao { texto: @tr("Shut down"); cor: Tema.vermelho; tamanho-fonte: 12px; clicou => { lote("desligar"); } }
                     }
                 }
             }
@@ -633,7 +633,7 @@ export component AppWindow inherits Window {
                 }
             }
             if aparelhos.length == 0: Text {
-                text: "No devices yet. Create the first one with + New device.";
+                text: @tr("No devices yet. Create the first one with + New device.");
                 font-size: 13px; color: Tema.tinta; opacity: 0.6; wrap: word-wrap;
             }
             if aviso != "": Bloco {
@@ -648,11 +648,11 @@ export component AppWindow inherits Window {
         spacing: 8px;
         if aparelhos.length > 0: HorizontalLayout {
             spacing: 10px; height: 36px;
-            Text { text: "Drag by the title · resize from the corner"; font-size: 11px; font-weight: 700; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; overflow: elide; }
+            Text { text: @tr("Drag by the title · resize from the corner"); font-size: 11px; font-weight: 700; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; overflow: elide; }
             // Encaixa todos os quadros da mesa na altura visível da janela.
             Icone {
                 icone: @image-url("../icons/ui/organizar.svg");
-                dica: "Arrange: fit every device in the window";
+                dica: @tr("Arrange: fit every device in the window");
                 y: (parent.height - self.height) / 2;
                 clicou => { root.organizar(floor(mesa.height / mesa.celula)); }
             }
@@ -679,8 +679,8 @@ export component AppWindow inherits Window {
             }
             if aparelhos.length == 0: VerticalLayout {
                 alignment: center;
-                Text { text: "The desk is empty."; font-size: 18px; font-weight: 900; color: Tema.tinta; horizontal-alignment: center; }
-                Text { text: sem-emulador ? "Download the emulator in Images, then create a device." : "Create a device with + New device."; font-size: 13px; color: Tema.tinta; opacity: 0.6; horizontal-alignment: center; }
+                Text { text: @tr("The desk is empty."); font-size: 18px; font-weight: 900; color: Tema.tinta; horizontal-alignment: center; }
+                Text { text: sem-emulador ? @tr("Download the emulator in Images, then create a device.") : @tr("Create a device with + New device."); font-size: 13px; color: Tema.tinta; opacity: 0.6; horizontal-alignment: center; }
             }
         }
         }
@@ -692,11 +692,11 @@ export component AppWindow inherits Window {
         VerticalLayout {
             padding: 20px; spacing: 12px; alignment: start;
             HorizontalLayout {
-                Text { text: "Images"; font-size: 22px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; }
-                Botao { texto: "Close"; clicou => { root.tela = ""; } }
+                Text { text: @tr("Images"); font-size: 22px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; }
+                Botao { texto: @tr("Close"); clicou => { root.tela = ""; } }
             }
             Text {
-                text: imagens-carregando ? "Reading the official repository…" : "The emulator and system images come from the official Android repository, checked by SHA-1. Each image has its own license, which you accept before downloading.";
+                text: imagens-carregando ? @tr("Reading the official repository…") : @tr("The emulator and system images come from the official Android repository, checked by SHA-1. Each image has its own license, which you accept before downloading.");
                 font-size: 12px; color: Tema.tinta; opacity: 0.7; wrap: word-wrap;
             }
             if imagens-erro != "": Text { text: imagens-erro; font-size: 12px; font-weight: 700; color: Tema.vermelho; wrap: word-wrap; }
@@ -715,8 +715,8 @@ export component AppWindow inherits Window {
         fechar => { root.licenca(false); }
         VerticalLayout {
             padding: 20px; spacing: 12px; alignment: start;
-            Text { text: "License: " + licenca-titulo; font-size: 18px; font-weight: 900; color: Tema.tinta; wrap: word-wrap; }
-            Text { text: "To download, accept the package license. The acceptance is recorded the same way sdkmanager records it."; font-size: 12px; color: Tema.tinta; opacity: 0.7; wrap: word-wrap; }
+            Text { text: @tr("License: {}", licenca-titulo); font-size: 18px; font-weight: 900; color: Tema.tinta; wrap: word-wrap; }
+            Text { text: @tr("To download, accept the package license. The acceptance is recorded the same way sdkmanager records it."); font-size: 12px; color: Tema.tinta; opacity: 0.7; wrap: word-wrap; }
             Bloco {
                 sombra: false;
                 Flickable {
@@ -727,8 +727,8 @@ export component AppWindow inherits Window {
             }
             HorizontalLayout {
                 spacing: 10px; alignment: end;
-                Botao { texto: "Decline"; clicou => { root.licenca(false); } }
-                Botao { texto: "Accept and download"; cor: Tema.azul; clicou => { root.licenca(true); } }
+                Botao { texto: @tr("Decline"); clicou => { root.licenca(false); } }
+                Botao { texto: @tr("Accept and download"); cor: Tema.azul; clicou => { root.licenca(true); } }
             }
         }
     }
@@ -736,23 +736,23 @@ export component AppWindow inherits Window {
     if tela == "novo": Sobreposta {
         largura: 620px; altura: 680px;
         fechar => { root.tela = ""; }
-        property <[string]> tipos: ["Phone", "Tablet", "Foldable", "Watch"];
+        property <[string]> tipos: [@tr("Phone"), @tr("Tablet"), @tr("Foldable"), @tr("Watch")];
         VerticalLayout {
             padding: 20px; spacing: 12px; alignment: start;
-            Text { text: "New device"; font-size: 22px; font-weight: 900; color: Tema.tinta; }
+            Text { text: @tr("New device"); font-size: 22px; font-weight: 900; color: Tema.tinta; }
             if tem-leve: HorizontalLayout {
                 spacing: 10px;
                 Botao {
-                    horizontal-stretch: 1; texto: "Light (Redroid)"; cor: novo-motor == 1 ? Tema.azul : Tema.superficie;
+                    horizontal-stretch: 1; texto: @tr("Light (Redroid)"); cor: novo-motor == 1 ? Tema.azul : Tema.superficie;
                     clicou => { root.novo-motor = 1; }
                 }
                 Botao {
-                    horizontal-stretch: 1; texto: "Full (emulator)"; cor: novo-motor == 0 ? Tema.azul : Tema.superficie;
+                    horizontal-stretch: 1; texto: @tr("Full (emulator)"); cor: novo-motor == 0 ? Tema.azul : Tema.superficie;
                     clicou => { root.novo-motor = 0; }
                 }
             }
             if tem-leve && novo-motor == 1: Text {
-                text: "Android 13 in a container, straight on Linux: ~1.2 GB per device, against ~4.5 GB for the emulator. Needs Docker and binder in the kernel. Hibernating shuts it down and keeps apps and accounts on disk.";
+                text: @tr("Android 13 in a container, straight on Linux: ~1.2 GB per device, against ~4.5 GB for the emulator. Needs Docker and binder in the kernel. Hibernating shuts it down and keeps apps and accounts on disk.");
                 font-size: 12px; color: Tema.tinta; opacity: 0.75; wrap: word-wrap;
             }
             HorizontalLayout {
@@ -764,7 +764,7 @@ export component AppWindow inherits Window {
                 }
             }
             if novo-motor == 0 && opcoes.length == 0: Text {
-                text: imagens-carregando ? "Looking for images in the repository…" : (imagens-erro != "" ? imagens-erro : "No image for this type.");
+                text: imagens-carregando ? @tr("Looking for images in the repository…") : (imagens-erro != "" ? imagens-erro : @tr("No image for this type."));
                 font-size: 12px; font-weight: 700; color: Tema.tinta; wrap: word-wrap;
             }
             if novo-motor == 0: Flickable {
@@ -779,14 +779,14 @@ export component AppWindow inherits Window {
                 }
             }
             if novo-motor == 0 && novo-nota != "": Text { text: novo-nota; font-size: 11px; color: Tema.tinta; opacity: 0.75; wrap: word-wrap; }
-            nome := Campo { dica: "Name (e.g. Work-Account)"; }
-            grupo := Campo { dica: "Group (optional)"; }
+            nome := Campo { dica: @tr("Name (e.g. Work-Account)"); }
+            grupo := Campo { dica: @tr("Group (optional)"); }
             if novo-erro != "": Text { text: novo-erro; font-size: 12px; font-weight: 700; color: Tema.vermelho; wrap: word-wrap; }
             HorizontalLayout {
                 spacing: 10px; alignment: end;
-                Botao { texto: "Cancel"; clicou => { root.tela = ""; } }
+                Botao { texto: @tr("Cancel"); clicou => { root.tela = ""; } }
                 Botao {
-                    texto: novo-ocupado ? "Downloading…" : "Create"; cor: Tema.azul; ativo: !novo-ocupado;
+                    texto: novo-ocupado ? @tr("Downloading…") : @tr("Create"); cor: Tema.azul; ativo: !novo-ocupado;
                     clicou => { root.criar(root.novo-motor, root.novo-tipo, root.novo-imagem, nome.texto, grupo.texto); }
                 }
             }
@@ -799,10 +799,10 @@ export component AppWindow inherits Window {
         VerticalLayout {
             padding: 20px; spacing: 10px; alignment: start;
             Text { text: alvo; font-size: 20px; font-weight: 900; color: Tema.tinta; overflow: elide; }
-            Botao { texto: "Duplicate"; clicou => { root.tela = ""; root.acao(root.alvo, "duplicar"); } }
-            Botao { texto: "Group…"; clicou => { root.tela = "grupo"; } }
-            Botao { texto: "Delete…"; cor: Tema.vermelho; clicou => { root.tela = "apagar"; } }
-            Botao { texto: "Cancel"; clicou => { root.tela = ""; } }
+            Botao { texto: @tr("Duplicate"); clicou => { root.tela = ""; root.acao(root.alvo, "duplicar"); } }
+            Botao { texto: @tr("Group…"); clicou => { root.tela = "grupo"; } }
+            Botao { texto: @tr("Delete…"); cor: Tema.vermelho; clicou => { root.tela = "apagar"; } }
+            Botao { texto: @tr("Cancel"); clicou => { root.tela = ""; } }
         }
     }
 
@@ -811,12 +811,12 @@ export component AppWindow inherits Window {
         fechar => { root.tela = ""; }
         VerticalLayout {
             padding: 20px; spacing: 12px; alignment: start;
-            Text { text: "Group for " + alvo; font-size: 18px; font-weight: 900; color: Tema.tinta; overflow: elide; }
-            g := Campo { dica: "Group name (empty removes the group)"; }
+            Text { text: @tr("Group for {}", alvo); font-size: 18px; font-weight: 900; color: Tema.tinta; overflow: elide; }
+            g := Campo { dica: @tr("Group name (empty removes the group)"); }
             HorizontalLayout {
                 spacing: 10px; alignment: end;
-                Botao { texto: "Cancel"; clicou => { root.tela = ""; } }
-                Botao { texto: "Save"; cor: Tema.azul; clicou => { root.tela = ""; root.grupo(root.alvo, g.texto); } }
+                Botao { texto: @tr("Cancel"); clicou => { root.tela = ""; } }
+                Botao { texto: @tr("Save"); cor: Tema.azul; clicou => { root.tela = ""; root.grupo(root.alvo, g.texto); } }
             }
         }
     }
@@ -826,12 +826,12 @@ export component AppWindow inherits Window {
         fechar => { root.tela = ""; }
         VerticalLayout {
             padding: 20px; spacing: 12px; alignment: start;
-            Text { text: "Delete " + alvo + "?"; font-size: 18px; font-weight: 900; color: Tema.tinta; overflow: elide; }
-            Text { text: "The device and everything on it (accounts, apps, photos) will be removed from this computer."; font-size: 13px; color: Tema.tinta; wrap: word-wrap; }
+            Text { text: @tr("Delete {}?", alvo); font-size: 18px; font-weight: 900; color: Tema.tinta; overflow: elide; }
+            Text { text: @tr("The device and everything on it (accounts, apps, photos) will be removed from this computer."); font-size: 13px; color: Tema.tinta; wrap: word-wrap; }
             HorizontalLayout {
                 spacing: 10px; alignment: end;
-                Botao { texto: "Cancel"; clicou => { root.tela = ""; } }
-                Botao { texto: "Delete"; cor: Tema.vermelho; clicou => { root.tela = ""; root.apagar(root.alvo); } }
+                Botao { texto: @tr("Cancel"); clicou => { root.tela = ""; } }
+                Botao { texto: @tr("Delete"); cor: Tema.vermelho; clicou => { root.tela = ""; root.apagar(root.alvo); } }
             }
         }
     }

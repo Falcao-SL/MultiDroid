@@ -1,0 +1,443 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2026-10-21 13:57+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: ui/app.slint:185
+msgctxt "Rotulo"
+msgid "on"
+msgstr "ligado"
+
+#: ui/app.slint:186
+msgctxt "Rotulo"
+msgid "paused"
+msgstr "pausado"
+
+#: ui/app.slint:187
+msgctxt "Rotulo"
+msgid "hibernating"
+msgstr "hibernado"
+
+#: ui/app.slint:188
+msgctxt "Rotulo"
+msgid "starting…"
+msgstr "ligando…"
+
+#: ui/app.slint:189
+msgctxt "Rotulo"
+msgid "shutting down…"
+msgstr "desligando…"
+
+#: ui/app.slint:190
+msgctxt "Rotulo"
+msgid "opened outside MultiDroid"
+msgstr "aberto fora do MultiDroid"
+
+#: ui/app.slint:191
+msgctxt "Rotulo"
+msgid "off"
+msgstr "desligado"
+
+#: ui/app.slint:234
+msgctxt "LinhaAparelho"
+msgid "Start"
+msgstr "Ligar"
+
+#: ui/app.slint:235
+msgctxt "LinhaAparelho"
+msgid "Pause"
+msgstr "Pausar"
+
+#: ui/app.slint:236
+msgctxt "LinhaAparelho"
+msgid "Resume"
+msgstr "Retomar"
+
+#: ui/app.slint:237
+msgctxt "LinhaAparelho"
+msgid "Hibernate"
+msgstr "Hibernar"
+
+#: ui/app.slint:238
+msgctxt "LinhaAparelho"
+msgid "Shut down"
+msgstr "Desligar"
+
+#: ui/app.slint:239
+msgctxt "LinhaAparelho"
+msgid "More: duplicate, group, delete"
+msgstr "Mais: duplicar, grupo, apagar"
+
+#: ui/app.slint:253
+msgctxt "BotoesNavegacao"
+msgid "Back"
+msgstr "Voltar"
+
+#: ui/app.slint:254
+msgctxt "BotoesNavegacao"
+msgid "Home"
+msgstr "Início"
+
+#: ui/app.slint:255
+msgctxt "BotoesNavegacao"
+msgid "Recents"
+msgstr "Recentes"
+
+#: ui/app.slint:256
+msgctxt "BotoesNavegacao"
+msgid "Volume +"
+msgstr "Volume +"
+
+#: ui/app.slint:257
+msgctxt "BotoesNavegacao"
+msgid "Volume −"
+msgstr "Volume −"
+
+#: ui/app.slint:258
+msgctxt "BotoesNavegacao"
+msgid "Rotate"
+msgstr "Girar"
+
+#: ui/app.slint:259
+msgctxt "BotoesNavegacao"
+msgid "Screenshot"
+msgstr "Captura de tela"
+
+#: ui/app.slint:268
+msgctxt "BotoesEstado"
+msgid "Pause"
+msgstr "Pausar"
+
+#: ui/app.slint:269
+msgctxt "BotoesEstado"
+msgid "Resume"
+msgstr "Retomar"
+
+#: ui/app.slint:270
+msgctxt "BotoesEstado"
+msgid "Hibernate: frees the memory and keeps the state"
+msgstr "Hibernar: libera a memória e guarda o estado"
+
+#: ui/app.slint:271
+msgctxt "BotoesEstado"
+msgid "Shut down"
+msgstr "Desligar"
+
+#: ui/app.slint:389
+msgctxt "Quadro"
+msgid "Wake"
+msgstr "Acordar"
+
+#: ui/app.slint:389
+msgctxt "Quadro"
+msgid "Start"
+msgstr "Ligar"
+
+#: ui/app.slint:398
+msgctxt "Quadro"
+msgid "Resume"
+msgstr "Retomar"
+
+#: ui/app.slint:496
+msgctxt "CartaoPacote"
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: ui/app.slint:497
+msgctxt "CartaoPacote"
+msgid "Download"
+msgstr "Baixar"
+
+#: ui/app.slint:498
+msgctxt "CartaoPacote"
+msgid "Update"
+msgstr "Atualizar"
+
+#: ui/app.slint:498 ui/app.slint:499
+msgctxt "CartaoPacote"
+msgid "Shut down the devices that use this image"
+msgstr "Desligue os aparelhos que usam esta imagem"
+
+#: ui/app.slint:499
+msgctxt "CartaoPacote"
+msgid "Remove"
+msgstr "Remover"
+
+#: ui/app.slint:512
+msgctxt "CartaoOpcao"
+msgid "{} · download"
+msgstr "{} · baixar"
+
+#: ui/app.slint:575
+msgctxt "AppWindow"
+msgid "Preview {}"
+msgstr "Preview {}"
+
+#: ui/app.slint:579
+msgctxt "AppWindow"
+msgid "+ New device"
+msgstr "+ Novo aparelho"
+
+#: ui/app.slint:580 ui/app.slint:695
+msgctxt "AppWindow"
+msgid "Images"
+msgstr "Imagens"
+
+#: ui/app.slint:589
+msgctxt "AppWindow"
+msgid "Memory ceiling"
+msgstr "Teto dos aparelhos"
+
+#: ui/app.slint:590
+msgctxt "AppWindow"
+msgid "Lower the ceiling"
+msgstr "Diminuir o teto"
+
+#: ui/app.slint:592
+msgctxt "AppWindow"
+msgid "Raise the ceiling"
+msgstr "Aumentar o teto"
+
+#: ui/app.slint:600
+msgctxt "AppWindow"
+msgid "The emulator is needed to start devices."
+msgstr "Falta o emulador para ligar os aparelhos."
+
+#: ui/app.slint:601
+msgctxt "AppWindow"
+msgid "Open Images"
+msgstr "Abrir Imagens"
+
+#: ui/app.slint:609
+msgctxt "AppWindow"
+msgid "{} selected"
+msgstr "{} selecionados"
+
+#: ui/app.slint:610
+msgctxt "AppWindow"
+msgid "Clear"
+msgstr "Limpar"
+
+#: ui/app.slint:614
+msgctxt "AppWindow"
+msgid "Start"
+msgstr "Ligar"
+
+#: ui/app.slint:615
+msgctxt "AppWindow"
+msgid "Pause"
+msgstr "Pausar"
+
+#: ui/app.slint:616
+msgctxt "AppWindow"
+msgid "Hibernate"
+msgstr "Hibernar"
+
+#: ui/app.slint:617
+msgctxt "AppWindow"
+msgid "Shut down"
+msgstr "Desligar"
+
+#: ui/app.slint:636
+msgctxt "AppWindow"
+msgid "No devices yet. Create the first one with + New device."
+msgstr "Nenhum aparelho ainda. Crie o primeiro em + Novo aparelho."
+
+#: ui/app.slint:651
+msgctxt "AppWindow"
+msgid "Drag by the title · resize from the corner"
+msgstr "Arraste pelo título · redimensione pelo canto"
+
+#: ui/app.slint:655
+msgctxt "AppWindow"
+msgid "Arrange: fit every device in the window"
+msgstr "Organizar: encaixa todos os aparelhos na janela"
+
+#: ui/app.slint:682
+msgctxt "AppWindow"
+msgid "The desk is empty."
+msgstr "A mesa está vazia."
+
+#: ui/app.slint:683
+msgctxt "AppWindow"
+msgid "Download the emulator in Images, then create a device."
+msgstr "Baixe o emulador em Imagens e crie um aparelho."
+
+#: ui/app.slint:683
+msgctxt "AppWindow"
+msgid "Create a device with + New device."
+msgstr "Crie um aparelho em + Novo aparelho."
+
+#: ui/app.slint:696
+msgctxt "AppWindow"
+msgid "Close"
+msgstr "Fechar"
+
+#: ui/app.slint:699
+msgctxt "AppWindow"
+msgid "Reading the official repository…"
+msgstr "Lendo o repositório oficial…"
+
+#: ui/app.slint:699
+msgctxt "AppWindow"
+msgid ""
+"The emulator and system images come from the official Android repository, "
+"checked by SHA-1. Each image has its own license, which you accept before "
+"downloading."
+msgstr "O emulador e as imagens de sistema vêm do repositório oficial do Android, conferidos pelo SHA-1. Cada imagem tem a licença dela, que você aceita antes de baixar."
+
+#: ui/app.slint:718
+msgctxt "AppWindow"
+msgid "License: {}"
+msgstr "Licença: {}"
+
+#: ui/app.slint:719
+msgctxt "AppWindow"
+msgid ""
+"To download, accept the package license. The acceptance is recorded the same "
+"way sdkmanager records it."
+msgstr "Para baixar, aceite a licença do pacote. O aceite fica gravado como o sdkmanager grava."
+
+#: ui/app.slint:730
+msgctxt "AppWindow"
+msgid "Decline"
+msgstr "Recusar"
+
+#: ui/app.slint:731
+msgctxt "AppWindow"
+msgid "Accept and download"
+msgstr "Aceitar e baixar"
+
+#: ui/app.slint:739
+msgctxt "AppWindow"
+msgid "Phone"
+msgstr "Celular"
+
+#: ui/app.slint:739
+msgctxt "AppWindow"
+msgid "Tablet"
+msgstr "Tablet"
+
+#: ui/app.slint:739
+msgctxt "AppWindow"
+msgid "Foldable"
+msgstr "Dobrável"
+
+#: ui/app.slint:739
+msgctxt "AppWindow"
+msgid "Watch"
+msgstr "Relógio"
+
+#: ui/app.slint:742
+msgctxt "AppWindow"
+msgid "New device"
+msgstr "Novo aparelho"
+
+#: ui/app.slint:746
+msgctxt "AppWindow"
+msgid "Light (Redroid)"
+msgstr "Leve (Redroid)"
+
+#: ui/app.slint:750
+msgctxt "AppWindow"
+msgid "Full (emulator)"
+msgstr "Completo (emulador)"
+
+#: ui/app.slint:755
+msgctxt "AppWindow"
+msgid ""
+"Android 13 in a container, straight on Linux: ~1.2 GB per device, against "
+"~4.5 GB for the emulator. Needs Docker and binder in the kernel. Hibernating "
+"shuts it down and keeps apps and accounts on disk."
+msgstr "Android 13 em contêiner, direto no Linux: ~1,2 GB por aparelho, contra ~4,5 GB do emulador. Pede o Docker e o binder no kernel. Hibernar desliga e guarda os apps e as contas no disco."
+
+#: ui/app.slint:767
+msgctxt "AppWindow"
+msgid "Looking for images in the repository…"
+msgstr "Procurando imagens no repositório…"
+
+#: ui/app.slint:767
+msgctxt "AppWindow"
+msgid "No image for this type."
+msgstr "Nenhuma imagem para este tipo."
+
+#: ui/app.slint:782
+msgctxt "AppWindow"
+msgid "Name (e.g. Work-Account)"
+msgstr "Nome (ex.: Conta-Trabalho)"
+
+#: ui/app.slint:783
+msgctxt "AppWindow"
+msgid "Group (optional)"
+msgstr "Grupo (opcional)"
+
+#: ui/app.slint:787 ui/app.slint:805 ui/app.slint:818 ui/app.slint:833
+msgctxt "AppWindow"
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: ui/app.slint:789
+msgctxt "AppWindow"
+msgid "Downloading…"
+msgstr "Baixando…"
+
+#: ui/app.slint:789
+msgctxt "AppWindow"
+msgid "Create"
+msgstr "Criar"
+
+#: ui/app.slint:802
+msgctxt "AppWindow"
+msgid "Duplicate"
+msgstr "Duplicar"
+
+#: ui/app.slint:803
+msgctxt "AppWindow"
+msgid "Group…"
+msgstr "Grupo…"
+
+#: ui/app.slint:804
+msgctxt "AppWindow"
+msgid "Delete…"
+msgstr "Apagar…"
+
+#: ui/app.slint:814
+msgctxt "AppWindow"
+msgid "Group for {}"
+msgstr "Grupo de {}"
+
+#: ui/app.slint:815
+msgctxt "AppWindow"
+msgid "Group name (empty removes the group)"
+msgstr "Nome do grupo (vazio tira do grupo)"
+
+#: ui/app.slint:819
+msgctxt "AppWindow"
+msgid "Save"
+msgstr "Salvar"
+
+#: ui/app.slint:829
+msgctxt "AppWindow"
+msgid "Delete {}?"
+msgstr "Apagar {}?"
+
+#: ui/app.slint:830
+msgctxt "AppWindow"
+msgid ""
+"The device and everything on it (accounts, apps, photos) will be removed "
+"from this computer."
+msgstr "O aparelho e tudo o que está nele (contas, apps, fotos) somem deste computador."
+
+#: ui/app.slint:834
+msgctxt "AppWindow"
+msgid "Delete"
+msgstr "Apagar"
