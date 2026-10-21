@@ -122,10 +122,10 @@ pub fn android_version(api: &str) -> String {
 /// Nome que a interface mostra (o mesmo texto do app SwiftUI).
 pub fn title(path: &str, host: Host) -> String {
     if path == EMULATOR {
-        return "Emulador do Android".into();
+        return "Android Emulator".into();
     }
     if path == crate::adb::PLATFORM_TOOLS {
-        return "Ferramentas da plataforma (adb)".into();
+        return "Platform tools (adb)".into();
     }
     let Some((api, tag)) = parts(path, host) else {
         return path.into();
@@ -135,32 +135,32 @@ pub fn title(path: &str, host: Host) -> String {
         return format!("Wear OS (Android {v})");
     }
     match tag {
-        "google_apis_playstore" => format!("Android {v} com Google Play"),
-        "google_apis" => format!("Android {v} com APIs do Google"),
-        _ => format!("Android {v} sem Google (AOSP)"),
+        "google_apis_playstore" => format!("Android {v} with Google Play"),
+        "google_apis" => format!("Android {v} with Google APIs"),
+        _ => format!("Android {v} without Google (AOSP)"),
     }
 }
 
 /// Uma linha sob o título: para que serve e o que vem junto.
 pub fn detail(path: &str, host: Host) -> String {
     if path == EMULATOR {
-        return "Roda os aparelhos. Obrigatório.".into();
+        return "Runs the devices. Required.".into();
     }
     if path == crate::adb::PLATFORM_TOOLS {
-        return "Liga a tela e o toque dos aparelhos leves (Redroid). Obrigatório para o motor leve.".into();
+        return "Connects the screen and touch of light devices (Redroid). Required for the light engine.".into();
     }
     let Some((api, tag)) = parts(path, host) else {
         return String::new();
     };
     let uso = if tag.starts_with("android-wear") {
-        "Relógio"
+        "Watch"
     } else {
-        "Celular, tablet e dobrável"
+        "Phone, tablet and foldable"
     };
     let extra = match tag {
-        "google_apis_playstore" => " · com Play Store",
-        "google_apis" => " · sem Play Store; apps por APK",
-        "default" => " · sem nenhum app do Google; apps por APK",
+        "google_apis_playstore" => " · with Play Store",
+        "google_apis" => " · no Play Store; apps by APK",
+        "default" => " · no Google apps at all; apps by APK",
         _ => "",
     };
     format!("{uso} · API {api}{extra}")
@@ -183,16 +183,16 @@ pub fn note(path: &str, host: Host) -> Option<String> {
     let wear = tag.starts_with("android-wear");
     Some(match (wear, tag, n) {
         (false, "google_apis_playstore", 33) => {
-            "Recomendada: a mais leve, com Play Store (o emulador usa 2 GB de RAM; ~4,6 GB por celular).".into()
+            "Recommended: the lightest, with Play Store (the emulator uses 2 GB of RAM; ~4.6 GB per phone).".into()
         }
         (false, "google_apis_playstore", 36) => {
-            "Recomendada: a mais nova que ainda é leve, com Play Store (2,5 GB de RAM; ~5,3 GB por celular).".into()
+            "Recommended: the newest that is still light, with Play Store (2.5 GB of RAM; ~5.3 GB per phone).".into()
         }
-        (true, _, 33) => "Recomendada: a única versão do Wear OS que liga neste emulador.".into(),
-        (true, _, n) if n > 33 => "Não ligou neste emulador nos testes do MultiDroid.".into(),
-        (_, _, n) if n >= 37 => "O emulador força 4 GB de RAM nesta versão: ~6,5 GB por celular.".into(),
+        (true, _, 33) => "Recommended: the only Wear OS version that starts on this emulator.".into(),
+        (true, _, n) if n > 33 => "Didn't start on this emulator in MultiDroid's tests.".into(),
+        (_, _, n) if n >= 37 => "The emulator forces 4 GB of RAM on this version: ~6.5 GB per phone.".into(),
         (_, _, n) if n >= 34 => {
-            "O emulador força 2,5 GB de RAM nesta versão: ~0,7 GB a mais por celular que o Android 13.".into()
+            "The emulator forces 2.5 GB of RAM on this version: ~0.7 GB more per phone than Android 13.".into()
         }
         _ => return None,
     })
@@ -390,12 +390,12 @@ mod tests {
         assert!(
             note(&play33, h)
                 .unwrap()
-                .starts_with("Recomendada: a mais leve")
+                .starts_with("Recommended: the lightest")
         );
         assert!(
             note("system-images;android-34;android-wear;arm64-v8a", h)
                 .unwrap()
-                .starts_with("Não ligou")
+                .starts_with("Didn't start")
         );
         assert!(
             note("system-images;android-37;default;arm64-v8a", h)
@@ -405,7 +405,7 @@ mod tests {
         assert_eq!(note("system-images;android-31;default;arm64-v8a", h), None);
         assert_eq!(
             detail("system-images;android-33;android-wear;arm64-v8a", h),
-            "Relógio · API 33"
+            "Watch · API 33"
         );
         assert_eq!(
             default_image(true, Host::LINUX_X64),
@@ -489,13 +489,13 @@ mod tests {
         assert_eq!(android_version("36.1"), "16 (API 36.1)");
         assert_eq!(
             title("system-images;android-33;default;arm64-v8a", MAC),
-            "Android 13 sem Google (AOSP)"
+            "Android 13 without Google (AOSP)"
         );
         assert_eq!(
             title("system-images;android-33;android-wear;arm64-v8a", MAC),
             "Wear OS (Android 13)"
         );
-        assert_eq!(title(EMULATOR, MAC), "Emulador do Android");
+        assert_eq!(title(EMULATOR, MAC), "Android Emulator");
         assert_eq!(list_dir("default"), "android");
         assert!(tag_list_url("default").ends_with("sys-img/android/sys-img2-3.xml"));
     }

@@ -20,6 +20,17 @@ pub enum Kind {
 impl Kind {
     pub const ALL: [Kind; 4] = [Kind::Celular, Kind::Tablet, Kind::Dobravel, Kind::Relogio];
 
+    /// Nome que a interface mostra (em inglês, a língua principal do app).
+    pub fn display(self) -> &'static str {
+        match self {
+            Kind::Celular => "Phone",
+            Kind::Tablet => "Tablet",
+            Kind::Dobravel => "Foldable",
+            Kind::Relogio => "Watch",
+        }
+    }
+
+    /// Identificador gravado nos aparelhos leves (`leve.rs`); não traduzir.
     pub fn label(self) -> &'static str {
         match self {
             Kind::Celular => "Celular",
@@ -294,12 +305,12 @@ pub fn create(
     host: Host,
 ) -> Result<(), String> {
     if !valid_name(name) {
-        return Err("use só letras, números, ponto, hífen e sublinhado".into());
+        return Err("use only letters, numbers, dot, hyphen and underscore".into());
     }
     let dir = avd_home.join(format!("{name}.avd"));
     let top = avd_home.join(format!("{name}.ini"));
     if dir.exists() || top.exists() {
-        return Err("já existe um aparelho com esse nome".into());
+        return Err("a device with that name already exists".into());
     }
     if catalog::installed(image, sdk).is_none() {
         return Err(format!(
@@ -324,12 +335,12 @@ pub fn create(
 /// no Windows cópia simples. Sem locks e com o nome novo nos dois .ini.
 pub fn duplicate(avd_home: &Path, d: &Device, new_name: &str) -> Result<(), String> {
     if !valid_name(new_name) {
-        return Err("use só letras, números, ponto, hífen e sublinhado".into());
+        return Err("use only letters, numbers, dot, hyphen and underscore".into());
     }
     let new_dir = avd_home.join(format!("{new_name}.avd"));
     let new_top = avd_home.join(format!("{new_name}.ini"));
     if new_dir.exists() || new_top.exists() {
-        return Err("já existe um aparelho com esse nome".into());
+        return Err("a device with that name already exists".into());
     }
     platform::clone_dir(&d.dir, &new_dir).map_err(|e| e.to_string())?;
     for junk in LOCKS {
@@ -376,7 +387,7 @@ pub fn import_from_studio(studio: &Path, avd_home: &Path, name: &str) -> Result<
         .unwrap_or_else(|| studio.join(format!("{name}.avd")));
     let dst = avd_home.join(format!("{name}.avd"));
     if dst.exists() {
-        return Err(format!("já existe {name} no MultiDroid"));
+        return Err(format!("{name} already exists in MultiDroid"));
     }
     fs::create_dir_all(avd_home).map_err(|e| e.to_string())?;
     if fs::rename(&src, &dst).is_err() {

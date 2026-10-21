@@ -113,11 +113,11 @@ pub fn load(data: &Path) -> Vec<Leve> {
 /// Cria a pasta e o leve.json; o contêiner nasce na primeira vez que liga.
 pub fn create(data: &Path, name: &str, kind: Kind) -> Result<Leve, String> {
     if !crate::devices::valid_name(name) {
-        return Err("use só letras, números, ponto, hífen e sublinhado".into());
+        return Err("use only letters, numbers, dot, hyphen and underscore".into());
     }
     let dir = home(data).join(name);
     if dir.exists() {
-        return Err("já existe um aparelho com esse nome".into());
+        return Err("a device with that name already exists".into());
     }
     let usadas: Vec<u16> = load(data).iter().map(|l| l.port).collect();
     let port = (PORTA0..PORTA0 + 500)
@@ -216,7 +216,7 @@ pub fn delete(rt: Option<&str>, data: &Path, name: &str) -> Result<(), String> {
         let _ = run(rt, &["rm", "-f", &container(name)]);
         if run(rt, &["volume", "inspect", &volume(name)]).is_ok() {
             run(rt, &["volume", "rm", &volume(name)])
-                .map_err(|e| format!("não apagou o volume: {e}"))?;
+                .map_err(|e| format!("couldn't remove the volume: {e}"))?;
         }
     }
     let dir = home(data).join(name);

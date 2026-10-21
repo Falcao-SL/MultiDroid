@@ -74,7 +74,7 @@ impl Adb {
             }
             std::thread::sleep(Duration::from_secs(1));
         }
-        Err(format!("{serial} não terminou o boot em {timeout:?}"))
+        Err(format!("{serial} didn't finish booting in {timeout:?}"))
     }
 
     pub fn push(&self, serial: &str, local: &Path, remote: &str) -> Result<(), String> {

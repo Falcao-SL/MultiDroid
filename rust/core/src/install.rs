@@ -27,14 +27,14 @@ impl std::fmt::Display for Error {
             Error::Io(e) => write!(f, "{e}"),
             Error::Http(e) => write!(f, "o download falhou: {e}"),
             Error::Checksum { .. } => {
-                write!(f, "o arquivo baixado não confere com o SHA-1 publicado")
+                write!(f, "the downloaded file doesn't match the published SHA-1")
             }
-            Error::Zip(e) => write!(f, "não extraiu o arquivo: {e}"),
+            Error::Zip(e) => write!(f, "couldn't extract the file: {e}"),
             Error::Empty => write!(f, "arquivo vazio"),
             Error::Cancelled => write!(f, "download cancelado"),
             Error::NoSpace { needed } => write!(
                 f,
-                "falta espaço: precisa de {:.1} GB livres",
+                "not enough space: needs {:.1} GB free",
                 *needed as f64 / 1e9
             ),
         }
@@ -117,7 +117,7 @@ pub fn fetch_remote(host: catalog::Host) -> (Vec<RemotePackage>, Vec<String>) {
             .map_err(|e| Error::Zip(e.to_string()))
     }) {
         Ok(Ok(Some(p))) => out.push(p),
-        Ok(Ok(None)) => falhas.push("emulador (não há para este sistema)".into()),
+        Ok(Ok(None)) => falhas.push("emulator (not available for this system)".into()),
         Ok(Err(e)) | Err(e) => falhas.push(format!("emulador ({e})")),
     }
     // O motor leve só existe no Linux, e é só ele que usa o adb.
