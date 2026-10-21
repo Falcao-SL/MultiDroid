@@ -1699,6 +1699,16 @@ impl Ctx {
 
 fn main() -> Result<(), slint::PlatformError> {
     let t = tokens::load();
+    // No Mac, o renderizador por software: com 5 aparelhos na mesa ocupa ~148 MB
+    // contra ~303 MB do femtovg e ~363 MB do Skia, e gasta menos CPU que a 0.2
+    // (medido em 2026-10-21, MULTIPLATAFORMA.md §3). SLINT_BACKEND continua mandando.
+    #[cfg(target_os = "macos")]
+    if std::env::var_os("SLINT_BACKEND").is_none() {
+        slint::BackendSelector::new()
+            .backend_name("winit".into())
+            .renderer_name("software".into())
+            .select()?;
+    }
     let ui = AppWindow::new()?;
     let tema = ui.global::<Tema>();
     // Tema escuro dos tokens, o mesmo das capturas da 0.2.

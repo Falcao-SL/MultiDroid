@@ -86,7 +86,7 @@ Do [`docs/produto/STATUS.md`](docs/produto/STATUS.md) e de [`docs/spec/MAC.md`](
 - Renomear aparelhos.
 - Modo leve: o vídeo não toca no Redroid 13 (decodificador falha ao mapear o buffer; Redroid 12 e 14 falham igual). Depois disso, balão de memória na VM, apps reais por APK sem serviços do Google, tela e toque pelo protocolo do scrcpy.
 - Desenho da tela por Metal (decisão M-2); hoje é desenhada como imagem no SwiftUI.
-- Versão Rust (Mac, Windows e Linux): Linux com motor leve feito e testado só no CI sem tela (R-6); Windows compila e empacota, mas nenhum aparelho ligou ainda (R-7); no Mac falta o app gastar no máximo a memória da 0.2 (~270 MB contra ~103 MB, medido em 2026-10-21). Ver [`docs/spec/MULTIPLATAFORMA.md`](docs/spec/MULTIPLATAFORMA.md) §3. Os testes de Linux e Windows serão feitos em máquinas nativas.
+- Versão Rust (Mac, Windows e Linux): Linux com motor leve feito e testado só no CI sem tela (R-6); Windows compila e empacota, mas nenhum aparelho ligou ainda (R-7); no Mac o app já gasta o mesmo que a 0.2 (~115 MB com 5 aparelhos, renderizador por software, medido em 2026-10-21); falta conferir a janela com 4 celulares e 1 relógio e fechar a R-5 (várias mesas, importar do Android Studio pela interface). Ver [`docs/spec/MULTIPLATAFORMA.md`](docs/spec/MULTIPLATAFORMA.md) §3. Os testes de Linux e Windows serão feitos em máquinas nativas.
 - Pipeline de build e release no GitHub Actions (a criar); Homebrew cask depois da primeira release notarizada.
 - Interface só em português; decidir os outros idiomas. Revisar com advogado a licença das imagens do Google (o app não as redistribui: cada pessoa baixa do Google e aceita a licença).
 

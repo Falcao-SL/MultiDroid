@@ -215,6 +215,32 @@ component LinhaAparelho inherits Bloco {
     }
 }
 
+// Botões de navegação do aparelho, na ordem da 0.2.
+component BotoesNavegacao inherits VerticalLayout {
+    in property <Aparelho> a;
+    in property <bool> vivo;
+    callback acao(string);
+    spacing: 5px; alignment: start;
+    Icone { glifo: "◀"; dica: "Voltar"; ativo: vivo; clicou => { acao("voltar"); } }
+    Icone { glifo: "●"; dica: "Início"; ativo: vivo; clicou => { acao("inicio"); } }
+    Icone { glifo: "▢"; dica: "Recentes"; ativo: vivo; clicou => { acao("recentes"); } }
+    Icone { glifo: "+"; dica: "Volume +"; ativo: vivo; clicou => { acao("volume+"); } }
+    Icone { glifo: "−"; dica: "Volume −"; ativo: vivo; clicou => { acao("volume-"); } }
+    if !a.relogio: Icone { glifo: "↻"; dica: "Girar"; ativo: vivo; clicou => { acao("girar"); } }
+    Icone { glifo: "⌗"; dica: "Captura de tela"; ativo: vivo; clicou => { acao("captura"); } }
+}
+
+// Pausar ou retomar, hibernar e desligar.
+component BotoesEstado inherits VerticalLayout {
+    in property <Aparelho> a;
+    callback acao(string);
+    spacing: 5px; alignment: start;
+    if a.estado == Estado.ligado: Icone { glifo: "❚❚"; cor: Tema.azul; dica: "Pausar"; clicou => { acao("pausar"); } }
+    if a.estado == Estado.pausado: Icone { glifo: "▶"; cor: Tema.verde; dica: "Retomar"; clicou => { acao("retomar"); } }
+    Icone { glifo: "☾"; cor: Tema.ciano; dica: "Hibernar: libera a memória e guarda o estado"; clicou => { acao("hibernar"); } }
+    Icone { glifo: "■"; cor: Tema.vermelho; dica: "Desligar"; clicou => { acao("desligar"); } }
+}
+
 // Um quadro da mesa: cabeçalho, a tela do Android e a coluna de botões.
 component Quadro inherits Bloco {
     in property <Aparelho> a;
@@ -231,6 +257,10 @@ component Quadro inherits Bloco {
     callback tecla(string);
     property <bool> vivo: a.estado == Estado.ligado;
     property <bool> com-botoes: a.estado == Estado.ligado || a.estado == Estado.pausado;
+    // Altura da coluna única: botões de 30 px com 5 px entre eles, o respiro de
+    // 4 px, mais cabeçalho (22), margens (16) e espaço (6).
+    property <int> n-botoes: a.relogio ? 9 : 10;
+    property <bool> duas-colunas: root.height < n-botoes * 35px + 4px + 44px;
 
     VerticalLayout {
         padding: 8px; spacing: 6px;
@@ -326,20 +356,19 @@ component Quadro inherits Bloco {
                     }
                 }
             }
-            if com-botoes: VerticalLayout {
+            // Uma coluna quando cabe; num quadro baixo (o relógio em 6×6, por
+            // exemplo) os botões vão para duas colunas, senão a coluna empurra o
+            // layout para fora do quadro e a tela vaza junto.
+            if com-botoes && !duas-colunas: VerticalLayout {
                 width: 30px; spacing: 5px; alignment: start;
-                Icone { glifo: "◀"; dica: "Voltar"; ativo: vivo; clicou => { acao("voltar"); } }
-                Icone { glifo: "●"; dica: "Início"; ativo: vivo; clicou => { acao("inicio"); } }
-                Icone { glifo: "▢"; dica: "Recentes"; ativo: vivo; clicou => { acao("recentes"); } }
-                Icone { glifo: "+"; dica: "Volume +"; ativo: vivo; clicou => { acao("volume+"); } }
-                Icone { glifo: "−"; dica: "Volume −"; ativo: vivo; clicou => { acao("volume-"); } }
-                if !a.relogio: Icone { glifo: "↻"; dica: "Girar"; ativo: vivo; clicou => { acao("girar"); } }
-                Icone { glifo: "⌗"; dica: "Captura de tela"; ativo: vivo; clicou => { acao("captura"); } }
+                BotoesNavegacao { a: a; vivo: vivo; acao(n) => { acao(n); } }
                 Rectangle { height: 4px; }
-                if a.estado == Estado.ligado: Icone { glifo: "❚❚"; cor: Tema.azul; dica: "Pausar"; clicou => { acao("pausar"); } }
-                if a.estado == Estado.pausado: Icone { glifo: "▶"; cor: Tema.verde; dica: "Retomar"; clicou => { acao("retomar"); } }
-                Icone { glifo: "☾"; cor: Tema.ciano; dica: "Hibernar: libera a memória e guarda o estado"; clicou => { acao("hibernar"); } }
-                Icone { glifo: "■"; cor: Tema.vermelho; dica: "Desligar"; clicou => { acao("desligar"); } }
+                BotoesEstado { a: a; acao(n) => { acao(n); } }
+            }
+            if com-botoes && duas-colunas: HorizontalLayout {
+                width: 65px; spacing: 5px;
+                BotoesNavegacao { a: a; vivo: vivo; acao(n) => { acao(n); } }
+                BotoesEstado { a: a; acao(n) => { acao(n); } }
             }
         }
     }

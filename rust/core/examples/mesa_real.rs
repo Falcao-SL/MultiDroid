@@ -5,7 +5,8 @@
 //! imagens padrão se faltarem, cria os cinco aparelhos se não existirem e os põe
 //! na mesa principal do state.json. Com DEIXAR=1 os aparelhos ficam ligados, para
 //! um app (0.2 ou Rust) adotá-los e a memória dos dois ser comparada.
-//! CAPTURAS=<pasta> grava a tela de cada etapa; SO_DESLIGAR=1 só desliga os cinco.
+//! CAPTURAS=<pasta> grava a tela de cada etapa; SO_DESLIGAR=1 só desliga os cinco;
+//! AGITAR=<s> mexe as cinco telas por s segundos (para medir o app desenhando).
 
 use multidroid_core::catalog::{self, EMULATOR, Host, REPO};
 use multidroid_core::devices::{self, Kind};
@@ -187,6 +188,22 @@ async fn main() {
         links.push((*nome, *kind, link));
     }
     eprintln!("os cinco ligados em {:?}", inicio.elapsed());
+
+    // AGITAR=<segundos>: alterna a tela de recentes nos cinco a cada segundo, para
+    // medir o app desenhando cinco telas em movimento, e sai sem interagir mais.
+    if let Some(seg) = std::env::var("AGITAR").ok().and_then(|v| v.parse::<u64>().ok()) {
+        let fim = Instant::now() + Duration::from_secs(seg);
+        while Instant::now() < fim {
+            for (_, _, link) in &links {
+                link.key("AppSwitch").await;
+            }
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
+        for (_, _, link) in &links {
+            link.key("GoHome").await;
+        }
+        return;
+    }
 
     // Deixa a tela inicial assentar antes de medir mudança.
     if !ligados.is_empty() {
