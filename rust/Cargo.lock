@@ -2969,6 +2969,7 @@ name = "multidroid"
 version = "0.3.0"
 dependencies = [
  "multidroid-core",
+ "png 0.17.16",
  "slint",
  "slint-build",
  "tokio",

@@ -91,8 +91,12 @@ component BotaoBase inherits Rectangle {
     in property <length> tamanho-fonte: 14px;
     in property <bool> ativo: true;
     in property <string> dica;
+    // Ícone em SVG no lugar do texto: os símbolos Unicode faltam na fonte do
+    // renderizador por software (▢, ⌗, ❚❚ saíam em branco).
+    in property <image> icone;
     callback clicou();
     out property <length> largura-texto: t.preferred-width;
+    property <bool> mostrar-dica;
     opacity: ativo ? 1 : 0.4;
     accessible-role: button;
     accessible-label: dica != "" ? dica : texto;
@@ -113,11 +117,34 @@ component BotaoBase inherits Rectangle {
             color: cor == Tema.superficie ? Tema.tinta : Tema.tinta-sobre-acento;
             horizontal-alignment: center; vertical-alignment: center;
         }
+        if icone.width > 0: Image {
+            source: icone;
+            width: parent.width * 0.6; height: parent.height * 0.6;
+            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+            colorize: cor == Tema.superficie ? Tema.tinta : Tema.tinta-sobre-acento;
+        }
     }
     area := TouchArea {
         enabled: ativo;
         mouse-cursor: pointer;
-        clicked => { clicou(); }
+        clicked => { mostrar-dica = false; clicou(); }
+        changed has-hover => { if !self.has-hover { mostrar-dica = false; } }
+    }
+    // Dica de botão de ícone: aparece à esquerda depois de meio segundo parado em cima.
+    Timer {
+        interval: 500ms;
+        running: area.has-hover && !mostrar-dica && icone.width > 0 && dica != "";
+        triggered => { mostrar-dica = true; }
+    }
+    if mostrar-dica: Rectangle {
+        z: 100;
+        width: d.preferred-width + 16px; height: d.preferred-height + 10px;
+        x: - self.width - 6px; y: (parent.height - self.height) / 2;
+        background: Tema.tinta; border-radius: 6px;
+        d := Text {
+            text: dica; font-size: 11px; font-weight: 700; color: Tema.fundo;
+            x: 8px; y: 5px;
+        }
     }
 }
 
@@ -135,8 +162,9 @@ component Botao inherits BotaoBase {
 // Botão quadrado de ícone (glifo), para a coluna do quadro e as linhas do painel.
 component Icone inherits BotaoBase {
     in property <string> glifo;
+    in property <length> lado: 30px;
     texto: glifo;
-    width: 30px; height: 30px;
+    width: lado; height: lado;
     tamanho-fonte: 13px;
 }
 
@@ -203,12 +231,12 @@ component LinhaAparelho inherits Bloco {
             spacing: 6px; alignment: end;
             VerticalLayout { alignment: center;
                 HorizontalLayout { spacing: 6px;
-                    if a.estado == Estado.desligado || a.estado == Estado.hibernado: Icone { glifo: "▶"; cor: Tema.verde; dica: "Ligar"; clicou => { acao("ligar"); } }
-                    if a.estado == Estado.ligado: Icone { glifo: "❚❚"; cor: Tema.azul; dica: "Pausar"; clicou => { acao("pausar"); } }
-                    if a.estado == Estado.pausado: Icone { glifo: "▶"; cor: Tema.verde; dica: "Retomar"; clicou => { acao("retomar"); } }
-                    if a.estado == Estado.ligado || a.estado == Estado.pausado: Icone { glifo: "☾"; cor: Tema.ciano; dica: "Hibernar"; clicou => { acao("hibernar"); } }
-                    if a.estado != Estado.desligado && a.estado != Estado.desligando: Icone { glifo: "■"; cor: Tema.vermelho; dica: "Desligar"; clicou => { acao("desligar"); } }
-                    Icone { glifo: "⋯"; dica: "Mais: duplicar, grupo, apagar"; clicou => { acao("menu"); } }
+                    if a.estado == Estado.desligado || a.estado == Estado.hibernado: Icone { icone: @image-url("../icons/ui/retomar.svg"); cor: Tema.verde; dica: "Ligar"; clicou => { acao("ligar"); } }
+                    if a.estado == Estado.ligado: Icone { icone: @image-url("../icons/ui/pausar.svg"); cor: Tema.azul; dica: "Pausar"; clicou => { acao("pausar"); } }
+                    if a.estado == Estado.pausado: Icone { icone: @image-url("../icons/ui/retomar.svg"); cor: Tema.verde; dica: "Retomar"; clicou => { acao("retomar"); } }
+                    if a.estado == Estado.ligado || a.estado == Estado.pausado: Icone { icone: @image-url("../icons/ui/hibernar.svg"); cor: Tema.ciano; dica: "Hibernar"; clicou => { acao("hibernar"); } }
+                    if a.estado != Estado.desligado && a.estado != Estado.desligando: Icone { icone: @image-url("../icons/ui/desligar.svg"); cor: Tema.vermelho; dica: "Desligar"; clicou => { acao("desligar"); } }
+                    Icone { icone: @image-url("../icons/ui/mais.svg"); dica: "Mais: duplicar, grupo, apagar"; clicou => { acao("menu"); } }
                 }
             }
         }
@@ -219,26 +247,28 @@ component LinhaAparelho inherits Bloco {
 component BotoesNavegacao inherits VerticalLayout {
     in property <Aparelho> a;
     in property <bool> vivo;
+    in property <length> lado: 30px;
     callback acao(string);
     spacing: 5px; alignment: start;
-    Icone { glifo: "◀"; dica: "Voltar"; ativo: vivo; clicou => { acao("voltar"); } }
-    Icone { glifo: "●"; dica: "Início"; ativo: vivo; clicou => { acao("inicio"); } }
-    Icone { glifo: "▢"; dica: "Recentes"; ativo: vivo; clicou => { acao("recentes"); } }
-    Icone { glifo: "+"; dica: "Volume +"; ativo: vivo; clicou => { acao("volume+"); } }
-    Icone { glifo: "−"; dica: "Volume −"; ativo: vivo; clicou => { acao("volume-"); } }
-    if !a.relogio: Icone { glifo: "↻"; dica: "Girar"; ativo: vivo; clicou => { acao("girar"); } }
-    Icone { glifo: "⌗"; dica: "Captura de tela"; ativo: vivo; clicou => { acao("captura"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/voltar.svg"); dica: "Voltar"; ativo: vivo; clicou => { acao("voltar"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/inicio.svg"); dica: "Início"; ativo: vivo; clicou => { acao("inicio"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/recentes.svg"); dica: "Recentes"; ativo: vivo; clicou => { acao("recentes"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/volume-mais.svg"); dica: "Volume +"; ativo: vivo; clicou => { acao("volume+"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/volume-menos.svg"); dica: "Volume −"; ativo: vivo; clicou => { acao("volume-"); } }
+    if !a.relogio: Icone { lado: root.lado; icone: @image-url("../icons/ui/girar.svg"); dica: "Girar"; ativo: vivo; clicou => { acao("girar"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/captura.svg"); dica: "Captura de tela"; ativo: vivo; clicou => { acao("captura"); } }
 }
 
 // Pausar ou retomar, hibernar e desligar.
 component BotoesEstado inherits VerticalLayout {
     in property <Aparelho> a;
+    in property <length> lado: 30px;
     callback acao(string);
     spacing: 5px; alignment: start;
-    if a.estado == Estado.ligado: Icone { glifo: "❚❚"; cor: Tema.azul; dica: "Pausar"; clicou => { acao("pausar"); } }
-    if a.estado == Estado.pausado: Icone { glifo: "▶"; cor: Tema.verde; dica: "Retomar"; clicou => { acao("retomar"); } }
-    Icone { glifo: "☾"; cor: Tema.ciano; dica: "Hibernar: libera a memória e guarda o estado"; clicou => { acao("hibernar"); } }
-    Icone { glifo: "■"; cor: Tema.vermelho; dica: "Desligar"; clicou => { acao("desligar"); } }
+    if a.estado == Estado.ligado: Icone { lado: root.lado; icone: @image-url("../icons/ui/pausar.svg"); cor: Tema.azul; dica: "Pausar"; clicou => { acao("pausar"); } }
+    if a.estado == Estado.pausado: Icone { lado: root.lado; icone: @image-url("../icons/ui/retomar.svg"); cor: Tema.verde; dica: "Retomar"; clicou => { acao("retomar"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/hibernar.svg"); cor: Tema.ciano; dica: "Hibernar: libera a memória e guarda o estado"; clicou => { acao("hibernar"); } }
+    Icone { lado: root.lado; icone: @image-url("../icons/ui/desligar.svg"); cor: Tema.vermelho; dica: "Desligar"; clicou => { acao("desligar"); } }
 }
 
 // Um quadro da mesa: cabeçalho, a tela do Android e a coluna de botões.
@@ -261,6 +291,12 @@ component Quadro inherits Bloco {
     // 4 px, mais cabeçalho (22), margens (16) e espaço (6).
     property <int> n-botoes: a.relogio ? 9 : 10;
     property <bool> duas-colunas: root.height < n-botoes * 35px + 4px + 44px;
+    // Em duas colunas, a da navegação é a mais alta (6 ou 7 botões); se nem
+    // assim cabe, os botões encolhem até 16 px em vez de vazar do quadro.
+    property <int> n-nav: a.relogio ? 6 : 7;
+    property <length> lado-botao: duas-colunas
+        ? max(16px, min(30px, (root.height - 44px - (n-nav - 1) * 5px) / n-nav))
+        : 30px;
 
     VerticalLayout {
         padding: 8px; spacing: 6px;
@@ -315,6 +351,13 @@ component Quadro inherits Bloco {
                         source: a.tela; image-fit: fill;
                         opacity: a.estado == Estado.ligado ? 1 : 0.45;
                     }
+                    // O renderizador por software não recorta com border-radius:
+                    // os cantos do relógio são cobertos na cor do quadro.
+                    if a.relogio: Image {
+                        width: parent.width; height: parent.height;
+                        source: @image-url("../icons/ui/mascara-redonda.svg"); image-fit: fill;
+                        colorize: root.cor;
+                    }
                     teclado := FocusScope {
                         enabled: vivo;
                         key-pressed(e) => {
@@ -366,9 +409,9 @@ component Quadro inherits Bloco {
                 BotoesEstado { a: a; acao(n) => { acao(n); } }
             }
             if com-botoes && duas-colunas: HorizontalLayout {
-                width: 65px; spacing: 5px;
-                BotoesNavegacao { a: a; vivo: vivo; acao(n) => { acao(n); } }
-                BotoesEstado { a: a; acao(n) => { acao(n); } }
+                width: 2 * lado-botao + 5px; spacing: 5px;
+                BotoesNavegacao { a: a; vivo: vivo; lado: lado-botao; acao(n) => { acao(n); } }
+                BotoesEstado { a: a; lado: lado-botao; acao(n) => { acao(n); } }
             }
         }
     }
@@ -544,9 +587,9 @@ export component AppWindow inherits Window {
                     HorizontalLayout {
                         spacing: 8px;
                         Text { text: "Teto dos aparelhos"; font-size: 12px; font-weight: 800; color: Tema.tinta; vertical-alignment: center; }
-                        Icone { glifo: "−"; dica: "Diminuir o teto"; ativo: teto > 4; clicou => { teto-mudou(-1); } }
+                        Icone { icone: @image-url("../icons/ui/volume-menos.svg"); dica: "Diminuir o teto"; ativo: teto > 4; clicou => { teto-mudou(-1); } }
                         Text { text: round(teto) + " GB"; font-size: 14px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; min-width: 48px; horizontal-alignment: center; }
-                        Icone { glifo: "+"; dica: "Aumentar o teto"; clicou => { teto-mudou(1); } }
+                        Icone { icone: @image-url("../icons/ui/volume-mais.svg"); dica: "Aumentar o teto"; clicou => { teto-mudou(1); } }
                     }
                 }
             }
@@ -607,8 +650,10 @@ export component AppWindow inherits Window {
             spacing: 10px; height: 36px;
             Text { text: "Arraste pelo título · redimensione pelo canto"; font-size: 11px; font-weight: 700; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; overflow: elide; }
             // Encaixa todos os quadros da mesa na altura visível da janela.
-            Botao {
-                texto: "Organizar"; tamanho-fonte: 12px;
+            Icone {
+                icone: @image-url("../icons/ui/organizar.svg");
+                dica: "Organizar: encaixa todos os aparelhos na janela";
+                y: (parent.height - self.height) / 2;
                 clicou => { root.organizar(floor(mesa.height / mesa.celula)); }
             }
         }
