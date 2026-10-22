@@ -328,6 +328,7 @@ fn linha(d: &Dev, st: &State) -> Aparelho {
     let s = spot.unwrap_or(multidroid_core::state::Spot { x: 0, y: 0, w, h });
     Aparelho {
         nome: d.info.name.as_str().into(),
+        sigla: d.info.name.chars().take(2).collect::<String>().into(),
         tipo: if d.leve.is_some() {
             idioma::tf("{kind} light", &[("kind", &d.info.kind.display())]).into()
         } else {
@@ -798,7 +799,14 @@ impl Ctx {
     /// Guarda o quadro e pede à interface para mostrar (sem empilhar quadros).
     fn entregar(&self, nome: &str, pendente: &Arc<AtomicBool>, f: screen::Frame) {
         let buf = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&f.rgba, f.width, f.height);
-        self.com(nome, |d, _| d.quadro = Some(buf));
+        self.com(nome, |d, _| {
+            // A orientação vem da tela de verdade (girar pelo app ou pelo próprio
+            // Android), para a proporção não voltar a "em pé" quando o fluxo
+            // reinicia e o quadro some por um instante.
+            let (bw, bh) = screen::frame_size(d.info.kind, &d.info.screen);
+            d.paisagem = (f.width > f.height) != (bw > bh);
+            d.quadro = Some(buf);
+        });
         if pendente.swap(true, Ordering::AcqRel) {
             return;
         }
@@ -2086,6 +2094,8 @@ fn main() -> Result<(), slint::PlatformError> {
     });
 
     centralizar(&ui);
+    // Restos de downloads de um app fechado no meio (chegam a GB).
+    install::limpar_orfaos(&platform::data_dir().join("downloads"));
     let r = ui.run();
     // Ao fechar, os aparelhos continuam ligados, como na 0.2: a próxima abertura os adota.
     runtime.shutdown_timeout(Duration::from_secs(1));

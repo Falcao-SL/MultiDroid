@@ -95,6 +95,8 @@ async fn liga_pausa_e_desliga_um_aparelho() {
         tokio::time::sleep(Duration::from_secs(2)).await;
     }
     eprintln!("ligou em {:?}", start.elapsed());
+    // No Windows o emulator.exe só lança o qemu: o processo do aparelho é o filho.
+    let pid = emulator::engine_pid(pid);
 
     let running = Processes::new().emulators();
     assert!(

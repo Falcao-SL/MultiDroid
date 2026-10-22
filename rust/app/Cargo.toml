@@ -30,6 +30,8 @@ winresource = "0.1"
 product-name = "MultiDroid Preview"
 identifier = "com.falcaosl.multidroid.preview"
 publisher = "Falcao SL"
+# Vira o "Maintainer" do .deb (sem ele o dpkg reclama ao instalar).
+authors = ["Falcao SL"]
 copyright = "© 2026 Falcao SL"
 category = "DeveloperTool"
 homepage = "https://multidroid.falcaosl.com"

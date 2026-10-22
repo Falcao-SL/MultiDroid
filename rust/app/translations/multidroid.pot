@@ -441,3 +441,71 @@ msgstr ""
 msgctxt "AppWindow"
 msgid "Delete"
 msgstr ""
+
+msgctxt "BarraAparelho"
+msgid "Back"
+msgstr ""
+
+msgctxt "BarraAparelho"
+msgid "Home"
+msgstr ""
+
+msgctxt "BarraAparelho"
+msgid "Recents"
+msgstr ""
+
+msgctxt "BarraAparelho"
+msgid "Volume +"
+msgstr ""
+
+msgctxt "BarraAparelho"
+msgid "Volume −"
+msgstr ""
+
+msgctxt "BarraAparelho"
+msgid "Rotate"
+msgstr ""
+
+msgctxt "BarraAparelho"
+msgid "Screenshot"
+msgstr ""
+
+msgctxt "BarraAparelho"
+msgid "Pause"
+msgstr ""
+
+msgctxt "BarraAparelho"
+msgid "Resume"
+msgstr ""
+
+msgctxt "BarraAparelho"
+msgid "Wake"
+msgstr ""
+
+msgctxt "BarraAparelho"
+msgid "Start"
+msgstr ""
+
+msgctxt "BarraAparelho"
+msgid "Hibernate: frees the memory and keeps the state"
+msgstr ""
+
+msgctxt "BarraAparelho"
+msgid "Shut down"
+msgstr ""
+
+msgctxt "Quadro"
+msgid "Hide the buttons"
+msgstr ""
+
+msgctxt "Quadro"
+msgid "Show the buttons"
+msgstr ""
+
+msgctxt "AppWindow"
+msgid "Open the panel"
+msgstr ""
+
+msgctxt "AppWindow"
+msgid "Collapse the panel"
+msgstr ""

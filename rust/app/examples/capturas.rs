@@ -159,6 +159,7 @@ fn main() {
                 let tela = tela.as_ref().filter(|_| ligados);
                 Aparelho {
                     nome: d.name.as_str().into(),
+                    sigla: d.name.chars().take(2).collect::<String>().into(),
                     tipo: d.kind.display().into(),
                     android: catalog::android_version(&d.api).into(),
                     estado: if r.is_some() { Estado::Ligado } else { Estado::Desligado },

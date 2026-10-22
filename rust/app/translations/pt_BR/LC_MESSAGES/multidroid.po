@@ -220,7 +220,7 @@ msgstr "Abrir Imagens"
 #: ui/app.slint:609
 msgctxt "AppWindow"
 msgid "{} selected"
-msgstr "{} selecionados"
+msgstr "Selecionados: {}"
 
 #: ui/app.slint:610
 msgctxt "AppWindow"
@@ -441,3 +441,71 @@ msgstr "O aparelho e tudo o que está nele (contas, apps, fotos) somem deste com
 msgctxt "AppWindow"
 msgid "Delete"
 msgstr "Apagar"
+
+msgctxt "BarraAparelho"
+msgid "Back"
+msgstr "Voltar"
+
+msgctxt "BarraAparelho"
+msgid "Home"
+msgstr "Início"
+
+msgctxt "BarraAparelho"
+msgid "Recents"
+msgstr "Recentes"
+
+msgctxt "BarraAparelho"
+msgid "Volume +"
+msgstr "Volume +"
+
+msgctxt "BarraAparelho"
+msgid "Volume −"
+msgstr "Volume −"
+
+msgctxt "BarraAparelho"
+msgid "Rotate"
+msgstr "Girar"
+
+msgctxt "BarraAparelho"
+msgid "Screenshot"
+msgstr "Captura de tela"
+
+msgctxt "BarraAparelho"
+msgid "Pause"
+msgstr "Pausar"
+
+msgctxt "BarraAparelho"
+msgid "Resume"
+msgstr "Retomar"
+
+msgctxt "BarraAparelho"
+msgid "Wake"
+msgstr "Acordar"
+
+msgctxt "BarraAparelho"
+msgid "Start"
+msgstr "Ligar"
+
+msgctxt "BarraAparelho"
+msgid "Hibernate: frees the memory and keeps the state"
+msgstr "Hibernar: libera a memória e guarda o estado"
+
+msgctxt "BarraAparelho"
+msgid "Shut down"
+msgstr "Desligar"
+
+msgctxt "Quadro"
+msgid "Hide the buttons"
+msgstr "Esconder os botões"
+
+msgctxt "Quadro"
+msgid "Show the buttons"
+msgstr "Mostrar os botões"
+
+msgctxt "AppWindow"
+msgid "Open the panel"
+msgstr "Abrir o painel"
+
+msgctxt "AppWindow"
+msgid "Collapse the panel"
+msgstr "Recolher o painel"

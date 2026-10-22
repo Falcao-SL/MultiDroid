@@ -28,6 +28,8 @@ export enum Estado { desligado, ligando, ligado, pausado, desligando, externo, h
 
 export struct Aparelho {
     nome: string,
+    // duas primeiras letras do nome, para o trilho do painel recolhido
+    sigla: string,
     tipo: string,
     android: string,
     estado: Estado,
@@ -96,6 +98,8 @@ component BotaoBase inherits Rectangle {
     // Ícone em SVG no lugar do texto: os símbolos Unicode faltam na fonte do
     // renderizador por software (▢, ⌗, ❚❚ saíam em branco).
     in property <image> icone;
+    // A dica sai à esquerda; no trilho do painel recolhido sai à direita.
+    in property <bool> dica-a-direita;
     callback clicou();
     out property <length> largura-texto: t.preferred-width;
     property <bool> mostrar-dica;
@@ -141,7 +145,7 @@ component BotaoBase inherits Rectangle {
     if mostrar-dica: Rectangle {
         z: 100;
         width: d.preferred-width + 16px; height: d.preferred-height + 10px;
-        x: - self.width - 6px; y: (parent.height - self.height) / 2;
+        x: dica-a-direita ? parent.width + 6px : - self.width - 6px; y: (parent.height - self.height) / 2;
         background: Tema.tinta; border-radius: 6px;
         d := Text {
             text: dica; font-size: 11px; font-weight: 700; color: Tema.fundo;
@@ -248,7 +252,7 @@ component LinhaAparelho inherits Bloco {
                 Text { text: a.mensagem != "" ? a.mensagem : Rotulo.de(a.estado); font-size: 12px; font-weight: 700; color: Tema.tinta; overflow: elide; }
             }
             Text {
-                text: a.metricas != "" ? a.metricas : a.tipo + " · " + a.android;
+                text: (a.grupo != "" ? a.grupo + " · " : "") + (a.metricas != "" ? a.metricas : a.tipo + " · " + a.android);
                 font-size: 11px; color: Tema.tinta; opacity: 0.6; overflow: elide;
             }
         }
@@ -268,32 +272,32 @@ component LinhaAparelho inherits Bloco {
     }
 }
 
-// Botões de navegação do aparelho, na ordem da 0.2.
-component BotoesNavegacao inherits VerticalLayout {
+// Barra de botões embaixo da tela, na ordem da 0.2: navegação e estado. Com
+// pouco espaço (completo = false) fica só o essencial: voltar, início, recentes
+// e os de estado.
+component BarraAparelho inherits HorizontalLayout {
     in property <Aparelho> a;
     in property <bool> vivo;
-    in property <length> lado: 32px;
+    in property <bool> completo;
+    in property <length> lado;
     callback acao(string);
-    spacing: 5px; alignment: start;
+    spacing: 4px; alignment: center;
     Icone { lado: root.lado; icone: @image-url("../icons/ui/voltar.svg"); dica: @tr("Back"); ativo: vivo; clicou => { acao("voltar"); } }
     Icone { lado: root.lado; icone: @image-url("../icons/ui/inicio.svg"); dica: @tr("Home"); ativo: vivo; clicou => { acao("inicio"); } }
     Icone { lado: root.lado; icone: @image-url("../icons/ui/recentes.svg"); dica: @tr("Recents"); ativo: vivo; clicou => { acao("recentes"); } }
-    Icone { lado: root.lado; icone: @image-url("../icons/ui/volume-mais.svg"); dica: @tr("Volume +"); ativo: vivo; clicou => { acao("volume+"); } }
-    Icone { lado: root.lado; icone: @image-url("../icons/ui/volume-menos.svg"); dica: @tr("Volume −"); ativo: vivo; clicou => { acao("volume-"); } }
-    if !a.relogio: Icone { lado: root.lado; icone: @image-url("../icons/ui/girar.svg"); dica: @tr("Rotate"); ativo: vivo; clicou => { acao("girar"); } }
-    Icone { lado: root.lado; icone: @image-url("../icons/ui/captura.svg"); dica: @tr("Screenshot"); ativo: vivo; clicou => { acao("captura"); } }
-}
-
-// Pausar ou retomar, hibernar e desligar.
-component BotoesEstado inherits VerticalLayout {
-    in property <Aparelho> a;
-    in property <length> lado: 32px;
-    callback acao(string);
-    spacing: 5px; alignment: start;
+    if completo: Icone { lado: root.lado; icone: @image-url("../icons/ui/volume-mais.svg"); dica: @tr("Volume +"); ativo: vivo; clicou => { acao("volume+"); } }
+    if completo: Icone { lado: root.lado; icone: @image-url("../icons/ui/volume-menos.svg"); dica: @tr("Volume −"); ativo: vivo; clicou => { acao("volume-"); } }
+    if completo && !a.relogio: Icone { lado: root.lado; icone: @image-url("../icons/ui/girar.svg"); dica: @tr("Rotate"); ativo: vivo; clicou => { acao("girar"); } }
+    if completo: Icone { lado: root.lado; icone: @image-url("../icons/ui/captura.svg"); dica: @tr("Screenshot"); ativo: vivo; clicou => { acao("captura"); } }
+    Rectangle { width: 6px; }
     if a.estado == Estado.ligado: Icone { lado: root.lado; icone: @image-url("../icons/ui/pausar.svg"); cor: Tema.azul; dica: @tr("Pause"); clicou => { acao("pausar"); } }
     if a.estado == Estado.pausado: Icone { lado: root.lado; icone: @image-url("../icons/ui/retomar.svg"); cor: Tema.verde; dica: @tr("Resume"); clicou => { acao("retomar"); } }
-    Icone { lado: root.lado; icone: @image-url("../icons/ui/hibernar.svg"); cor: Tema.ciano; dica: @tr("Hibernate: frees the memory and keeps the state"); clicou => { acao("hibernar"); } }
-    Icone { lado: root.lado; icone: @image-url("../icons/ui/desligar.svg"); cor: Tema.vermelho; dica: @tr("Shut down"); clicou => { acao("desligar"); } }
+    if a.estado == Estado.desligado || a.estado == Estado.hibernado: Icone {
+        lado: root.lado; icone: @image-url("../icons/ui/retomar.svg"); cor: a.estado == Estado.hibernado ? Tema.ciano : Tema.verde;
+        dica: a.estado == Estado.hibernado ? @tr("Wake") : @tr("Start"); clicou => { acao("ligar"); }
+    }
+    if a.estado == Estado.ligado || a.estado == Estado.pausado: Icone { lado: root.lado; icone: @image-url("../icons/ui/hibernar.svg"); cor: Tema.ciano; dica: @tr("Hibernate: frees the memory and keeps the state"); clicou => { acao("hibernar"); } }
+    if a.estado != Estado.desligado && a.estado != Estado.desligando && a.estado != Estado.hibernado: Icone { lado: root.lado; icone: @image-url("../icons/ui/desligar.svg"); cor: Tema.vermelho; dica: @tr("Shut down"); clicou => { acao("desligar"); } }
 }
 
 // Faixa de uma borda ou canto do quadro que muda o tamanho. hx e hy dizem qual
@@ -348,37 +352,54 @@ component Quadro inherits Bloco {
     callback tecla(string);
     property <bool> vivo: a.estado == Estado.ligado;
     property <bool> com-botoes: a.estado == Estado.ligado || a.estado == Estado.pausado;
-    // Altura da coluna única: botões de 32 px com 5 px entre eles, o respiro de
-    // 4 px, mais cabeçalho (22), margens (16) e espaço (6).
-    property <int> n-botoes: a.relogio ? 9 : 10;
-    // Em duas colunas, a da navegação é a mais alta (6 ou 7 botões); se nem
-    // assim cabe, os botões encolhem até 16 px em vez de vazar do quadro.
-    property <int> n-nav: a.relogio ? 6 : 7;
-    // Tudo sai da largura (a altura vem dela): margens e espaço somam 22 px na
-    // horizontal e 44 px na vertical, além da coluna de botões.
-    pure function altura-uma(w: length) -> length { return (w - 54px) / a.proporcao + 44px; }
-    pure function duas-de(w: length) -> bool { return altura-uma(w) < n-botoes * 37px + 48px; }
-    pure function lado-de(w: length) -> length {
-        return duas-de(w) ? max(16px, min(32px, (altura-uma(w) - 44px - (n-nav - 1) * 5px) / n-nav)) : 32px;
+    // A barra de botões fica embaixo da tela e tem o lado que a largura deixa,
+    // até 30 px: com todos os botões (10, ou 9 no relógio) se cada um tiver 22 px
+    // ou mais; senão só os 6 essenciais, se tiverem 16 px (o quadro mínimo de 4
+    // células numa janela normal); senão some. O botão do título esconde e mostra.
+    in-out property <bool> mostrar-barra: true;
+    property <int> n-todos: a.relogio ? 9 : 10;
+    pure function lado-todos(w: length) -> length { return min(30px, (w - 22px - (n-todos - 1) * 4px) / n-todos); }
+    pure function lado-ess(w: length) -> length { return min(30px, (w - 22px - 5 * 4px) / 6); }
+    pure function modo-de(w: length) -> int {
+        return !mostrar-barra ? 0 : lado-todos(w) >= 22px ? 2 : lado-ess(w) >= 16px ? 1 : 0;
     }
-    pure function coluna-de(w: length) -> length { return duas-de(w) ? 2 * lado-de(w) + 5px : 32px; }
-    pure function altura-de(w: length) -> length { return (w - 22px - coluna-de(w)) / a.proporcao + 44px; }
-    // O inverso: a largura que dá a altura h (com a coluna de uma largura parecida).
+    pure function barra-de(w: length) -> length {
+        return modo-de(w) == 2 ? lado-todos(w) + 6px : modo-de(w) == 1 ? lado-ess(w) + 6px : 0;
+    }
+    // Tudo sai da largura: margens de 8 px, cabeçalho de 22 px e 6 px de espaço.
+    pure function altura-de(w: length) -> length { return (w - 16px) / a.proporcao + 44px + barra-de(w); }
+    // O inverso: a largura que dá a altura h (com a barra de uma largura parecida).
     pure function largura-de(h: length) -> length {
-        return (h - 44px) * a.proporcao + 22px + coluna-de((h - 44px) * a.proporcao + 54px);
+        return (h - 44px - barra-de((h - 80px) * a.proporcao + 16px)) * a.proporcao + 16px;
     }
-    property <bool> duas-colunas: duas-de(root.width);
-    property <length> lado-botao: lado-de(root.width);
+    property <int> modo: modo-de(root.width);
+    property <length> lado-botao: modo == 2 ? lado-todos(root.width) : lado-ess(root.width);
     height: altura-de(root.width);
 
-    // Largura sem o arrasto em andamento; o mínimo é 4 células e o máximo vai
-    // até a borda da mesa do lado que cresce.
+    // Largura sem o arrasto em andamento; o mínimo é 4 células.
     property <length> base-w: root.width - root.extra-w;
-    property <length> min-w: 4 * celula - 10px;
+    out property <length> min-w: 4 * celula - 10px;
     // Altura em células para a grade (sem o arrasto), avisada a quem guarda os lugares.
     property <int> h-celulas: ceil((altura-de(base-w) + 10px) / celula);
     changed h-celulas => { if root.extra-w == 0 { root.altura(h-celulas); } }
     init => { root.altura(h-celulas); }
+
+    // Ao girar, o quadro troca de lado e a tela mantém o tamanho: a largura nova
+    // da tela é a altura que ela tinha. Se não couber na mesa, encosta à direita.
+    // Se a altura guardada já serve na proporção nova (o app abriu com o
+    // aparelho deitado), fica como está.
+    property <float> prop: a.proporcao;
+    property <float> prop-antes: a.proporcao;
+    changed prop => {
+        if prop-antes > 0 && abs(prop - prop-antes) > 0.01 && root.extra-w == 0
+            && abs(ceil((altura-de(base-w) + 10px) / celula) - a.h) > 1 {
+            root.girou(min(24, max(4, round(((base-w - 16px) / prop-antes + 16px + 10px) / celula))));
+        }
+        prop-antes = prop;
+    }
+    function girou(w: int) {
+        root.posicionar(min(a.x, 24 - w), a.y, w, ceil((altura-de(w * celula - 10px) + 10px) / celula));
+    }
 
     // Arrasto de uma borda: pela largura, pela altura ou, num canto, pelo eixo
     // que mais mudou; o lado oposto fica parado.
@@ -412,6 +433,8 @@ component Quadro inherits Bloco {
                 Ponto { estado: a.estado; y: (parent.height - self.height) / 2; }
                 Text { text: a.nome; font-size: 13px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; overflow: elide; }
                 Text { text: a.mensagem; font-size: 11px; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; horizontal-alignment: right; overflow: elide; }
+                // Espaço do botão da barra, que fica por cima da área de arrastar.
+                Rectangle { width: 20px; }
             }
             // Arrastar pelo título muda o lugar na grade.
             // Só conta o arrasto que começou com o botão descendo aqui.
@@ -438,8 +461,15 @@ component Quadro inherits Bloco {
                     }
                 }
             }
+            Icone {
+                x: parent.width - self.width; y: (parent.height - self.height) / 2;
+                lado: 20px; icone: @image-url("../icons/ui/barra.svg");
+                dica: root.mostrar-barra ? @tr("Hide the buttons") : @tr("Show the buttons");
+                cor: root.mostrar-barra ? Tema.superficie : Tema.amarelo;
+                clicou => { root.mostrar-barra = !root.mostrar-barra; }
+            }
         }
-        HorizontalLayout {
+        VerticalLayout {
             spacing: 6px;
             area := Rectangle {
                 // A tela ocupa o maior retângulo com a proporção do aparelho.
@@ -507,21 +537,10 @@ component Quadro inherits Bloco {
             // Uma coluna quando cabe; num quadro baixo (o relógio em 6×6, por
             // exemplo) os botões vão para duas colunas, senão a coluna empurra o
             // layout para fora do quadro e a tela vaza junto.
-            // A coluna fica mesmo desligado (navegação apagada), para o quadro
-            // ter sempre a mesma medida e a tela preencher o resto.
-            if !duas-colunas: VerticalLayout {
-                width: 32px; spacing: 5px; alignment: start;
-                BotoesNavegacao { a: a; vivo: vivo; acao(n) => { acao(n); } }
-                Rectangle { height: 4px; }
-                if com-botoes: BotoesEstado { a: a; acao(n) => { acao(n); } }
-            }
-            if duas-colunas: HorizontalLayout {
-                width: 2 * lado-botao + 5px; spacing: 5px;
-                BotoesNavegacao { a: a; vivo: vivo; lado: lado-botao; acao(n) => { acao(n); } }
-                VerticalLayout {
-                    width: lado-botao;
-                    if com-botoes: BotoesEstado { a: a; lado: lado-botao; acao(n) => { acao(n); } }
-                }
+            if modo > 0: BarraAparelho {
+                height: lado-botao;
+                a: a; vivo: vivo; lado: lado-botao; completo: modo == 2;
+                acao(n) => { acao(n); }
             }
         }
     }
@@ -664,19 +683,42 @@ export component AppWindow inherits Window {
     callback grupo(string, string);
     callback apagar(string);
 
+    // Painel lateral aberto (330 px) ou recolhido num trilho de ícones (32 px).
+    in-out property <bool> painel-aberto: true;
+
     HorizontalLayout {
         padding: 16px; spacing: 16px;
-        VerticalLayout {
+        if !painel-aberto: VerticalLayout {
+            width: 32px; spacing: 12px; alignment: start;
+            Icone { icone: @image-url("../icons/ui/expandir.svg"); dica: @tr("Open the panel"); dica-a-direita: true; clicou => { root.painel-aberto = true; } }
+            Rectangle { height: 4px; }
+            Icone { icone: @image-url("../icons/ui/novo.svg"); cor: Tema.azul; dica: @tr("New device"); dica-a-direita: true; clicou => { abrir-novo(); } }
+            Icone { icone: @image-url("../icons/ui/imagens.svg"); dica: @tr("Images"); dica-a-direita: true; clicou => { abrir-imagens(); } }
+            Rectangle { height: 4px; }
+            // Um quadrado por aparelho, na cor do estado; clicar abre o menu dele.
+            for a in aparelhos: Icone {
+                glifo: a.sigla; tamanho-fonte: 11px;
+                cor: a.estado == Estado.ligado ? Tema.verde
+                    : a.estado == Estado.pausado ? Tema.azul
+                    : a.estado == Estado.hibernado ? Tema.ciano
+                    : a.estado == Estado.desligado ? Tema.superficie : Tema.amarelo;
+                dica: a.nome + " · " + Rotulo.de(a.estado); dica-a-direita: true;
+                clicou => { root.alvo = a.nome; root.tela = "menu"; }
+            }
+        }
+        if painel-aberto: VerticalLayout {
             width: 330px; spacing: 12px; alignment: start;
             HorizontalLayout {
-                spacing: 10px;
+                spacing: 10px; height: 32px;
                 Text { text: "MultiDroid"; font-size: 26px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; }
-                Text { text: @tr("Preview {}", versao); font-size: 12px; font-weight: 700; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; }
+                Text { text: @tr("Preview {}", versao); font-size: 12px; font-weight: 700; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; horizontal-stretch: 1; }
+                Icone { icone: @image-url("../icons/ui/recolher.svg"); dica: @tr("Collapse the panel"); clicou => { root.painel-aberto = false; } }
             }
+            // Botões lado a lado no painel: mesma largura e mesma altura.
             HorizontalLayout {
-                spacing: 10px;
-                Botao { texto: @tr("+ New device"); cor: Tema.azul; clicou => { abrir-novo(); } }
-                Botao { texto: @tr("Images"); clicou => { abrir-imagens(); } }
+                spacing: 12px;
+                Botao { horizontal-stretch: 1; min-width: 0px; preferred-width: 0px; texto: @tr("+ New device"); cor: Tema.azul; clicou => { abrir-novo(); } }
+                Botao { horizontal-stretch: 1; min-width: 0px; preferred-width: 0px; texto: @tr("Images"); clicou => { abrir-imagens(); } }
             }
             if memoria != "": Bloco {
                 height: 96px;
@@ -693,27 +735,32 @@ export component AppWindow inherits Window {
                 }
             }
             if sem-emulador: Bloco {
-                cor: Tema.amarelo; height: 56px;
+                cor: Tema.amarelo; height: 60px;
                 HorizontalLayout {
-                    padding: 10px; spacing: 8px;
+                    padding: 12px; spacing: 8px;
                     Text { text: @tr("The emulator is needed to start devices."); font-size: 12px; font-weight: 700; color: Tema.tinta-sobre-acento; wrap: word-wrap; vertical-alignment: center; }
                     Botao { texto: @tr("Open Images"); cor: Tema.superficie; clicou => { abrir-imagens(); } }
                 }
             }
+            // Lote: botões em duas linhas de dois, todos com a mesma largura e fonte.
             if selecionados > 0: Bloco {
-                cor: Tema.amarelo; height: 92px;
+                cor: Tema.amarelo; height: 156px;
                 VerticalLayout {
-                    padding: 10px; spacing: 8px;
+                    padding: 12px; spacing: 8px;
                     HorizontalLayout {
-                        Text { text: @tr("{} selected", selecionados); font-size: 12px; font-weight: 900; color: Tema.tinta-sobre-acento; vertical-alignment: center; }
-                        Botao { texto: @tr("Clear"); cor: Tema.superficie; tamanho-fonte: 12px; clicou => { lote("limpar"); } }
+                        spacing: 8px;
+                        Text { text: @tr("{} selected", selecionados); font-size: 13px; font-weight: 900; color: Tema.tinta-sobre-acento; vertical-alignment: center; horizontal-stretch: 1; }
+                        Botao { texto: @tr("Clear"); cor: Tema.superficie; clicou => { lote("limpar"); } }
                     }
                     HorizontalLayout {
-                        spacing: 6px;
-                        Botao { texto: @tr("Start"); cor: Tema.verde; tamanho-fonte: 12px; clicou => { lote("ligar"); } }
-                        Botao { texto: @tr("Pause"); cor: Tema.azul; tamanho-fonte: 12px; clicou => { lote("pausar"); } }
-                        Botao { texto: @tr("Hibernate"); cor: Tema.ciano; tamanho-fonte: 12px; clicou => { lote("hibernar"); } }
-                        Botao { texto: @tr("Shut down"); cor: Tema.vermelho; tamanho-fonte: 12px; clicou => { lote("desligar"); } }
+                        spacing: 8px;
+                        Botao { horizontal-stretch: 1; min-width: 0px; preferred-width: 0px; texto: @tr("Start"); cor: Tema.verde; clicou => { lote("ligar"); } }
+                        Botao { horizontal-stretch: 1; min-width: 0px; preferred-width: 0px; texto: @tr("Pause"); cor: Tema.azul; clicou => { lote("pausar"); } }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Botao { horizontal-stretch: 1; min-width: 0px; preferred-width: 0px; texto: @tr("Hibernate"); cor: Tema.ciano; clicou => { lote("hibernar"); } }
+                        Botao { horizontal-stretch: 1; min-width: 0px; preferred-width: 0px; texto: @tr("Shut down"); cor: Tema.vermelho; clicou => { lote("desligar"); } }
                     }
                 }
             }
@@ -736,7 +783,7 @@ export component AppWindow inherits Window {
                 font-size: 13px; color: Tema.tinta; opacity: 0.6; wrap: word-wrap;
             }
             if aviso != "": Bloco {
-                cor: Tema.amarelo; height: 56px;
+                cor: Tema.amarelo; height: 60px;
                 Text {
                     x: 12px; width: parent.width - 24px; height: parent.height;
                     text: aviso; font-size: 12px; font-weight: 700; color: Tema.tinta-sobre-acento; wrap: word-wrap; vertical-alignment: center;
@@ -778,7 +825,9 @@ export component AppWindow inherits Window {
             for a in aparelhos: Quadro {
                 x: a.x * mesa.celula + self.desloc-x;
                 y: a.y * mesa.celula + self.desloc-y;
-                width: a.w * mesa.celula - 10px + self.extra-w;
+                // O mínimo vale também para um lugar guardado antes (aparelho deitado
+                // numa largura em que os botões não cabem).
+                width: max(self.min-w, a.w * mesa.celula - 10px) + self.extra-w;
                 z: self.desloc-x != 0 || self.desloc-y != 0 || self.extra-w != 0 ? 10 : 0;
                 celula: mesa.celula;
                 a: a;
@@ -795,6 +844,16 @@ export component AppWindow inherits Window {
                 Text { text: sem-emulador ? @tr("Download the emulator in Images, then create a device.") : @tr("Create a device with + New device."); font-size: 13px; color: Tema.tinta; opacity: 0.6; horizontal-alignment: center; }
             }
         }
+        }
+    }
+
+    // Com o painel recolhido, o aviso aparece por cima da mesa, embaixo à esquerda.
+    if !painel-aberto && aviso != "": Bloco {
+        x: 64px; y: root.height - 76px; width: min(440px, root.width - 80px); height: 60px;
+        cor: Tema.amarelo;
+        Text {
+            x: 12px; width: parent.width - 24px; height: parent.height;
+            text: aviso; font-size: 12px; font-weight: 700; color: Tema.tinta-sobre-acento; wrap: word-wrap; vertical-alignment: center;
         }
     }
 
@@ -855,11 +914,11 @@ export component AppWindow inherits Window {
             if tem-leve: HorizontalLayout {
                 spacing: 10px;
                 Botao {
-                    horizontal-stretch: 1; texto: @tr("Light (Redroid)"); cor: novo-motor == 1 ? Tema.azul : Tema.superficie;
+                    horizontal-stretch: 1; min-width: 0px; preferred-width: 0px; texto: @tr("Light (Redroid)"); cor: novo-motor == 1 ? Tema.azul : Tema.superficie;
                     clicou => { root.novo-motor = 1; }
                 }
                 Botao {
-                    horizontal-stretch: 1; texto: @tr("Full (emulator)"); cor: novo-motor == 0 ? Tema.azul : Tema.superficie;
+                    horizontal-stretch: 1; min-width: 0px; preferred-width: 0px; texto: @tr("Full (emulator)"); cor: novo-motor == 0 ? Tema.azul : Tema.superficie;
                     clicou => { root.novo-motor = 0; }
                 }
             }
@@ -870,7 +929,7 @@ export component AppWindow inherits Window {
             HorizontalLayout {
                 spacing: 10px;
                 for t[i] in tipos: Botao {
-                    horizontal-stretch: 1;
+                    horizontal-stretch: 1; min-width: 0px; preferred-width: 0px;
                     texto: t; cor: novo-tipo == i ? Tema.azul : Tema.superficie;
                     clicou => { root.novo-tipo = i; root.novo-tipo-mudou(i); }
                 }

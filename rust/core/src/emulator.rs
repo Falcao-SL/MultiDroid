@@ -359,17 +359,21 @@ fn console_with_token(port: u16, command: &str, token: Option<&str>) -> bool {
 }
 
 /// Desliga salvando o estado e espera o processo sair. Se o console não responder,
-/// ou o processo não sair em 20 s, encerra sem salvar. Diz se salvou.
+/// ou o processo não sair em 150 s, encerra sem salvar. Diz se salvou.
+///
+/// Salvar grava a RAM inteira (4 GB no Android 37) em disco: num Windows com
+/// pouca memória livre passa de 20 s, e encerrar no meio deixa um estado
+/// quebrado que o emulador descarta no próximo boot (que sai a frio).
 pub fn shutdown(pid: u32, console_port: u16) -> bool {
     let saved = console(console_port, "kill");
     if !saved {
         terminate(pid);
     }
-    for i in 0..60 {
+    for i in 0..320 {
         if !alive(pid) {
             return saved;
         }
-        if i == 40 {
+        if i == 300 {
             terminate(pid);
         }
         std::thread::sleep(Duration::from_millis(500));

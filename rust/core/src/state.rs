@@ -176,8 +176,17 @@ impl State {
     }
 
     /// Organizar a mesa para caber em `linhas` linhas visíveis (ver `grid::encaixar`).
+    /// Parte da proporção de cada quadro como está (a interface guarda a altura que
+    /// mostra o aparelho inteiro, deitado ou em pé); sem lugar ainda, do padrão do tipo.
     pub fn fit_spots(&mut self, list: &[&Device], linhas: i32) {
-        let padroes: Vec<(i32, i32)> = list.iter().map(|d| d.kind.grid_size()).collect();
+        let padroes: Vec<(i32, i32)> = list
+            .iter()
+            .map(|d| {
+                self.spots
+                    .get(&d.name)
+                    .map_or_else(|| d.kind.grid_size(), |s| (s.w, s.h))
+            })
+            .collect();
         for (d, s) in list.iter().zip(grid::encaixar(&padroes, linhas)) {
             self.spots.insert(d.name.clone(), s);
         }
@@ -435,5 +444,17 @@ mod tests {
         let padroes = vec![(7, 14); 30];
         let v = grid::encaixar(&padroes, 6);
         assert!(v.iter().all(|s| s.w == grid::MIN_W && s.h == grid::MIN_H), "{:?}", v[0]);
+    }
+
+    #[test]
+    fn organizar_mantem_a_proporcao_do_quadro_deitado() {
+        // Um celular deitado (largo e baixo) continua deitado depois de organizar.
+        let mut s = State::new(16.0);
+        s.spots.insert("Cel".into(), Spot { x: 0, y: 0, w: 12, h: 6 });
+        let d = dev("Cel", Kind::Celular);
+        s.fit_spots(&[&d], 20);
+        let r = s.spots["Cel"];
+        assert!(r.w > r.h, "{r:?}");
+        assert!(r.y + r.h <= 20, "{r:?}");
     }
 }

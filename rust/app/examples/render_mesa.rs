@@ -100,6 +100,7 @@ fn main() {
             let relogio = *k == Kind::Relogio;
             Aparelho {
                 nome: if relogio { "Relogio1".into() } else { format!("Celular{}", i + 1).into() },
+                sigla: if relogio { "Re".into() } else { "Ce".into() },
                 tipo: k.display().into(),
                 android: "13".into(),
                 estado: Estado::Ligado,

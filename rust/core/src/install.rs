@@ -246,7 +246,15 @@ pub fn install(
     if free.is_some_and(|f| f < needed) {
         return Err(Error::NoSpace { needed });
     }
-    let zip = work.join(format!("dl-{}.zip", std::process::id()));
+    limpar_orfaos(work);
+    // Um arquivo por pacote: dois downloads ao mesmo tempo (o emulador baixado ao
+    // ligar e uma imagem em Imagens) não podem escrever no mesmo zip.
+    let nome: String = pkg
+        .path
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == '.' || c == '-' { c } else { '_' })
+        .collect();
+    let zip = work.join(format!("dl-{}-{nome}.zip", std::process::id()));
     let result = (|| {
         download(&pkg.url, &zip, pkg.size, cancel, progress)?;
         let got = file_sha1(&zip)?;
@@ -260,6 +268,27 @@ pub fn install(
     })();
     let _ = fs::remove_file(&zip);
     result
+}
+
+/// Apaga os zips de downloads de processos que já não existem (o app fechado
+/// no meio de um download deixava o arquivo parcial para sempre).
+pub fn limpar_orfaos(work: &Path) {
+    let Ok(entries) = fs::read_dir(work) else {
+        return;
+    };
+    for e in entries.flatten() {
+        let nome = e.file_name().to_string_lossy().into_owned();
+        let Some(pid) = nome
+            .strip_prefix("dl-")
+            .and_then(|r| r.split(['-', '.']).next())
+            .and_then(|p| p.parse::<u32>().ok())
+        else {
+            continue;
+        };
+        if pid != std::process::id() && !crate::emulator::alive(pid) {
+            let _ = fs::remove_file(e.path());
+        }
+    }
 }
 
 #[cfg(test)]
