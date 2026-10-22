@@ -1266,20 +1266,50 @@ impl Ctx {
 
     /// Arrasta (`crescer = false`) ou redimensiona um quadro, em células, e empurra para
     /// baixo quem ficar embaixo.
-    fn mover(&self, nome: &str, dx: i32, dy: i32, crescer: bool) {
+    fn mover(&self, nome: &str, dx: i32, dy: i32) {
         if dx == 0 && dy == 0 {
             return self.avisar();
         }
-        let mut app = self.app.lock().unwrap();
-        let Some(mut s) = app.state.spots.get(nome).copied() else {
+        let Some(mut s) = self.app.lock().unwrap().state.spots.get(nome).copied() else {
             return;
         };
-        if crescer {
-            s.w = (s.w + dx).clamp(grid::MIN_W, grid::COLS - s.x);
-            s.h = (s.h + dy).max(grid::MIN_H);
-        } else {
-            s.x = (s.x + dx).clamp(0, grid::COLS - s.w);
-            s.y = (s.y + dy).max(0);
+        s.x = (s.x + dx).clamp(0, grid::COLS - s.w);
+        s.y = (s.y + dy).max(0);
+        self.colocar(nome, s);
+    }
+
+    /// Lugar novo depois de redimensionar por uma borda ou canto.
+    fn posicionar(&self, nome: &str, x: i32, y: i32, w: i32, h: i32) {
+        let w = w.clamp(grid::MIN_W, grid::COLS);
+        let s = multidroid_core::state::Spot {
+            x: x.clamp(0, grid::COLS - w),
+            y: y.max(0),
+            w,
+            h: h.max(grid::MIN_H),
+        };
+        self.colocar(nome, s);
+    }
+
+    /// A altura que mostra o aparelho inteiro mudou (largura ou janela nova):
+    /// guarda e empurra para baixo quem passou a colidir.
+    fn altura(&self, nome: &str, h: i32) {
+        let Some(mut s) = self.app.lock().unwrap().state.spots.get(nome).copied() else {
+            return;
+        };
+        let h = h.max(grid::MIN_H);
+        if s.h == h {
+            return;
+        }
+        s.h = h;
+        self.colocar(nome, s);
+    }
+
+    /// Põe `nome` em `s` na sua mesa, empurrando quem colidir, e salva.
+    fn colocar(&self, nome: &str, s: multidroid_core::state::Spot) {
+        let mut app = self.app.lock().unwrap();
+        if app.state.spots.get(nome) == Some(&s) {
+            drop(app);
+            return self.avisar();
         }
         let mesa = app.state.desk_of(nome).to_string();
         let mesmos: BTreeMap<String, _> = app
@@ -1867,6 +1897,42 @@ impl Ctx {
     }
 }
 
+/// Abre a janela no meio do monitor em que ela nasceu, com no máximo 90% dele
+/// (1400×860 em escala de 125% não cabe num monitor de 1080 linhas). O Slint só
+/// cria a janela nativa com o loop de eventos rodando, então tenta a cada 50 ms
+/// até ela existir. No Wayland quem decide é o compositor e o pedido é ignorado.
+fn centralizar(ui: &AppWindow) {
+    use slint::winit_030::{WinitWindowAccessor, winit};
+    let ui = ui.as_weak();
+    // O fecho guarda uma cópia do Rc, o que mantém o timer vivo até ele parar.
+    let timer = std::rc::Rc::new(slint::Timer::default());
+    let t = timer.clone();
+    let mut tentativas = 0;
+    timer.start(slint::TimerMode::Repeated, Duration::from_millis(50), move || {
+        tentativas += 1;
+        let Some(ui) = ui.upgrade() else { return t.stop() };
+        let feito = ui.window().with_winit_window(|w: &winit::window::Window| {
+            let Some(m) = w.current_monitor().or_else(|| w.primary_monitor()) else {
+                return;
+            };
+            let (mp, ms) = (m.position(), m.size());
+            let (inner, outer) = (w.inner_size(), w.outer_size());
+            // Bordas e barra de título: o que a janela tem fora da área do app.
+            let (bw, bh) = (outer.width - inner.width, outer.height - inner.height);
+            let (ow, oh) = (outer.width.min(ms.width * 9 / 10), outer.height.min(ms.height * 9 / 10));
+            if (ow, oh) != (outer.width, outer.height) {
+                let _ = w.request_inner_size(winit::dpi::PhysicalSize::new(ow - bw, oh - bh));
+            }
+            let x = mp.x + ((ms.width - ow) / 2) as i32;
+            let y = mp.y + ((ms.height - oh) / 2) as i32;
+            w.set_outer_position(winit::dpi::PhysicalPosition::new(x, y));
+        });
+        if feito.is_some() || tentativas >= 40 {
+            t.stop();
+        }
+    });
+}
+
 fn main() -> Result<(), slint::PlatformError> {
     let t = tokens::load();
     // No Mac, o renderizador por software: com 5 aparelhos na mesa ocupa ~148 MB
@@ -1948,9 +2014,11 @@ fn main() -> Result<(), slint::PlatformError> {
     let c = ctx.clone();
     ui.on_lote(move |a| c.lote(&a));
     let c = ctx.clone();
-    ui.on_mover(move |n, dx, dy| c.mover(&n, dx, dy, false));
+    ui.on_mover(move |n, dx, dy| c.mover(&n, dx, dy));
     let c = ctx.clone();
-    ui.on_redimensionar(move |n, dw, dh| c.mover(&n, dw, dh, true));
+    ui.on_posicionar(move |n, x, y, w, h| c.posicionar(&n, x, y, w, h));
+    let c = ctx.clone();
+    ui.on_altura(move |n, h| c.altura(&n, h));
     let c = ctx.clone();
     ui.on_organizar(move |linhas| c.organizar(linhas));
     let c = ctx.clone();
@@ -2017,6 +2085,7 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
+    centralizar(&ui);
     let r = ui.run();
     // Ao fechar, os aparelhos continuam ligados, como na 0.2: a próxima abertura os adota.
     runtime.shutdown_timeout(Duration::from_secs(1));

@@ -296,7 +296,41 @@ component BotoesEstado inherits VerticalLayout {
     Icone { lado: root.lado; icone: @image-url("../icons/ui/desligar.svg"); cor: Tema.vermelho; dica: @tr("Shut down"); clicou => { acao("desligar"); } }
 }
 
-// Um quadro da mesa: cabeçalho, a tela do Android e a coluna de botões.
+// Faixa de uma borda ou canto do quadro que muda o tamanho. hx e hy dizem qual
+// lado ela puxa (-1 esquerda/cima, 1 direita/baixo, 0 nenhum).
+component Alca inherits TouchArea {
+    in property <int> hx;
+    in property <int> hy;
+    // Deslocamento desde o clique, medido na janela: a alça anda junto com a
+    // borda, então medir nela mesma encolheria o arrasto.
+    callback puxou(length, length);
+    callback soltou();
+    property <bool> puxando;
+    property <length> inicio-x;
+    property <length> inicio-y;
+    mouse-cursor: hx == 0 ? ns-resize
+        : hy == 0 ? ew-resize
+        : hx == hy ? nwse-resize : nesw-resize;
+    moved => {
+        if puxando && self.pressed {
+            puxou(self.absolute-position.x + self.mouse-x - inicio-x, self.absolute-position.y + self.mouse-y - inicio-y);
+        }
+    }
+    pointer-event(e) => {
+        if e.button == PointerEventButton.left && e.kind == PointerEventKind.down {
+            puxando = true;
+            inicio-x = self.absolute-position.x + self.mouse-x;
+            inicio-y = self.absolute-position.y + self.mouse-y;
+        }
+        if e.kind == PointerEventKind.up || e.kind == PointerEventKind.cancel {
+            if puxando { soltou(); }
+            puxando = false;
+        }
+    }
+}
+
+// Um quadro da mesa: cabeçalho, a tela do Android e a coluna de botões. A altura
+// sai da largura, na proporção do aparelho, para a tela preencher o quadro todo.
 component Quadro inherits Bloco {
     in property <Aparelho> a;
     in property <length> celula;
@@ -304,9 +338,11 @@ component Quadro inherits Bloco {
     in-out property <length> desloc-x;
     in-out property <length> desloc-y;
     in-out property <length> extra-w;
-    in-out property <length> extra-h;
     callback mover(int, int);
-    callback redimensionar(int, int);
+    // Lugar novo na grade depois de redimensionar (x, y, largura, altura em células).
+    callback posicionar(int, int, int, int);
+    // Altura em células que mostra o aparelho inteiro na largura atual.
+    callback altura(int);
     callback acao(string);
     callback toque(float, float, string);
     callback tecla(string);
@@ -315,13 +351,57 @@ component Quadro inherits Bloco {
     // Altura da coluna única: botões de 32 px com 5 px entre eles, o respiro de
     // 4 px, mais cabeçalho (22), margens (16) e espaço (6).
     property <int> n-botoes: a.relogio ? 9 : 10;
-    property <bool> duas-colunas: root.height < n-botoes * 37px + 4px + 44px;
     // Em duas colunas, a da navegação é a mais alta (6 ou 7 botões); se nem
     // assim cabe, os botões encolhem até 16 px em vez de vazar do quadro.
     property <int> n-nav: a.relogio ? 6 : 7;
-    property <length> lado-botao: duas-colunas
-        ? max(16px, min(32px, (root.height - 44px - (n-nav - 1) * 5px) / n-nav))
-        : 32px;
+    // Tudo sai da largura (a altura vem dela): margens e espaço somam 22 px na
+    // horizontal e 44 px na vertical, além da coluna de botões.
+    pure function altura-uma(w: length) -> length { return (w - 54px) / a.proporcao + 44px; }
+    pure function duas-de(w: length) -> bool { return altura-uma(w) < n-botoes * 37px + 48px; }
+    pure function lado-de(w: length) -> length {
+        return duas-de(w) ? max(16px, min(32px, (altura-uma(w) - 44px - (n-nav - 1) * 5px) / n-nav)) : 32px;
+    }
+    pure function coluna-de(w: length) -> length { return duas-de(w) ? 2 * lado-de(w) + 5px : 32px; }
+    pure function altura-de(w: length) -> length { return (w - 22px - coluna-de(w)) / a.proporcao + 44px; }
+    // O inverso: a largura que dá a altura h (com a coluna de uma largura parecida).
+    pure function largura-de(h: length) -> length {
+        return (h - 44px) * a.proporcao + 22px + coluna-de((h - 44px) * a.proporcao + 54px);
+    }
+    property <bool> duas-colunas: duas-de(root.width);
+    property <length> lado-botao: lado-de(root.width);
+    height: altura-de(root.width);
+
+    // Largura sem o arrasto em andamento; o mínimo é 4 células e o máximo vai
+    // até a borda da mesa do lado que cresce.
+    property <length> base-w: root.width - root.extra-w;
+    property <length> min-w: 4 * celula - 10px;
+    // Altura em células para a grade (sem o arrasto), avisada a quem guarda os lugares.
+    property <int> h-celulas: ceil((altura-de(base-w) + 10px) / celula);
+    changed h-celulas => { if root.extra-w == 0 { root.altura(h-celulas); } }
+    init => { root.altura(h-celulas); }
+
+    // Arrasto de uma borda: pela largura, pela altura ou, num canto, pelo eixo
+    // que mais mudou; o lado oposto fica parado.
+    function puxar(hx: int, hy: int, dx: length, dy: length) {
+        root.extra-w = max(min-w, min(
+            hx == 0 ? largura-de(altura-de(base-w) + hy * dy)
+            : hy == 0 ? base-w + hx * dx
+            : abs(dx) >= abs(largura-de(altura-de(base-w) + hy * dy) - base-w) ? base-w + hx * dx
+            : largura-de(altura-de(base-w) + hy * dy),
+            hx < 0 ? (a.x + a.w) * celula - 10px : (24 - a.x) * celula - 10px)) - base-w;
+        root.desloc-x = hx < 0 ? -root.extra-w : 0;
+        root.desloc-y = hy < 0 ? altura-de(base-w) - altura-de(base-w + root.extra-w) : 0;
+    }
+    function soltar(hx: int, hy: int) {
+        root.posicionar(
+            hx < 0 ? a.x + a.w - round((base-w + root.extra-w + 10px) / celula) : a.x,
+            hy < 0 ? max(0, a.y + round(root.desloc-y / celula)) : a.y,
+            round((base-w + root.extra-w + 10px) / celula),
+            ceil((altura-de(base-w + root.extra-w) + 10px) / celula));
+        root.extra-w = 0;
+        root.desloc-x = 0;
+        root.desloc-y = 0;
+    }
 
     VerticalLayout {
         padding: 8px; spacing: 6px;
@@ -427,48 +507,37 @@ component Quadro inherits Bloco {
             // Uma coluna quando cabe; num quadro baixo (o relógio em 6×6, por
             // exemplo) os botões vão para duas colunas, senão a coluna empurra o
             // layout para fora do quadro e a tela vaza junto.
-            if com-botoes && !duas-colunas: VerticalLayout {
+            // A coluna fica mesmo desligado (navegação apagada), para o quadro
+            // ter sempre a mesma medida e a tela preencher o resto.
+            if !duas-colunas: VerticalLayout {
                 width: 32px; spacing: 5px; alignment: start;
                 BotoesNavegacao { a: a; vivo: vivo; acao(n) => { acao(n); } }
                 Rectangle { height: 4px; }
-                BotoesEstado { a: a; acao(n) => { acao(n); } }
+                if com-botoes: BotoesEstado { a: a; acao(n) => { acao(n); } }
             }
-            if com-botoes && duas-colunas: HorizontalLayout {
+            if duas-colunas: HorizontalLayout {
                 width: 2 * lado-botao + 5px; spacing: 5px;
                 BotoesNavegacao { a: a; vivo: vivo; lado: lado-botao; acao(n) => { acao(n); } }
-                BotoesEstado { a: a; lado: lado-botao; acao(n) => { acao(n); } }
-            }
-        }
-    }
-    // O canto inferior direito muda o tamanho, em células.
-    Rectangle {
-        x: parent.width - 18px; y: parent.height - 18px;
-        width: 16px; height: 16px;
-        Image { source: @image-url("../icons/ui/redimensionar.svg"); width: 14px; height: 14px; x: 1px; y: 1px; colorize: Tema.tinta; opacity: 0.5; }
-        TouchArea {
-            property <bool> puxando;
-            mouse-cursor: nwse-resize;
-            moved => {
-                if puxando && self.pressed {
-                    root.extra-w += self.mouse-x - self.pressed-x;
-                    root.extra-h += self.mouse-y - self.pressed-y;
-                }
-            }
-            pointer-event(e) => {
-                if e.button == PointerEventButton.left && e.kind == PointerEventKind.down {
-                    puxando = true;
-                    root.extra-w = 0; root.extra-h = 0;
-                }
-                if e.kind == PointerEventKind.up || e.kind == PointerEventKind.cancel {
-                    if puxando && e.kind == PointerEventKind.up {
-                        root.redimensionar(round(root.extra-w / root.celula), round(root.extra-h / root.celula));
-                    }
-                    puxando = false;
-                    root.extra-w = 0; root.extra-h = 0;
+                VerticalLayout {
+                    width: lado-botao;
+                    if com-botoes: BotoesEstado { a: a; lado: lado-botao; acao(n) => { acao(n); } }
                 }
             }
         }
     }
+    // Bordas e cantos mudam o tamanho; o canto de baixo leva o desenho de dica.
+    Image {
+        x: parent.width - 16px; y: parent.height - 16px; width: 14px; height: 14px;
+        source: @image-url("../icons/ui/redimensionar.svg"); colorize: Tema.tinta; opacity: 0.5;
+    }
+    Alca { hx: -1; hy: 0; x: -3px; y: 10px; width: 8px; height: parent.height - 20px; puxou(dx, dy) => { root.puxar(-1, 0, dx, dy); } soltou => { root.soltar(-1, 0); } }
+    Alca { hx: 1; hy: 0; x: parent.width - 5px; y: 10px; width: 8px; height: parent.height - 20px; puxou(dx, dy) => { root.puxar(1, 0, dx, dy); } soltou => { root.soltar(1, 0); } }
+    Alca { hx: 0; hy: -1; x: 10px; y: -3px; width: parent.width - 20px; height: 7px; puxou(dx, dy) => { root.puxar(0, -1, dx, dy); } soltou => { root.soltar(0, -1); } }
+    Alca { hx: 0; hy: 1; x: 10px; y: parent.height - 5px; width: parent.width - 20px; height: 8px; puxou(dx, dy) => { root.puxar(0, 1, dx, dy); } soltou => { root.soltar(0, 1); } }
+    Alca { hx: -1; hy: -1; x: -3px; y: -3px; width: 13px; height: 13px; puxou(dx, dy) => { root.puxar(-1, -1, dx, dy); } soltou => { root.soltar(-1, -1); } }
+    Alca { hx: 1; hy: -1; x: parent.width - 10px; y: -3px; width: 13px; height: 13px; puxou(dx, dy) => { root.puxar(1, -1, dx, dy); } soltou => { root.soltar(1, -1); } }
+    Alca { hx: -1; hy: 1; x: -3px; y: parent.height - 10px; width: 13px; height: 13px; puxou(dx, dy) => { root.puxar(-1, 1, dx, dy); } soltou => { root.soltar(-1, 1); } }
+    Alca { hx: 1; hy: 1; x: parent.width - 18px; y: parent.height - 18px; width: 21px; height: 21px; puxou(dx, dy) => { root.puxar(1, 1, dx, dy); } soltou => { root.soltar(1, 1); } }
 }
 
 // Campo de texto no estilo da casa.
@@ -582,7 +651,8 @@ export component AppWindow inherits Window {
     callback toque(string, float, float, string);
     callback tecla(string, string);
     callback mover(string, int, int);
-    callback redimensionar(string, int, int);
+    callback posicionar(string, int, int, int, int);
+    callback altura(string, int);
     callback organizar(int);
     callback teto-mudou(int);
     callback abrir-imagens();
@@ -677,7 +747,7 @@ export component AppWindow inherits Window {
         spacing: 8px;
         if aparelhos.length > 0: HorizontalLayout {
             spacing: 10px; height: 36px;
-            Text { text: @tr("Drag by the title · resize from the corner"); font-size: 11px; font-weight: 700; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; overflow: elide; }
+            Text { text: @tr("Drag by the title · resize from any edge"); font-size: 11px; font-weight: 700; color: Tema.tinta; opacity: 0.6; vertical-alignment: center; overflow: elide; }
             // Encaixa todos os quadros da mesa na altura visível da janela.
             Icone {
                 icone: @image-url("../icons/ui/organizar.svg");
@@ -690,21 +760,34 @@ export component AppWindow inherits Window {
             // Grade livre: 24 colunas de células quadradas que acompanham a janela;
             // rola na vertical quando os quadros passam da altura.
             property <length> celula: self.width / 24;
+            // Rola pela roda e pelo touchpad; arrastar fica para mover e
+            // redimensionar os quadros (senão o Flickable rouba o clique).
+            interactive: false;
             content-width: self.width;
             content-height: max(self.height, linhas * celula + 20px);
+            // Pontos nos cantos das células: mostram a grade em que os quadros encaixam.
+            property <int> linhas-pontos: ceil(self.content-height / celula) + 1;
+            if aparelhos.length > 0: Rectangle {
+                for i in linhas-pontos * 25: Rectangle {
+                    x: mod(i, 25) * mesa.celula - 1px;
+                    y: floor(i / 25) * mesa.celula - 1px;
+                    width: 2px; height: 2px; border-radius: 1px;
+                    background: Tema.tinta; opacity: 0.22;
+                }
+            }
             for a in aparelhos: Quadro {
                 x: a.x * mesa.celula + self.desloc-x;
                 y: a.y * mesa.celula + self.desloc-y;
-                width: max(4 * mesa.celula, a.w * mesa.celula + self.extra-w) - 10px;
-                height: max(5 * mesa.celula, a.h * mesa.celula + self.extra-h) - 10px;
-                z: self.desloc-x != 0 || self.desloc-y != 0 || self.extra-w != 0 || self.extra-h != 0 ? 10 : 0;
+                width: a.w * mesa.celula - 10px + self.extra-w;
+                z: self.desloc-x != 0 || self.desloc-y != 0 || self.extra-w != 0 ? 10 : 0;
                 celula: mesa.celula;
                 a: a;
                 acao(o) => { root.acao(a.nome, o); }
                 toque(fx, fy, k) => { root.toque(a.nome, fx, fy, k); }
                 tecla(t) => { root.tecla(a.nome, t); }
                 mover(dx, dy) => { root.mover(a.nome, dx, dy); }
-                redimensionar(dw, dh) => { root.redimensionar(a.nome, dw, dh); }
+                posicionar(x, y, w, h) => { root.posicionar(a.nome, x, y, w, h); }
+                altura(h) => { root.altura(a.nome, h); }
             }
             if aparelhos.length == 0: VerticalLayout {
                 alignment: center;

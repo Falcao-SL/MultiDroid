@@ -254,8 +254,8 @@ msgstr "Nenhum aparelho ainda. Crie o primeiro em + Novo aparelho."
 
 #: ui/app.slint:651
 msgctxt "AppWindow"
-msgid "Drag by the title · resize from the corner"
-msgstr "Arraste pelo título · redimensione pelo canto"
+msgid "Drag by the title · resize from any edge"
+msgstr "Arraste pelo título · redimensione por qualquer borda"
 
 #: ui/app.slint:655
 msgctxt "AppWindow"

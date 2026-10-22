@@ -254,7 +254,7 @@ msgstr ""
 
 #: ui/app.slint:651
 msgctxt "AppWindow"
-msgid "Drag by the title · resize from the corner"
+msgid "Drag by the title · resize from any edge"
 msgstr ""
 
 #: ui/app.slint:655

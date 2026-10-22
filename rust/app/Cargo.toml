@@ -8,7 +8,8 @@ repository.workspace = true
 
 [dependencies]
 multidroid-core = { path = "../core" }
-slint = "1"
+# unstable-winit-030: abrir a janela centralizada (main.rs, centralizar).
+slint = { version = "1", features = ["unstable-winit-030"] }
 sys-locale = "0.3"
 tokio = { version = "1", features = ["rt-multi-thread", "time"] }
 
