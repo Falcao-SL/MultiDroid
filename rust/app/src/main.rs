@@ -192,12 +192,64 @@ struct Criar {
 }
 
 /// A tela de Imagens: o que o repositório oferece, o que está instalado e os downloads.
+/// Um download em andamento: a fração, a fase ("baixando" ou a extração), o
+/// tamanho e quando começou, para a velocidade e o tempo que falta.
+struct Progresso {
+    fracao: f64,
+    fase: String,
+    total: u64,
+    inicio: Instant,
+}
+
+impl Progresso {
+    fn baixando(&self) -> bool {
+        self.fase == "baixando"
+    }
+
+    /// "Downloading 45% · 120 of 270 MB · 4.3 MB/s · about 1 min left"
+    fn situacao(&self) -> String {
+        if !self.baixando() {
+            let fase = if self.fase == "Verifying and extracting" { idioma::t("Verifying and extracting") } else { self.fase.as_str() };
+            return format!("{fase}…");
+        }
+        let pct = idioma::tf("Downloading {pct}%", &[("pct", &format!("{:.0}", self.fracao * 100.0))]);
+        if self.total == 0 {
+            return pct;
+        }
+        let feito = (self.fracao * self.total as f64) as u64;
+        let mut s = format!(
+            "{pct} · {}",
+            idioma::tf("{feito} of {total}", &[("feito", &(feito >> 20)), ("total", &mb(self.total))])
+        );
+        let seg = self.inicio.elapsed().as_secs_f64();
+        // A velocidade só diz algo depois de uns segundos de download.
+        if seg < 2.0 || feito == 0 {
+            return format!("{s} · {}", idioma::t("estimating time…"));
+        }
+        let vel = feito as f64 / seg;
+        let falta = (self.total - feito) as f64 / vel;
+        s = format!("{s} · {} MB/s · {}", idioma::num(vel / (1u64 << 20) as f64, 1), tempo_restante(falta));
+        s
+    }
+}
+
+/// "about 40 s left", "about 3 min left", "about 1 h 20 min left"
+fn tempo_restante(seg: f64) -> String {
+    let seg = seg.ceil() as u64;
+    if seg < 60 {
+        idioma::tf("about {n} s left", &[("n", &seg.max(1))])
+    } else if seg < 3600 {
+        idioma::tf("about {n} min left", &[("n", &seg.div_ceil(60))])
+    } else {
+        idioma::tf("about {h} h {m} min left", &[("h", &(seg / 3600)), ("m", &(seg % 3600 / 60))])
+    }
+}
+
 #[derive(Default)]
 struct Imagens {
     remoto: Vec<RemotePackage>,
     instalado: BTreeMap<String, String>,
-    /// path → (fração, fase)
-    progresso: HashMap<String, (f64, String)>,
+    progresso: HashMap<String, Progresso>,
     cancelar: HashMap<String, Arc<AtomicBool>>,
     erro: String,
     carregando: bool,
@@ -348,8 +400,7 @@ fn pacotes(app: &App) -> Vec<Pacote> {
             let inst = app.img.instalado.get(p);
             let prog = app.img.progresso.get(p);
             let situacao = match (prog, inst, remoto) {
-                (Some((f, fase)), _, _) if fase == "baixando" => idioma::tf("Downloading {pct}%", &[("pct", &format!("{:.0}", f * 100.0))]),
-                (Some((_, fase)), _, _) => format!("{}…", if fase == "Verifying and extracting" { idioma::t("Verifying and extracting") } else { fase.as_str() }),
+                (Some(pr), _, _) => pr.situacao(),
                 (None, Some(v), Some(r)) if &r.revision != v && !r.revision.is_empty() => {
                     idioma::tf("Installed · r{v} · new r{nova} ({mb})", &[("v", v), ("nova", &r.revision), ("mb", &mb(r.size))])
                 }
@@ -366,6 +417,7 @@ fn pacotes(app: &App) -> Vec<Pacote> {
                 instalado: inst.is_some(),
                 atualizar: matches!((inst, remoto), (Some(v), Some(r)) if &r.revision != v && !r.revision.is_empty()),
                 ocupado: prog.is_some(),
+                progresso: prog.map_or(-1.0, |pr| if pr.baixando() { pr.fracao as f32 } else { 2.0 }),
                 em_uso: em_uso(app, p),
             }
         })
@@ -488,7 +540,10 @@ fn sincronizar(app: &App, ui: &AppWindow) {
     ui.set_novo_nota(nota.as_str().into());
     ui.set_opcoes(ModelRc::new(VecModel::from(ops)));
     ui.set_novo_erro(app.novo_erro.as_str().into());
-    ui.set_novo_ocupado(app.img.progresso.contains_key(&img));
+    let prog = app.img.progresso.get(&img);
+    ui.set_novo_ocupado(prog.is_some());
+    ui.set_novo_progresso(prog.map_or(-1.0, |pr| if pr.baixando() { pr.fracao as f32 } else { 2.0 }));
+    ui.set_novo_situacao(prog.map(Progresso::situacao).unwrap_or_default().into());
     if let Some((p, _)) = &app.img.licenca {
         ui.set_licenca_titulo(catalog::title(&p.path, host()).into());
         ui.set_licenca_texto(p.license_text.as_str().into());
@@ -1553,9 +1608,10 @@ impl Ctx {
             if app.img.progresso.contains_key(&pkg.path) {
                 return;
             }
-            app.img
-                .progresso
-                .insert(pkg.path.clone(), (0.0, "baixando".into()));
+            app.img.progresso.insert(
+                pkg.path.clone(),
+                Progresso { fracao: 0.0, fase: "baixando".into(), total: pkg.size, inicio: Instant::now() },
+            );
             app.img.cancelar.insert(pkg.path.clone(), cancel.clone());
         }
         self.avisar();
@@ -1566,22 +1622,24 @@ impl Ctx {
             let r = tokio::task::spawn_blocking(move || {
                 let sdk = devices::sdk_root();
                 let mut ultimo = -1.0;
+                let mut ultima_vez = Instant::now();
                 let p = pkg.path.clone();
                 let work = platform::data_dir().join("downloads");
                 install::install(&pkg, &sdk, &work, &cancel, |f| {
-                    if f - ultimo >= 0.01 || f >= 1.0 {
+                    // A cada 1% ou a cada segundo, para o tempo que falta andar
+                    // mesmo numa conexão lenta.
+                    if f - ultimo >= 0.01 || f >= 1.0 || ultima_vez.elapsed() >= Duration::from_secs(1) {
                         ultimo = f;
+                        ultima_vez = Instant::now();
                         let fase = if f >= 1.0 {
                             "Verifying and extracting"
                         } else {
                             "baixando"
                         };
-                        c2.app
-                            .lock()
-                            .unwrap()
-                            .img
-                            .progresso
-                            .insert(p.clone(), (f, fase.into()));
+                        if let Some(pr) = c2.app.lock().unwrap().img.progresso.get_mut(&p) {
+                            pr.fracao = f;
+                            pr.fase = fase.into();
+                        }
                         c2.avisar();
                     }
                 })

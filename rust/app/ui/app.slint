@@ -55,6 +55,8 @@ export struct Pacote {
     instalado: bool,
     atualizar: bool,
     ocupado: bool,
+    // De 0 a 1 baixando; 2 conferindo e extraindo (sem fração); -1 parado.
+    progresso: float,
     em-uso: bool,
 }
 
@@ -167,6 +169,27 @@ component Icone inherits BotaoBase {
     texto: glifo;
     width: lado; height: lado;
     tamanho-fonte: 13px;
+}
+
+// Barra de progresso do download. Acima de 1 não há fração (conferindo e
+// extraindo): um bloco corre de um lado a outro.
+component Barra inherits Rectangle {
+    in property <float> valor;
+    property <bool> indeterminada: valor > 1;
+    height: 12px;
+    border-radius: 6px;
+    border-width: Tema.largura-borda; border-color: Tema.borda;
+    background: Tema.fundo;
+    clip: true;
+    Rectangle {
+        // 1,6 s por volta, de -30% a 100% da largura.
+        property <float> fase: mod(animation-tick() / 1600ms, 1);
+        x: indeterminada ? (fase * 1.3 - 0.3) * parent.width : 0;
+        width: indeterminada ? parent.width * 0.3 : parent.width * clamp(valor, 0, 1);
+        height: parent.height;
+        background: Tema.azul;
+        animate width { duration: 250ms; }
+    }
 }
 
 component Ponto inherits Rectangle {
@@ -483,18 +506,19 @@ component Sobreposta inherits Rectangle {
 component CartaoPacote inherits Bloco {
     in property <Pacote> p;
     callback pacote(string);
-    height: p.nota != "" ? 96px : 74px;
+    height: (p.nota != "" ? 96px : 74px) + (p.progresso >= 0 ? 18px : 0);
     HorizontalLayout {
         padding: 12px; spacing: 10px;
         VerticalLayout {
-            spacing: 2px; alignment: center;
+            spacing: 2px; alignment: center; horizontal-stretch: 1;
             Text { text: p.titulo; font-size: 14px; font-weight: 900; color: Tema.tinta; overflow: elide; }
             Text { text: p.detalhe; font-size: 11px; color: Tema.tinta; opacity: 0.6; overflow: elide; }
             Text { text: p.situacao; font-size: 11px; font-weight: 700; color: Tema.tinta; overflow: elide; }
+            if p.progresso >= 0: Barra { valor: p.progresso; }
             if p.nota != "": Text { text: p.nota; font-size: 11px; color: Tema.tinta; opacity: 0.75; wrap: word-wrap; }
         }
         VerticalLayout {
-            alignment: center; spacing: 6px;
+            alignment: center; spacing: 6px; horizontal-stretch: 0;
             if p.ocupado: Botao { texto: @tr("Cancel"); clicou => { pacote("cancelar"); } }
             if !p.ocupado && !p.instalado: Botao { texto: @tr("Download"); cor: Tema.azul; clicou => { pacote("baixar"); } }
             if !p.ocupado && p.atualizar: Botao { texto: @tr("Update"); cor: Tema.azul; ativo: !p.em-uso; dica: p.em-uso ? @tr("Shut down the devices that use this image") : @tr("Update"); clicou => { pacote("baixar"); } }
@@ -551,6 +575,8 @@ export component AppWindow inherits Window {
     in property <string> novo-erro;
     in property <string> novo-nota;
     in property <bool> novo-ocupado;
+    in property <float> novo-progresso: -1;
+    in property <string> novo-situacao;
     callback acao(string, string);
     callback lote(string);
     callback toque(string, float, float, string);
@@ -695,7 +721,7 @@ export component AppWindow inherits Window {
         VerticalLayout {
             padding: 20px; spacing: 12px; alignment: start;
             HorizontalLayout {
-                Text { text: @tr("Images"); font-size: 22px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; }
+                Text { text: @tr("Images"); font-size: 22px; font-weight: 900; color: Tema.tinta; vertical-alignment: center; horizontal-stretch: 1; }
                 Botao { texto: @tr("Close"); clicou => { root.tela = ""; } }
             }
             Text {
@@ -782,6 +808,11 @@ export component AppWindow inherits Window {
                 }
             }
             if novo-motor == 0 && novo-nota != "": Text { text: novo-nota; font-size: 11px; color: Tema.tinta; opacity: 0.75; wrap: word-wrap; }
+            if novo-motor == 0 && novo-progresso >= 0: VerticalLayout {
+                spacing: 6px;
+                Text { text: novo-situacao; font-size: 12px; font-weight: 700; color: Tema.tinta; overflow: elide; }
+                Barra { valor: novo-progresso; }
+            }
             nome := Campo { dica: @tr("Name (e.g. Work-Account)"); }
             grupo := Campo { dica: @tr("Group (optional)"); }
             if novo-erro != "": Text { text: novo-erro; font-size: 12px; font-weight: 700; color: Tema.vermelho; wrap: word-wrap; }
