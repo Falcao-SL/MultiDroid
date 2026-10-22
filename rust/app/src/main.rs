@@ -1837,12 +1837,18 @@ impl Ctx {
                     d.cpu = r.cpu;
                     soma += r.memory;
                 }
-                None if d.pid.is_some() && d.child.is_none() && d.estado != Estado::Desligando => {
-                    // Fechou por fora.
-                    d.pid = None;
-                    d.console = None;
-                    d.link = None;
-                    d.estado = Estado::Desligado;
+                None if d.pid.is_some() && !matches!(d.estado, Estado::Desligando | Estado::Ligando) => {
+                    // Fechou por fora, ou o emulador que este app abriu morreu
+                    // (no Windows d.pid é o qemu e child o emulator.exe).
+                    let vivo = d.child.as_mut().is_some_and(|c| c.alive())
+                        && d.pid.is_some_and(emulator::alive);
+                    if !vivo {
+                        d.pid = None;
+                        d.console = None;
+                        d.link = None;
+                        d.child = None;
+                        d.estado = Estado::Desligado;
+                    }
                 }
                 None => {}
             }
