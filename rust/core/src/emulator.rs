@@ -119,7 +119,10 @@ pub fn launch(name: &str, used_ports: &[u16], o: &LaunchOptions) -> std::io::Res
         )
     })?;
     std::fs::create_dir_all(o.log_dir)?;
-    let log = std::fs::File::create(o.log_dir.join(format!("{name}.log")))?;
+    // Sem platform-tools (mesmo vazia) o emulador não reconhece a pasta como
+    // SDK e fecha com "Broken AVD system path".
+    std::fs::create_dir_all(o.sdk.join("platform-tools"))?;
+    let log =std::fs::File::create(o.log_dir.join(format!("{name}.log")))?;
     let mut cmd = Command::new(executable(o.sdk));
     cmd.args(args(name, o.cores, console, grpc, &o.gpu))
         .env_remove("ANDROID_HOME")
@@ -157,12 +160,34 @@ pub fn discovery_dirs() -> Vec<PathBuf> {
     v
 }
 
+/// Token gRPC do emulador `pid`. No Windows, emulator.exe é só um lançador e o
+/// pid_<pid>.ini sai com o pid do qemu filho; procura nos dois.
 pub fn grpc_token(pid: u32) -> Option<String> {
-    discovery_dirs().iter().find_map(|d| {
-        crate::ini::read(&d.join(format!("pid_{pid}.ini")))
-            .remove("grpc.token")
-            .filter(|t| !t.is_empty())
+    let ler = |pid: u32| {
+        discovery_dirs().iter().find_map(|d| {
+            crate::ini::read(&d.join(format!("pid_{pid}.ini")))
+                .remove("grpc.token")
+                .filter(|t| !t.is_empty())
+        })
+    };
+    ler(pid).or_else(|| {
+        let q = engine_pid(pid);
+        (q != pid).then(|| ler(q)).flatten()
     })
+}
+
+/// O processo qemu de um emulador: o próprio `pid` no Mac e no Linux, o filho
+/// qemu-system do emulator.exe no Windows. Sem filho, devolve `pid`.
+pub fn engine_pid(pid: u32) -> u32 {
+    let mut sys = System::new();
+    sys.refresh_processes(ProcessesToUpdate::All, true);
+    let pai = Pid::from_u32(pid);
+    sys.processes()
+        .iter()
+        .find(|(_, p)| {
+            p.parent() == Some(pai) && p.name().to_string_lossy().contains("qemu-system")
+        })
+        .map_or(pid, |(q, _)| q.as_u32())
 }
 
 // MARK: Processos

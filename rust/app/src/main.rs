@@ -258,6 +258,8 @@ struct Imagens {
     licenca: Option<(RemotePackage, Option<Criar>)>,
     /// Aparelhos esperando a imagem baixar.
     criar_depois: Vec<Criar>,
+    /// Aparelhos a ligar quando o emulador terminar de baixar.
+    ligar_depois: Vec<String>,
 }
 
 struct App {
@@ -654,8 +656,7 @@ impl Ctx {
         }
         let sdk = devices::sdk_root();
         if catalog::installed(catalog::EMULATOR, &sdk).is_none() {
-            self.aviso(idioma::t("Download the emulator in Images before starting"));
-            return;
+            return self.baixar_emulador_e_ligar(nome);
         }
         let pronto = self.com(nome, |d, app| {
             if d.rodando() {
@@ -709,6 +710,10 @@ impl Ctx {
     async fn esperar_token(&self, nome: &str, pid: u32, grpc: u16) {
         for _ in 0..240 {
             if let Some(t) = emulator::grpc_token(pid) {
+                // No Windows o processo que conta (métricas, adotar, desligar) é o
+                // qemu filho do emulator.exe.
+                let qemu = emulator::engine_pid(pid);
+                self.com(nome, |d, _| d.pid = Some(qemu));
                 return self.conectar(nome, grpc, &t).await;
             }
             let vivo = self
@@ -1581,6 +1586,61 @@ impl Ctx {
         self.instalar(pkg, depois);
     }
 
+    /// Sem o emulador, ligar baixa ele primeiro (lendo o repositório se
+    /// preciso) e liga o aparelho quando terminar, em vez de só avisar.
+    fn baixar_emulador_e_ligar(&self, nome: &str) {
+        let tem = {
+            let mut app = self.app.lock().unwrap();
+            if !app.img.ligar_depois.iter().any(|n| n == nome) {
+                app.img.ligar_depois.push(nome.into());
+            }
+            if let Some(d) = app.devs.iter_mut().find(|d| d.info.name == nome) {
+                d.mensagem = idioma::t("downloading the emulator…").into();
+            }
+            app.img.remoto.iter().any(|r| r.path == catalog::EMULATOR)
+        };
+        self.avisar();
+        if tem {
+            return self.baixar(catalog::EMULATOR, None);
+        }
+        let c = self.clone();
+        self.rt.spawn(async move {
+            let (remoto, falhas) = tokio::task::spawn_blocking(|| install::fetch_remote(host()))
+                .await
+                .unwrap_or_default();
+            {
+                let mut app = c.app.lock().unwrap();
+                if !remoto.is_empty() {
+                    app.img.remoto = remoto;
+                    app.img.lido = falhas.is_empty();
+                }
+            }
+            let _ = slint::invoke_from_event_loop(move || {
+                let tem = c.app.lock().unwrap().img.remoto.iter().any(|r| r.path == catalog::EMULATOR);
+                if tem {
+                    c.baixar(catalog::EMULATOR, None);
+                } else {
+                    c.desistir_de_ligar();
+                    c.aviso(idioma::tf(
+                        "Couldn't read the repository: {falhas}",
+                        &[("falhas", &falhas.join("; "))],
+                    ));
+                }
+            });
+        });
+    }
+
+    /// Limpa os aparelhos que esperavam o emulador (download cancelado ou recusado).
+    fn desistir_de_ligar(&self) {
+        let mut app = self.app.lock().unwrap();
+        let nomes = std::mem::take(&mut app.img.ligar_depois);
+        for d in app.devs.iter_mut().filter(|d| nomes.contains(&d.info.name)) {
+            d.mensagem.clear();
+        }
+        drop(app);
+        self.avisar();
+    }
+
     fn licenca(&self, aceitou: bool) {
         let pend = self.app.lock().unwrap().img.licenca.take();
         let Some((pkg, depois)) = pend else {
@@ -1588,6 +1648,9 @@ impl Ctx {
         };
         let volta = if depois.is_some() { "novo" } else { "imagens" };
         if !aceitou {
+            if pkg.path == catalog::EMULATOR {
+                self.desistir_de_ligar();
+            }
             return self.mostrar(volta);
         }
         if let Err(e) = install::accept(&pkg, &devices::sdk_root()) {
@@ -1636,10 +1699,19 @@ impl Ctx {
                         } else {
                             "baixando"
                         };
-                        if let Some(pr) = c2.app.lock().unwrap().img.progresso.get_mut(&p) {
+                        let mut g = c2.app.lock().unwrap();
+                        let app: &mut App = &mut g;
+                        if let Some(pr) = app.img.progresso.get_mut(&p) {
                             pr.fracao = f;
                             pr.fase = fase.into();
+                            if p == catalog::EMULATOR {
+                                let s = idioma::tf("Emulator: {s}", &[("s", &pr.situacao())]);
+                                for d in app.devs.iter_mut().filter(|d| app.img.ligar_depois.contains(&d.info.name)) {
+                                    d.mensagem = s.clone();
+                                }
+                            }
                         }
+                        drop(g);
                         c2.avisar();
                     }
                 })
@@ -1651,6 +1723,7 @@ impl Ctx {
                 Ok(Err(e)) => Some(e.to_string()),
                 Err(e) => Some(e.to_string()),
             };
+            let mut ligar = vec![];
             let criar: Vec<Criar> = {
                 let mut app = c.app.lock().unwrap();
                 app.img.progresso.remove(&path);
@@ -1661,6 +1734,15 @@ impl Ctx {
                         .into_iter()
                         .partition(|d| d.image == path);
                 app.img.criar_depois = resto;
+                if path == catalog::EMULATOR {
+                    let nomes = std::mem::take(&mut app.img.ligar_depois);
+                    for d in app.devs.iter_mut().filter(|d| nomes.contains(&d.info.name)) {
+                        d.mensagem.clear();
+                    }
+                    if erro.is_none() {
+                        ligar = nomes;
+                    }
+                }
                 match &erro {
                     Some(e) if !e.is_empty() => {
                         app.aviso = format!("{}: {e}", catalog::title(&path, host()));
@@ -1675,6 +1757,10 @@ impl Ctx {
             for d in criar {
                 let c3 = c.clone();
                 let _ = slint::invoke_from_event_loop(move || c3.criar(d));
+            }
+            for nome in ligar {
+                let c3 = c.clone();
+                let _ = slint::invoke_from_event_loop(move || c3.ligar(&nome));
             }
         });
     }
