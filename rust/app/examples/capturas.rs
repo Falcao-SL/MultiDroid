@@ -110,7 +110,7 @@ fn main() {
     let ordem: Vec<_> = st
         .ordered(&infos)
         .into_iter()
-        .filter(|d| apenas.as_ref().is_none_or(|a| a.iter().any(|n| *n == d.name)))
+        .filter(|d| apenas.as_ref().is_none_or(|a| a.contains(&d.name)))
         .collect();
     // A CPU de um processo só vale a partir da terceira leitura (sysinfo).
     let mut procs = Processes::new();

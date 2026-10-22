@@ -151,9 +151,10 @@ component BotaoBase inherits Rectangle {
 component Botao inherits BotaoBase {
     min-width: self.largura-texto + 24px;
     preferred-width: self.largura-texto + 32px;
+    // Altura única para todo botão de texto, em qualquer tela.
     min-height: 36px;
-    preferred-height: 40px;
-    max-height: 44px;
+    preferred-height: 36px;
+    max-height: 36px;
     // Não estica para ocupar a linha; quem quiser esticar passa outro valor.
     horizontal-stretch: 0;
     vertical-stretch: 0;
@@ -162,7 +163,7 @@ component Botao inherits BotaoBase {
 // Botão quadrado de ícone (glifo), para a coluna do quadro e as linhas do painel.
 component Icone inherits BotaoBase {
     in property <string> glifo;
-    in property <length> lado: 30px;
+    in property <length> lado: 32px;
     texto: glifo;
     width: lado; height: lado;
     tamanho-fonte: 13px;
@@ -203,10 +204,11 @@ component LinhaAparelho inherits Bloco {
             Bloco {
                 sombra: false;
                 cor: a.selecionado ? Tema.amarelo : (a.relogio ? Tema.roxo : Tema.azul);
-                Text {
-                    text: a.selecionado ? "✓" : "";
-                    font-size: 18px; font-weight: 900; color: Tema.tinta-sobre-acento;
-                    horizontal-alignment: center; vertical-alignment: center;
+                if a.selecionado: Image {
+                    source: @image-url("../icons/ui/marcar.svg");
+                    width: 22px; height: 22px;
+                    x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                    colorize: Tema.tinta-sobre-acento;
                 }
             }
             TouchArea {
@@ -247,7 +249,7 @@ component LinhaAparelho inherits Bloco {
 component BotoesNavegacao inherits VerticalLayout {
     in property <Aparelho> a;
     in property <bool> vivo;
-    in property <length> lado: 30px;
+    in property <length> lado: 32px;
     callback acao(string);
     spacing: 5px; alignment: start;
     Icone { lado: root.lado; icone: @image-url("../icons/ui/voltar.svg"); dica: @tr("Back"); ativo: vivo; clicou => { acao("voltar"); } }
@@ -262,7 +264,7 @@ component BotoesNavegacao inherits VerticalLayout {
 // Pausar ou retomar, hibernar e desligar.
 component BotoesEstado inherits VerticalLayout {
     in property <Aparelho> a;
-    in property <length> lado: 30px;
+    in property <length> lado: 32px;
     callback acao(string);
     spacing: 5px; alignment: start;
     if a.estado == Estado.ligado: Icone { lado: root.lado; icone: @image-url("../icons/ui/pausar.svg"); cor: Tema.azul; dica: @tr("Pause"); clicou => { acao("pausar"); } }
@@ -287,16 +289,16 @@ component Quadro inherits Bloco {
     callback tecla(string);
     property <bool> vivo: a.estado == Estado.ligado;
     property <bool> com-botoes: a.estado == Estado.ligado || a.estado == Estado.pausado;
-    // Altura da coluna única: botões de 30 px com 5 px entre eles, o respiro de
+    // Altura da coluna única: botões de 32 px com 5 px entre eles, o respiro de
     // 4 px, mais cabeçalho (22), margens (16) e espaço (6).
     property <int> n-botoes: a.relogio ? 9 : 10;
-    property <bool> duas-colunas: root.height < n-botoes * 35px + 4px + 44px;
+    property <bool> duas-colunas: root.height < n-botoes * 37px + 4px + 44px;
     // Em duas colunas, a da navegação é a mais alta (6 ou 7 botões); se nem
     // assim cabe, os botões encolhem até 16 px em vez de vazar do quadro.
     property <int> n-nav: a.relogio ? 6 : 7;
     property <length> lado-botao: duas-colunas
-        ? max(16px, min(30px, (root.height - 44px - (n-nav - 1) * 5px) / n-nav))
-        : 30px;
+        ? max(16px, min(32px, (root.height - 44px - (n-nav - 1) * 5px) / n-nav))
+        : 32px;
 
     VerticalLayout {
         padding: 8px; spacing: 6px;
@@ -403,7 +405,7 @@ component Quadro inherits Bloco {
             // exemplo) os botões vão para duas colunas, senão a coluna empurra o
             // layout para fora do quadro e a tela vaza junto.
             if com-botoes && !duas-colunas: VerticalLayout {
-                width: 30px; spacing: 5px; alignment: start;
+                width: 32px; spacing: 5px; alignment: start;
                 BotoesNavegacao { a: a; vivo: vivo; acao(n) => { acao(n); } }
                 Rectangle { height: 4px; }
                 BotoesEstado { a: a; acao(n) => { acao(n); } }
@@ -419,7 +421,7 @@ component Quadro inherits Bloco {
     Rectangle {
         x: parent.width - 18px; y: parent.height - 18px;
         width: 16px; height: 16px;
-        Text { text: "◢"; font-size: 12px; color: Tema.tinta; opacity: 0.5; horizontal-alignment: center; vertical-alignment: center; }
+        Image { source: @image-url("../icons/ui/redimensionar.svg"); width: 14px; height: 14px; x: 1px; y: 1px; colorize: Tema.tinta; opacity: 0.5; }
         TouchArea {
             property <bool> puxando;
             mouse-cursor: nwse-resize;
@@ -517,6 +519,7 @@ component CartaoOpcao inherits Bloco {
 
 export component AppWindow inherits Window {
     title: "MultiDroid Preview";
+    icon: @image-url("../icons/256x256.png");
     preferred-width: 1400px;
     preferred-height: 860px;
     min-width: 900px;

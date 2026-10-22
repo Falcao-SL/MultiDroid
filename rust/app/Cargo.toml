@@ -18,6 +18,9 @@ png = "0.17"
 [build-dependencies]
 slint-build = "1"
 
+[target.'cfg(windows)'.build-dependencies]
+winresource = "0.1"
+
 # Pacotes de cada sistema, gerados pelo cargo-packager no workflow release.yml
 # (docs/spec/MULTIPLATAFORMA.md §6). Enquanto a versão Rust não alcança a 0.2,
 # sai como "MultiDroid Preview", com outro identificador, para não substituir o
@@ -34,7 +37,7 @@ before-packaging-command = "cargo build --release -p multidroid"
 out-dir = "../target/packages"
 binaries = [{ path = "multidroid", main = true }]
 binaries-dir = "../target/release"
-icons = ["icons/32x32.png", "icons/128x128.png", "icons/256x256.png"]
+icons = ["icons/icon.ico", "icons/icon.icns", "icons/32x32.png", "icons/48x48.png", "icons/64x64.png", "icons/128x128.png", "icons/256x256.png", "icons/512x512.png"]
 
 [package.metadata.packager.macos]
 minimum-system-version = "13.0"
