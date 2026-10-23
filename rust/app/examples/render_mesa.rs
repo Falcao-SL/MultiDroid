@@ -8,8 +8,8 @@
 slint::include_modules!();
 
 use multidroid_core::devices::Kind;
-use multidroid_core::tokens;
 use multidroid_core::state::grid;
+use multidroid_core::tokens;
 use slint::platform::software_renderer::{MinimalSoftwareWindow, RepaintBufferType};
 use slint::platform::{Platform, WindowAdapter};
 use slint::{Image, Model, ModelRc, Rgb8Pixel, Rgba8Pixel, SharedPixelBuffer, VecModel};
@@ -24,14 +24,19 @@ impl Platform for Fora {
 }
 
 fn imagem(caminho: Option<&String>) -> (Image, bool) {
-    let Some(c) = caminho else { return (Image::default(), false) };
+    let Some(c) = caminho else {
+        return (Image::default(), false);
+    };
     let dec = png::Decoder::new(std::fs::File::open(c).expect("tela não abriu"));
     let mut r = dec.read_info().unwrap();
     let mut buf = vec![0; r.output_buffer_size()];
     let info = r.next_frame(&mut buf).unwrap();
     let rgba: Vec<u8> = match info.color_type {
         png::ColorType::Rgba => buf[..info.buffer_size()].to_vec(),
-        _ => buf[..info.buffer_size()].chunks(3).flat_map(|p| [p[0], p[1], p[2], 255]).collect(),
+        _ => buf[..info.buffer_size()]
+            .chunks(3)
+            .flat_map(|p| [p[0], p[1], p[2], 255])
+            .collect(),
     };
     let px = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&rgba, info.width, info.height);
     (Image::from_rgba8(px), true)
@@ -41,7 +46,13 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let saida = args.get(1).expect("caminho do PNG");
     let linhas: Option<i32> = args.get(2).and_then(|v| v.parse().ok());
-    let (w, h) = (1400u32, std::env::var("ALTURA").ok().and_then(|v| v.parse().ok()).unwrap_or(860u32));
+    let (w, h) = (
+        1400u32,
+        std::env::var("ALTURA")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(860u32),
+    );
 
     let janela = MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
     janela.set_size(slint::PhysicalSize::new(w, h));
@@ -49,7 +60,8 @@ fn main() {
 
     let ui = AppWindow::new().unwrap();
     // MULTIDROID_LANG=pt desenha em português, como o app num sistema em português.
-    let pt = std::env::var("MULTIDROID_LANG").is_ok_and(|l| multidroid_core::idioma::eh_portugues(&l));
+    let pt =
+        std::env::var("MULTIDROID_LANG").is_ok_and(|l| multidroid_core::idioma::eh_portugues(&l));
     multidroid_core::idioma::usar_portugues(pt);
     let _ = slint::select_bundled_translation(if pt { "pt_BR" } else { "en" });
     // O tema escuro dos tokens, como no main.rs.
@@ -79,7 +91,13 @@ fn main() {
     tema.set_sombra_y(t.forma.sombra.y);
     let (tela_cel, tem_cel) = imagem(args.get(3));
     let (tela_rel, tem_rel) = imagem(args.get(4));
-    let tipos = [Kind::Celular, Kind::Celular, Kind::Celular, Kind::Celular, Kind::Relogio];
+    let tipos = [
+        Kind::Celular,
+        Kind::Celular,
+        Kind::Celular,
+        Kind::Celular,
+        Kind::Relogio,
+    ];
     let padroes: Vec<(i32, i32)> = tipos.iter().map(|k| k.grid_size()).collect();
     let lugares = match linhas {
         Some(l) => grid::encaixar(&padroes, l),
@@ -99,7 +117,11 @@ fn main() {
         .map(|(i, (k, s))| {
             let relogio = *k == Kind::Relogio;
             Aparelho {
-                nome: if relogio { "Relogio1".into() } else { format!("Celular{}", i + 1).into() },
+                nome: if relogio {
+                    "Relogio1".into()
+                } else {
+                    format!("Celular{}", i + 1).into()
+                },
                 sigla: if relogio { "Re".into() } else { "Ce".into() },
                 tipo: k.display().into(),
                 android: "13".into(),
@@ -107,9 +129,16 @@ fn main() {
                 mensagem: "".into(),
                 metricas: "".into(),
                 grupo: "".into(),
-                x: s.x, y: s.y, w: s.w, h: s.h,
+                x: s.x,
+                y: s.y,
+                w: s.w,
+                h: s.h,
                 proporcao: if relogio { 1.0 } else { 1080.0 / 2424.0 },
-                tela: if relogio { tela_rel.clone() } else { tela_cel.clone() },
+                tela: if relogio {
+                    tela_rel.clone()
+                } else {
+                    tela_cel.clone()
+                },
                 tem_tela: if relogio { tem_rel } else { tem_cel },
                 relogio,
                 selecionado: false,
@@ -140,5 +169,8 @@ fn main() {
     enc.set_color(png::ColorType::Rgb);
     enc.write_header().unwrap().write_image_data(&rgb).unwrap();
     let _ = ui.get_aparelhos().row_count();
-    eprintln!("gravado {saida} ({} aparelhos, linhas {linhas:?})", lugares.len());
+    eprintln!(
+        "gravado {saida} ({} aparelhos, linhas {linhas:?})",
+        lugares.len()
+    );
 }

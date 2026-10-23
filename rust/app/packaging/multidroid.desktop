@@ -1,0 +1,8 @@
+[Desktop Entry]
+Categories=Development;
+Comment=Vários aparelhos Android numa mesa só.
+Exec=multidroid
+Icon=multidroid
+Name=MultiDroid Preview
+Terminal=false
+Type=Application

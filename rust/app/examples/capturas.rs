@@ -34,16 +34,24 @@ fn gb(bytes: u64) -> String {
 }
 
 fn png_para_imagem(png: &[u8]) -> Option<(Image, f32)> {
-    let mut r = png::Decoder::new(std::io::Cursor::new(png)).read_info().ok()?;
+    let mut r = png::Decoder::new(std::io::Cursor::new(png))
+        .read_info()
+        .ok()?;
     let mut buf = vec![0; r.output_buffer_size()];
     let info = r.next_frame(&mut buf).ok()?;
     let rgba: Vec<u8> = match info.color_type {
         png::ColorType::Rgba => buf[..info.buffer_size()].to_vec(),
-        png::ColorType::Rgb => buf[..info.buffer_size()].chunks(3).flat_map(|p| [p[0], p[1], p[2], 255]).collect(),
+        png::ColorType::Rgb => buf[..info.buffer_size()]
+            .chunks(3)
+            .flat_map(|p| [p[0], p[1], p[2], 255])
+            .collect(),
         _ => return None,
     };
     let px = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&rgba, info.width, info.height);
-    Some((Image::from_rgba8(px), info.width as f32 / info.height.max(1) as f32))
+    Some((
+        Image::from_rgba8(px),
+        info.width as f32 / info.height.max(1) as f32,
+    ))
 }
 
 fn tema(ui: &AppWindow) {
@@ -104,9 +112,14 @@ fn main() {
 
     // Estado real.
     let infos = devices::load(&devices::avd_home());
-    let st = State::load(&platform::data_dir().join("state.json"), platform::physical_gb());
+    let st = State::load(
+        &platform::data_dir().join("state.json"),
+        platform::physical_gb(),
+    );
     // APENAS=Celular1,Relogio1 mostra só esses na mesa.
-    let apenas: Option<Vec<String>> = std::env::var("APENAS").ok().map(|v| v.split(',').map(str::to_string).collect());
+    let apenas: Option<Vec<String>> = std::env::var("APENAS")
+        .ok()
+        .map(|v| v.split(',').map(str::to_string).collect());
     let ordem: Vec<_> = st
         .ordered(&infos)
         .into_iter()
@@ -162,9 +175,16 @@ fn main() {
                     sigla: d.name.chars().take(2).collect::<String>().into(),
                     tipo: d.kind.display().into(),
                     android: catalog::android_version(&d.api).into(),
-                    estado: if r.is_some() { Estado::Ligado } else { Estado::Desligado },
+                    estado: if r.is_some() {
+                        Estado::Ligado
+                    } else {
+                        Estado::Desligado
+                    },
                     mensagem: "".into(),
-                    metricas: r.map(|r| format!("{} · {:.0}%", gb(r.memory), r.cpu)).unwrap_or_default().into(),
+                    metricas: r
+                        .map(|r| format!("{} · {:.0}%", gb(r.memory), r.cpu))
+                        .unwrap_or_default()
+                        .into(),
                     grupo: st.groups.get(&d.name).cloned().unwrap_or_default().into(),
                     x: s.x,
                     y: s.y,
@@ -187,7 +207,11 @@ fn main() {
     };
 
     let (usada, swap) = platform::memory_use_gb();
-    let soma: u64 = rodando.iter().filter(|r| ordem.iter().any(|d| d.name == r.avd)).map(|r| r.memory).sum();
+    let soma: u64 = rodando
+        .iter()
+        .filter(|r| ordem.iter().any(|d| d.name == r.avd))
+        .map(|r| r.memory)
+        .sum();
     let memoria = idioma::tf(
         "Computer memory: {usada} of {total} GB\nDevices {aparelhos} · swap {swap} GB · ceiling {teto} GB",
         &[

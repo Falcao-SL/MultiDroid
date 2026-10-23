@@ -113,7 +113,9 @@ pub fn load(data: &Path) -> Vec<Leve> {
 /// Cria a pasta e o leve.json; o contêiner nasce na primeira vez que liga.
 pub fn create(data: &Path, name: &str, kind: Kind) -> Result<Leve, String> {
     if !crate::devices::valid_name(name) {
-        return Err(crate::idioma::t("use only letters, numbers, dot, hyphen and underscore").into());
+        return Err(
+            crate::idioma::t("use only letters, numbers, dot, hyphen and underscore").into(),
+        );
     }
     let dir = home(data).join(name);
     if dir.exists() {

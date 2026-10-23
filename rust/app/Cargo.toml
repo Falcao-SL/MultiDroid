@@ -48,5 +48,30 @@ minimum-system-version = "13.0"
 [package.metadata.packager.deb]
 depends = ["libfontconfig1", "libxkbcommon0"]
 
+# .rpm (Fedora, openSUSE, RHEL) pelo cargo-generate-rpm, que o cargo-packager não
+# gera: os mesmos arquivos do .deb (binário, atalho e ícones).
+[package.metadata.generate-rpm]
+name = "multidroid-preview"
+summary = "Vários aparelhos Android numa mesa só."
+url = "https://multidroid.falcaosl.com"
+# As dependências automáticas vêm do ldd da máquina de build (Debian) e trazem
+# nomes que o Fedora não tem (libbz2.so.1.0); o binário só pede as de baixo.
+auto-req = "no"
+assets = [
+    { source = "target/release/multidroid", dest = "/usr/bin/multidroid", mode = "755" },
+    { source = "packaging/multidroid.desktop", dest = "/usr/share/applications/multidroid.desktop", mode = "644" },
+    { source = "icons/32x32.png", dest = "/usr/share/icons/hicolor/32x32/apps/multidroid.png", mode = "644" },
+    { source = "icons/48x48.png", dest = "/usr/share/icons/hicolor/48x48/apps/multidroid.png", mode = "644" },
+    { source = "icons/64x64.png", dest = "/usr/share/icons/hicolor/64x64/apps/multidroid.png", mode = "644" },
+    { source = "icons/128x128.png", dest = "/usr/share/icons/hicolor/128x128/apps/multidroid.png", mode = "644" },
+    { source = "icons/256x256.png", dest = "/usr/share/icons/hicolor/256x256/apps/multidroid.png", mode = "644" },
+    { source = "icons/512x512.png", dest = "/usr/share/icons/hicolor/512x512/apps/multidroid.png", mode = "644" },
+]
+
+[package.metadata.generate-rpm.requires]
+fontconfig = "*"
+libxkbcommon = "*"
+"libstdc++" = "*"
+
 [package.metadata.packager.nsis]
 installer-mode = "currentUser"

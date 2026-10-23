@@ -28,7 +28,11 @@ fn garantir(path: &str, lista: &str, sdk: &Path, host: Host) {
     if catalog::installed(path, sdk).is_some() {
         return;
     }
-    let xml = ureq::get(lista).call().expect("sem rede").into_string().unwrap();
+    let xml = ureq::get(lista)
+        .call()
+        .expect("sem rede")
+        .into_string()
+        .unwrap();
     let base = lista.rsplit_once('/').unwrap().0.to_string() + "/";
     let pkg = catalog::parse(&xml, path, &base, host)
         .unwrap()
@@ -69,7 +73,10 @@ fn gravar(dir: &Option<std::path::PathBuf>, nome: &str, etapa: &str, q: &(u32, u
 /// Captura pedida na hora pelo gRPC, decodificada para RGBA (só para conferir
 /// toque, tecla e texto: o fluxo não manda quadro com a tela parada).
 async fn captura(link: &Link, nome: &str) -> (u32, u32, Vec<u8>) {
-    let png = link.screenshot_png().await.unwrap_or_else(|| panic!("{nome}: sem captura"));
+    let png = link
+        .screenshot_png()
+        .await
+        .unwrap_or_else(|| panic!("{nome}: sem captura"));
     let dec = png::Decoder::new(std::io::Cursor::new(png));
     let mut r = dec.read_info().unwrap();
     let mut buf = vec![0; r.output_buffer_size()];
@@ -77,7 +84,10 @@ async fn captura(link: &Link, nome: &str) -> (u32, u32, Vec<u8>) {
     buf.truncate(info.buffer_size());
     let rgba = match info.color_type {
         png::ColorType::Rgba => buf,
-        png::ColorType::Rgb => buf.chunks(3).flat_map(|p| [p[0], p[1], p[2], 255]).collect(),
+        png::ColorType::Rgb => buf
+            .chunks(3)
+            .flat_map(|p| [p[0], p[1], p[2], 255])
+            .collect(),
         c => panic!("{nome}: captura em {c:?}"),
     };
     (info.width, info.height, rgba)
@@ -107,10 +117,17 @@ async fn main() {
         garantir(img, &catalog::tag_list_url(tag), &sdk, host);
     }
 
-    let existentes: Vec<String> = devices::load(&avd_home).into_iter().map(|d| d.name).collect();
+    let existentes: Vec<String> = devices::load(&avd_home)
+        .into_iter()
+        .map(|d| d.name)
+        .collect();
     for (nome, kind) in APARELHOS {
         if !existentes.iter().any(|n| n == nome) {
-            let img = if kind == Kind::Relogio { &relogio } else { &celular };
+            let img = if kind == Kind::Relogio {
+                &relogio
+            } else {
+                &celular
+            };
             devices::create(&avd_home, &sdk, nome, kind, img, host).unwrap();
             eprintln!("criado {nome}");
         }
@@ -134,21 +151,40 @@ async fn main() {
     let mut adotados = vec![];
     let rodando = Processes::new().emulators();
     // APENAS=Celular1,Relogio1 limita a quais dos cinco o exemplo se aplica.
-    let apenas: Option<Vec<String>> = std::env::var("APENAS").ok().map(|v| v.split(',').map(str::to_string).collect());
+    let apenas: Option<Vec<String>> = std::env::var("APENAS")
+        .ok()
+        .map(|v| v.split(',').map(str::to_string).collect());
     for (nome, kind) in APARELHOS {
-        if apenas.as_ref().is_some_and(|a| !a.iter().any(|n| n == nome)) {
+        if apenas
+            .as_ref()
+            .is_some_and(|a| !a.iter().any(|n| n == nome))
+        {
             continue;
         }
         if let Some(r) = rodando.iter().find(|r| r.avd == nome) {
             eprintln!("{nome}: já ligado (pid {}), adotado", r.pid);
-            adotados.push((nome, kind, r.pid, r.grpc.expect("sem porta gRPC"), r.console));
+            adotados.push((
+                nome,
+                kind,
+                r.pid,
+                r.grpc.expect("sem porta gRPC"),
+                r.console,
+            ));
             continue;
         }
-        let usadas: Vec<u16> = Processes::new().emulators().iter().map(|r| r.console).collect();
+        let usadas: Vec<u16> = Processes::new()
+            .emulators()
+            .iter()
+            .map(|r| r.console)
+            .collect();
         let fora: Vec<u16> = usadas
             .iter()
             .copied()
-            .chain(ligados.iter().map(|(_, _, l): &(_, _, emulator::Launched)| l.console))
+            .chain(
+                ligados
+                    .iter()
+                    .map(|(_, _, l): &(_, _, emulator::Launched)| l.console),
+            )
             .collect();
         let opts = LaunchOptions {
             sdk: &sdk,
@@ -159,7 +195,12 @@ async fn main() {
             gpu: emulator::gpu_mode(),
         };
         let l = emulator::launch(nome, &fora, &opts).expect("não abriu o emulador");
-        eprintln!("{nome}: pid {} console {} gRPC {}", l.pid(), l.console, l.grpc);
+        eprintln!(
+            "{nome}: pid {} console {} gRPC {}",
+            l.pid(),
+            l.console,
+            l.grpc
+        );
         ligados.push((nome, kind, l));
     }
 
@@ -187,7 +228,10 @@ async fn main() {
         let link = Link::connect(l.grpc, &token).await.unwrap();
         while !link.booted().await {
             assert!(l.alive(), "{nome} fechou no boot");
-            assert!(inicio.elapsed() < Duration::from_secs(900), "{nome} não terminou o boot");
+            assert!(
+                inicio.elapsed() < Duration::from_secs(900),
+                "{nome} não terminou o boot"
+            );
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
         eprintln!("{nome}: boot em {:?} desde o início", inicio.elapsed());
@@ -205,7 +249,10 @@ async fn main() {
 
     // AGITAR=<segundos>: alterna a tela de recentes nos cinco a cada segundo, para
     // medir o app desenhando cinco telas em movimento, e sai sem interagir mais.
-    if let Some(seg) = std::env::var("AGITAR").ok().and_then(|v| v.parse::<u64>().ok()) {
+    if let Some(seg) = std::env::var("AGITAR")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+    {
         let fim = Instant::now() + Duration::from_secs(seg);
         while Instant::now() < fim {
             for (_, _, link) in &links {
@@ -227,7 +274,12 @@ async fn main() {
     let capturas = std::env::var_os("CAPTURAS").map(std::path::PathBuf::from);
     let telas: Vec<String> = links
         .iter()
-        .map(|(n, _, _)| devs.iter().find(|d| d.name == *n).map(|d| d.screen.clone()).unwrap_or_default())
+        .map(|(n, _, _)| {
+            devs.iter()
+                .find(|d| d.name == *n)
+                .map(|d| d.screen.clone())
+                .unwrap_or_default()
+        })
         .collect();
     let mut falhas = 0;
     for ((nome, kind, link), tela) in links.iter().zip(&telas) {
@@ -236,7 +288,10 @@ async fn main() {
         link.key("GoHome").await;
         tokio::time::sleep(Duration::from_secs(2)).await;
         let quadro = um_quadro(link, *kind, tela, nome).await;
-        assert!(quadro.0 > 0 && quadro.2.len() == (quadro.0 * quadro.1 * 4) as usize, "{nome}: quadro MMAP inválido");
+        assert!(
+            quadro.0 > 0 && quadro.2.len() == (quadro.0 * quadro.1 * 4) as usize,
+            "{nome}: quadro MMAP inválido"
+        );
         gravar(&capturas, nome, "0-mmap", &quadro);
         let antes = captura(link, nome).await;
         gravar(&capturas, nome, "1-antes", &antes);
@@ -304,7 +359,11 @@ async fn main() {
             "{nome:<9} toque {:>5.1}%  tecla {:>5.1}%  texto {}  {}",
             d_toque * 100.0,
             d_tecla * 100.0,
-            if d_texto.is_nan() { "  n/a".into() } else { format!("{:>5.1}%", d_texto * 100.0) },
+            if d_texto.is_nan() {
+                "  n/a".into()
+            } else {
+                format!("{:>5.1}%", d_texto * 100.0)
+            },
             if ok { "ok" } else { "FALHOU" }
         );
     }
@@ -313,8 +372,15 @@ async fn main() {
     let mut p = Processes::new();
     let rodando = p.emulators();
     let mut total = 0u64;
-    for r in rodando.iter().filter(|r| APARELHOS.iter().any(|(n, _)| *n == r.avd)) {
-        println!("memória {:<9} {:>6.2} GB", r.avd, r.memory as f64 / (1u64 << 30) as f64);
+    for r in rodando
+        .iter()
+        .filter(|r| APARELHOS.iter().any(|(n, _)| *n == r.avd))
+    {
+        println!(
+            "memória {:<9} {:>6.2} GB",
+            r.avd,
+            r.memory as f64 / (1u64 << 30) as f64
+        );
         total += r.memory;
     }
     let (usado, swap) = platform::memory_use_gb();

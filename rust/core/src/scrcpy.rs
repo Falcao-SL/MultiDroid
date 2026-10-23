@@ -40,7 +40,10 @@ pub fn ensure_server(dir: &Path) -> Result<PathBuf, String> {
         .read_to_end(&mut b)
         .map_err(|e| e.to_string())?;
     if sha256_hex(&b) != SHA256 {
-        return Err(crate::idioma::t("the downloaded scrcpy server doesn't match the pinned SHA-256").into());
+        return Err(crate::idioma::t(
+            "the downloaded scrcpy server doesn't match the pinned SHA-256",
+        )
+        .into());
     }
     std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     std::fs::write(&p, b).map_err(|e| e.to_string())?;

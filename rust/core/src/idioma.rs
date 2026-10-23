@@ -79,10 +79,19 @@ const PT_BR: &[(&str, &str)] = &[
     ("about {n} s left", "faltam uns {n} s"),
     ("about {n} min left", "faltam uns {n} min"),
     ("about {h} h {m} min left", "faltam umas {h} h {m} min"),
-    ("Installed · r{v} · new r{nova} ({mb})", "Instalada · r{v} · nova r{nova} ({mb})"),
+    (
+        "Installed · r{v} · new r{nova} ({mb})",
+        "Instalada · r{v} · nova r{nova} ({mb})",
+    ),
     ("Installed · r{v}", "Instalada · r{v}"),
-    ("Downloads {mb} before creating.", "Baixa {mb} antes de criar."),
-    ("Uses about {custo} GB of memory while on.", "Custa cerca de {custo} GB de memória ligado."),
+    (
+        "Downloads {mb} before creating.",
+        "Baixa {mb} antes de criar.",
+    ),
+    (
+        "Uses about {custo} GB of memory while on.",
+        "Custa cerca de {custo} GB de memória ligado.",
+    ),
     (
         "Computer memory: {usada} of {total} GB\nDevices {aparelhos} · swap {swap} GB · ceiling {teto} GB",
         "Memória do computador: {usada} de {total} GB\nAparelhos {aparelhos} · swap {swap} GB · teto {teto} GB",
@@ -92,12 +101,24 @@ const PT_BR: &[(&str, &str)] = &[
         "{nome} can't start: it doesn't fit under the {teto} GB ceiling even after hibernating the others",
         "{nome} não liga: nem hibernando os outros cabe no teto de {teto} GB",
     ),
-    ("{v} hibernated so {nome} could start", "{v} hibernou para {nome} ligar"),
-    ("{nome} uses {imagem}, which isn't installed", "{nome} usa {imagem}, que não está instalada"),
+    (
+        "{v} hibernated so {nome} could start",
+        "{v} hibernou para {nome} ligar",
+    ),
+    (
+        "{nome} uses {imagem}, which isn't installed",
+        "{nome} usa {imagem}, que não está instalada",
+    ),
     ("the emulator didn't open: {e}", "não abriu o emulador: {e}"),
-    ("the emulator closed while starting", "o emulador fechou ao ligar"),
+    (
+        "the emulator closed while starting",
+        "o emulador fechou ao ligar",
+    ),
     ("no gRPC connection: {e}", "sem conexão gRPC: {e}"),
-    ("The light engine needs Docker installed", "O motor leve precisa do Docker instalado"),
+    (
+        "The light engine needs Docker installed",
+        "O motor leve precisa do Docker instalado",
+    ),
     (
         "The light engine needs binder in the kernel: sudo modprobe binder_linux devices=binder,hwbinder,vndbinder",
         "O motor leve precisa do binder no kernel: sudo modprobe binder_linux devices=binder,hwbinder,vndbinder",
@@ -107,30 +128,57 @@ const PT_BR: &[(&str, &str)] = &[
         "Baixe as ferramentas da plataforma (adb) em Imagens antes de ligar",
     ),
     ("{nome} didn't start: {e}", "{nome} não ligou: {e}"),
-    ("the video decoder didn't open", "o decodificador de vídeo não abriu"),
+    (
+        "the video decoder didn't open",
+        "o decodificador de vídeo não abriu",
+    ),
     ("no Podman or Docker", "sem Podman nem Docker"),
     // Captura
     ("Screenshot saved to {pasta}", "Captura salva em {pasta}"),
     ("The screenshot wasn't saved", "A captura não foi salva"),
     // Duplicar, apagar, criar
-    ("Shut down {nome} before duplicating", "Desligue {nome} antes de duplicar"),
-    ("Duplicating doesn't work for light devices yet", "Duplicar ainda não vale para aparelho leve"),
-    ("{novo} created from {nome}", "{novo} criado a partir de {nome}"),
+    (
+        "Shut down {nome} before duplicating",
+        "Desligue {nome} antes de duplicar",
+    ),
+    (
+        "Duplicating doesn't work for light devices yet",
+        "Duplicar ainda não vale para aparelho leve",
+    ),
+    (
+        "{novo} created from {nome}",
+        "{novo} criado a partir de {nome}",
+    ),
     ("Couldn't duplicate: {e}", "Não duplicou: {e}"),
-    ("Shut down {nome} before deleting", "Desligue {nome} antes de apagar"),
+    (
+        "Shut down {nome} before deleting",
+        "Desligue {nome} antes de apagar",
+    ),
     ("{nome} was deleted", "{nome} foi apagado"),
     ("Couldn't delete: {e}", "Não apagou: {e}"),
     (
         "Use a name with letters, numbers, dot, hyphen or underscore (no spaces).",
         "Dê um nome com letras, números, ponto, hífen ou sublinhado (sem espaço).",
     ),
-    ("A device with that name already exists.", "Já existe um aparelho com esse nome."),
-    ("{nome} created on the light engine", "{nome} criado no motor leve"),
+    (
+        "A device with that name already exists.",
+        "Já existe um aparelho com esse nome.",
+    ),
+    (
+        "{nome} created on the light engine",
+        "{nome} criado no motor leve",
+    ),
     ("Choose an image.", "Escolha uma imagem."),
     ("{nome} created", "{nome} criado"),
     // Imagens
-    ("Couldn't read the repository: {falhas}", "Não li do repositório: {falhas}"),
-    ("Shut down the devices that use this image first", "Desligue os aparelhos que usam esta imagem antes"),
+    (
+        "Couldn't read the repository: {falhas}",
+        "Não li do repositório: {falhas}",
+    ),
+    (
+        "Shut down the devices that use this image first",
+        "Desligue os aparelhos que usam esta imagem antes",
+    ),
     ("Couldn't remove: {e}", "Não removeu: {e}"),
     (
         "This image isn't in the repository right now; try again in Images.",
@@ -140,22 +188,43 @@ const PT_BR: &[(&str, &str)] = &[
         "Shut down the devices that use this image before updating",
         "Desligue os aparelhos que usam esta imagem antes de atualizar",
     ),
-    ("Couldn't record the acceptance: {e}", "Não gravou o aceite: {e}"),
+    (
+        "Couldn't record the acceptance: {e}",
+        "Não gravou o aceite: {e}",
+    ),
     // Catálogo (catalog.rs)
     ("Android Emulator", "Emulador do Android"),
     ("Platform tools (adb)", "Ferramentas da plataforma (adb)"),
-    ("Android {v} with Google Play", "Android {v} com Google Play"),
-    ("Android {v} with Google APIs", "Android {v} com APIs do Google"),
-    ("Android {v} without Google (AOSP)", "Android {v} sem Google (AOSP)"),
-    ("Runs the devices. Required.", "Roda os aparelhos. Obrigatório."),
+    (
+        "Android {v} with Google Play",
+        "Android {v} com Google Play",
+    ),
+    (
+        "Android {v} with Google APIs",
+        "Android {v} com APIs do Google",
+    ),
+    (
+        "Android {v} without Google (AOSP)",
+        "Android {v} sem Google (AOSP)",
+    ),
+    (
+        "Runs the devices. Required.",
+        "Roda os aparelhos. Obrigatório.",
+    ),
     (
         "Connects the screen and touch of light devices (Redroid). Required for the light engine.",
         "Liga a tela e o toque dos aparelhos leves (Redroid). Obrigatório para o motor leve.",
     ),
     ("Phone, tablet and foldable", "Celular, tablet e dobrável"),
     (" · with Play Store", " · com Play Store"),
-    (" · no Play Store; apps by APK", " · sem Play Store; apps por APK"),
-    (" · no Google apps at all; apps by APK", " · sem nenhum app do Google; apps por APK"),
+    (
+        " · no Play Store; apps by APK",
+        " · sem Play Store; apps por APK",
+    ),
+    (
+        " · no Google apps at all; apps by APK",
+        " · sem nenhum app do Google; apps por APK",
+    ),
     (
         "Recommended: the lightest, with Play Store (the emulator uses 2 GB of RAM; ~4.6 GB per phone).",
         "Recomendada: a mais leve, com Play Store (o emulador usa 2 GB de RAM; ~4,6 GB por celular).",
@@ -168,7 +237,10 @@ const PT_BR: &[(&str, &str)] = &[
         "Recommended: the only Wear OS version that starts on this emulator.",
         "Recomendada: a única versão do Wear OS que liga neste emulador.",
     ),
-    ("Didn't start on this emulator in MultiDroid's tests.", "Não ligou neste emulador nos testes do MultiDroid."),
+    (
+        "Didn't start on this emulator in MultiDroid's tests.",
+        "Não ligou neste emulador nos testes do MultiDroid.",
+    ),
     (
         "The emulator forces 4 GB of RAM on this version: ~6.5 GB per phone.",
         "O emulador força 4 GB de RAM nesta versão: ~6,5 GB por celular.",
@@ -178,23 +250,53 @@ const PT_BR: &[(&str, &str)] = &[
         "O emulador força 2,5 GB de RAM nesta versão: ~0,7 GB a mais por celular que o Android 13.",
     ),
     // Erros do núcleo
-    ("use only letters, numbers, dot, hyphen and underscore", "use só letras, números, ponto, hífen e sublinhado"),
-    ("a device with that name already exists", "já existe um aparelho com esse nome"),
-    ("{name} already exists in MultiDroid", "já existe {name} no MultiDroid"),
-    ("couldn't remove the volume: {e}", "não apagou o volume: {e}"),
-    ("the downloaded file doesn't match the published SHA-1", "o arquivo baixado não confere com o SHA-1 publicado"),
-    ("couldn't extract the file: {e}", "não extraiu o arquivo: {e}"),
-    ("not enough space: needs {gb} GB free", "falta espaço: precisa de {gb} GB livres"),
-    ("emulator (not available for this system)", "emulador (não há para este sistema)"),
+    (
+        "use only letters, numbers, dot, hyphen and underscore",
+        "use só letras, números, ponto, hífen e sublinhado",
+    ),
+    (
+        "a device with that name already exists",
+        "já existe um aparelho com esse nome",
+    ),
+    (
+        "{name} already exists in MultiDroid",
+        "já existe {name} no MultiDroid",
+    ),
+    (
+        "couldn't remove the volume: {e}",
+        "não apagou o volume: {e}",
+    ),
+    (
+        "the downloaded file doesn't match the published SHA-1",
+        "o arquivo baixado não confere com o SHA-1 publicado",
+    ),
+    (
+        "couldn't extract the file: {e}",
+        "não extraiu o arquivo: {e}",
+    ),
+    (
+        "not enough space: needs {gb} GB free",
+        "falta espaço: precisa de {gb} GB livres",
+    ),
+    (
+        "emulator (not available for this system)",
+        "emulador (não há para este sistema)",
+    ),
     ("the download failed: {e}", "o download falhou: {e}"),
     ("empty file", "arquivo vazio"),
     ("download cancelled", "download cancelado"),
-    ("{serial} didn't finish booting in {timeout}", "{serial} não terminou o boot em {timeout}"),
+    (
+        "{serial} didn't finish booting in {timeout}",
+        "{serial} não terminou o boot em {timeout}",
+    ),
     (
         "the downloaded scrcpy server doesn't match the pinned SHA-256",
         "o servidor do scrcpy baixado não confere com o SHA-256 fixado",
     ),
-    ("the scrcpy server didn't respond", "o servidor do scrcpy não respondeu"),
+    (
+        "the scrcpy server didn't respond",
+        "o servidor do scrcpy não respondeu",
+    ),
     ("the destination already exists", "o destino já existe"),
     ("invalid token", "token inválido"),
 ];
@@ -208,8 +310,14 @@ mod tests {
         // Sem mexer no idioma global: os outros testes rodam em paralelo, em inglês.
         assert!(eh_portugues("pt-BR") && eh_portugues("pt_PT") && eh_portugues("pt"));
         assert!(!eh_portugues("en-US") && !eh_portugues("es"));
-        assert_eq!(preenche(false, "{nome} created", &[("nome", &"Celular1")]), "Celular1 created");
-        assert_eq!(preenche(true, "{nome} created", &[("nome", &"Celular1")]), "Celular1 criado");
+        assert_eq!(
+            preenche(false, "{nome} created", &[("nome", &"Celular1")]),
+            "Celular1 created"
+        );
+        assert_eq!(
+            preenche(true, "{nome} created", &[("nome", &"Celular1")]),
+            "Celular1 criado"
+        );
         assert_eq!(traduz(true, "Watch"), "Relógio");
         assert_eq!(traduz(true, "texto sem tradução"), "texto sem tradução");
         assert_eq!(numero(false, 4.56, 1), "4.6");

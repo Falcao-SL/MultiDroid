@@ -428,8 +428,16 @@ mod tests {
             }
         }
         // Mantém a proporção dos celulares (1:2) e todos do mesmo tamanho.
-        assert!(v[..4].windows(2).all(|p| p[0].w == p[1].w && p[0].h == p[1].h));
-        assert!((v[0].h as f64 / v[0].w as f64 - 2.0).abs() < 0.35, "{:?}", v[0]);
+        assert!(
+            v[..4]
+                .windows(2)
+                .all(|p| p[0].w == p[1].w && p[0].h == p[1].h)
+        );
+        assert!(
+            (v[0].h as f64 / v[0].w as f64 - 2.0).abs() < 0.35,
+            "{:?}",
+            v[0]
+        );
     }
 
     #[test]
@@ -443,14 +451,26 @@ mod tests {
     fn encaixar_usa_o_minimo_quando_nao_cabe() {
         let padroes = vec![(7, 14); 30];
         let v = grid::encaixar(&padroes, 6);
-        assert!(v.iter().all(|s| s.w == grid::MIN_W && s.h == grid::MIN_H), "{:?}", v[0]);
+        assert!(
+            v.iter().all(|s| s.w == grid::MIN_W && s.h == grid::MIN_H),
+            "{:?}",
+            v[0]
+        );
     }
 
     #[test]
     fn organizar_mantem_a_proporcao_do_quadro_deitado() {
         // Um celular deitado (largo e baixo) continua deitado depois de organizar.
         let mut s = State::new(16.0);
-        s.spots.insert("Cel".into(), Spot { x: 0, y: 0, w: 12, h: 6 });
+        s.spots.insert(
+            "Cel".into(),
+            Spot {
+                x: 0,
+                y: 0,
+                w: 12,
+                h: 6,
+            },
+        );
         let d = dev("Cel", Kind::Celular);
         s.fit_spots(&[&d], 20);
         let r = s.spots["Cel"];

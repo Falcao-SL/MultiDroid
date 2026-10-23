@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MultiDroid | Phones, a tablet and a watch on one Mac desk</title>
-<meta name="description" content="MultiDroid runs the official Android Emulator without its windows and lays your Android devices out on one desk on your Mac: phones, a tablet, a foldable and a round watch, each with its own accounts. Free and open source, for Apple Silicon.">
+<meta name="description" content="MultiDroid runs the official Android Emulator without its windows and lays your Android devices out on one desk: phones, a tablet, a foldable and a round watch, each with its own accounts. Free and open source, for Mac, with a preview for Windows and Linux.">
 <meta name="theme-color" content="#17171c">
 <link rel="canonical" href="https://multidroid.falcaosl.com/">
 <meta property="og:type" content="website">
@@ -26,7 +26,7 @@
   "name": "MultiDroid",
   "url": "https://multidroid.falcaosl.com/",
   "applicationCategory": "DeveloperApplication",
-  "operatingSystem": "macOS 26 or later (Apple Silicon)",
+  "operatingSystem": "macOS 26 or later (Apple Silicon); preview for Windows 10 and 11 (x86_64) and Linux (x86_64)",
   "softwareVersion": "0.2",
   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
   "downloadUrl": "https://github.com/iramarfalcao/MultiDroid/releases/download/v0.2/MultiDroid-0.2.dmg",
@@ -61,13 +61,14 @@
 
   <section class="wrap hero" aria-labelledby="hero-title">
     <h1 id="hero-title">Every Android you need, on one desk.</h1>
-    <p class="lead">MultiDroid runs the official Android Emulator without its windows and lays your devices out on a single desk on your Mac: phones, a tablet, a foldable and a round watch, each with its own accounts.</p>
+    <p class="lead">MultiDroid runs the official Android Emulator without its windows and lays your devices out on a single desk on your Mac, and now in preview on Windows and Linux: phones, a tablet, a foldable and a round watch, each with its own accounts.</p>
     <ul class="downloads" aria-label="Downloads">
       <li><a class="dl dl--ready" href="https://github.com/iramarfalcao/MultiDroid/releases/download/v0.2/MultiDroid-0.2.dmg"><b>Download for Mac</b><span>Version 0.2 · 12 MB .dmg · macOS 26, Apple Silicon</span></a></li>
-      <li><span class="dl dl--soon" aria-disabled="true"><b>Windows</b><span>In development</span></span></li>
-      <li><span class="dl dl--soon" aria-disabled="true"><b>Linux</b><span>In development</span></span></li>
+      <li><a class="dl dl--ready" href="https://github.com/iramarfalcao/MultiDroid/releases/download/v0.3.0-alpha.3/MultiDroid-Preview-0.3.0-alpha.3-windows-x64-setup.exe"><b>Download for Windows</b><span>Preview 0.3 · 9 MB installer · Windows 10 and 11, x86_64</span></a></li>
+      <li><a class="dl dl--ready" href="https://github.com/iramarfalcao/MultiDroid/releases/download/v0.3.0-alpha.3/MultiDroid-Preview-0.3.0-alpha.3-linux-amd64.deb"><b>Download for Linux</b><span>Preview 0.3 · 15 MB .deb · Debian, Ubuntu, x86_64</span></a></li>
     </ul>
-    <p class="note">Free and open source (GPL-3.0), signed and notarized by Apple. Version 0.2 is in Brazilian Portuguese; the 0.3 preview in the pictures is in English. <a href="https://github.com/iramarfalcao/MultiDroid">Source on GitHub</a></p>
+    <p class="note">Linux also as <a href="https://github.com/iramarfalcao/MultiDroid/releases/download/v0.3.0-alpha.3/MultiDroid-Preview-0.3.0-alpha.3-linux-x86_64.rpm">.rpm</a> (Fedora, openSUSE) and <a href="https://github.com/iramarfalcao/MultiDroid/releases/download/v0.3.0-alpha.3/MultiDroid-Preview-0.3.0-alpha.3-linux-x86_64.AppImage">.AppImage</a> (any distribution). <a href="https://github.com/iramarfalcao/MultiDroid/releases">All versions</a></p>
+    <p class="note">Free and open source (GPL-3.0). The Mac app is signed and notarized by Apple; version 0.2 is in Brazilian Portuguese. The Windows and Linux preview is version 0.3, in English and Portuguese: it is not signed yet, so Windows may show a SmartScreen warning the first time. On Windows it needs the Windows Hypervisor Platform turned on. <a href="https://github.com/iramarfalcao/MultiDroid">Source on GitHub</a></p>
     <figure class="shot shot--hero">
       <img src="assets/desk-4.webp" width="1710" height="890" alt="MultiDroid on a Mac with three Android phones and a watch switched on at the same time, next to the panel with each device's memory and CPU">
       <figcaption>Three phones and a watch on at the same time, on a Mac with 24 GB. Shown: the 0.3 preview.</figcaption>
@@ -133,10 +134,12 @@
         <li>It does not automate anything in your accounts. Each device is yours to use by hand.</li>
         <li>It does not get around app integrity checks, so banking apps and some others will not open in an emulator.</li>
         <li>It does not bundle any Android system image. Each person downloads them from the official repository and accepts its license.</li>
-        <li>It does not run on Intel Macs or on other systems yet.</li>
+        <li>It does not run on Intel Macs or on ARM Windows: the official emulator only exists for x86_64 there. On Windows and Linux it is still a preview.</li>
       </ul>
       <p class="actions">
         <a class="btn btn--blue" href="https://github.com/iramarfalcao/MultiDroid/releases/download/v0.2/MultiDroid-0.2.dmg">Download for Mac</a>
+        <a class="btn" href="https://github.com/iramarfalcao/MultiDroid/releases/download/v0.3.0-alpha.3/MultiDroid-Preview-0.3.0-alpha.3-windows-x64-setup.exe">Windows</a>
+        <a class="btn" href="https://github.com/iramarfalcao/MultiDroid/releases/download/v0.3.0-alpha.3/MultiDroid-Preview-0.3.0-alpha.3-linux-amd64.deb">Linux</a>
         <a class="btn" href="https://github.com/iramarfalcao/MultiDroid/issues">Report a problem</a>
       </p>
     </div>

@@ -1,6 +1,6 @@
 # Pacotes da versão Rust nos três sistemas (docs/spec/MULTIPLATAFORMA.md §6).
 # Uma tag v<versão do rust/Cargo.toml>[-sufixo] gera .dmg, instalador do Windows,
-# .AppImage e .deb e publica tudo numa release. Tag com sufixo (v0.3.0-alpha.1)
+# .AppImage, .deb e .rpm e publica tudo numa release. Tag com sufixo (v0.3.0-alpha.1)
 # sai como pré-release. Tag de outra versão (a do app SwiftUI, por exemplo)
 # não roda nada aqui. "Run workflow" à mão só gera os pacotes, sem release.
 #
@@ -73,18 +73,26 @@ jobs:
         working-directory: rust/app
         run: |
           cargo packager --release -f ${{ matrix.formatos }}
+      # O .rpm sai do cargo-generate-rpm (o cargo-packager não gera), com o mesmo
+      # binário que o packager acabou de compilar.
+      - name: .rpm
+        if: runner.os == 'Linux'
+        run: |
+          cargo install cargo-generate-rpm --locked --version 0.21.1
+          cargo generate-rpm -p app -o target/packages/
       - name: Nomes dos arquivos
         run: |
           N="MultiDroid-Preview-${{ needs.versao.outputs.nome }}"
           mkdir -p out
           cd target/packages
-          for f in *.dmg *-setup.exe *.AppImage *.deb; do
+          for f in *.dmg *-setup.exe *.AppImage *.deb *.rpm; do
             [ -e "$f" ] || continue
             case "$f" in
               *.dmg) mv "$f" "../../out/$N-mac-arm64.dmg" ;;
               *-setup.exe) mv "$f" "../../out/$N-windows-x64-setup.exe" ;;
               *.AppImage) mv "$f" "../../out/$N-linux-x86_64.AppImage" ;;
               *.deb) mv "$f" "../../out/$N-linux-amd64.deb" ;;
+              *.rpm) mv "$f" "../../out/$N-linux-x86_64.rpm" ;;
             esac
           done
           ls -la ../../out
@@ -113,4 +121,4 @@ jobs:
           [ "${{ needs.versao.outputs.pre }}" = true ] && PRE="--prerelease"
           gh release create "$GITHUB_REF_NAME" out/* $PRE -R "$GITHUB_REPOSITORY" \
             --title "MultiDroid Preview ${{ needs.versao.outputs.nome }} (Mac, Windows e Linux)" \
-            --notes "Pré-release da versão Rust, para testar. No Mac e no Linux liga aparelhos do emulador oficial e mostra a tela na mesa; no Linux também há o motor leve (Redroid, pelo Docker, ~1,1 GB por aparelho). No Windows instala e abre, mas ainda não liga aparelhos (etapa R-7). Para o uso do dia a dia no Mac, a versão é a 0.2. Andamento em docs/spec/MULTIPLATAFORMA.md."
+            --notes "Pré-release da versão Rust, para testar. Liga aparelhos do emulador oficial e mostra a tela na mesa no Mac, no Windows (x86_64, com a Plataforma de Hipervisor do Windows) e no Linux; no Linux também há o motor leve (Redroid, pelo Docker, ~1,1 GB por aparelho). Linux: .deb (Debian, Ubuntu), .rpm (Fedora, openSUSE) ou .AppImage. Para o uso do dia a dia no Mac, a versão é a 0.2. Andamento em docs/spec/MULTIPLATAFORMA.md."

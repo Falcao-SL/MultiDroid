@@ -122,7 +122,7 @@ pub fn launch(name: &str, used_ports: &[u16], o: &LaunchOptions) -> std::io::Res
     // Sem platform-tools (mesmo vazia) o emulador não reconhece a pasta como
     // SDK e fecha com "Broken AVD system path".
     std::fs::create_dir_all(o.sdk.join("platform-tools"))?;
-    let log =std::fs::File::create(o.log_dir.join(format!("{name}.log")))?;
+    let log = std::fs::File::create(o.log_dir.join(format!("{name}.log")))?;
     let mut cmd = Command::new(executable(o.sdk));
     cmd.args(args(name, o.cores, console, grpc, &o.gpu))
         .env_remove("ANDROID_HOME")

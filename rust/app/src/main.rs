@@ -209,17 +209,27 @@ impl Progresso {
     /// "Downloading 45% · 120 of 270 MB · 4.3 MB/s · about 1 min left"
     fn situacao(&self) -> String {
         if !self.baixando() {
-            let fase = if self.fase == "Verifying and extracting" { idioma::t("Verifying and extracting") } else { self.fase.as_str() };
+            let fase = if self.fase == "Verifying and extracting" {
+                idioma::t("Verifying and extracting")
+            } else {
+                self.fase.as_str()
+            };
             return format!("{fase}…");
         }
-        let pct = idioma::tf("Downloading {pct}%", &[("pct", &format!("{:.0}", self.fracao * 100.0))]);
+        let pct = idioma::tf(
+            "Downloading {pct}%",
+            &[("pct", &format!("{:.0}", self.fracao * 100.0))],
+        );
         if self.total == 0 {
             return pct;
         }
         let feito = (self.fracao * self.total as f64) as u64;
         let mut s = format!(
             "{pct} · {}",
-            idioma::tf("{feito} of {total}", &[("feito", &(feito >> 20)), ("total", &mb(self.total))])
+            idioma::tf(
+                "{feito} of {total}",
+                &[("feito", &(feito >> 20)), ("total", &mb(self.total))]
+            )
         );
         let seg = self.inicio.elapsed().as_secs_f64();
         // A velocidade só diz algo depois de uns segundos de download.
@@ -228,7 +238,11 @@ impl Progresso {
         }
         let vel = feito as f64 / seg;
         let falta = (self.total - feito) as f64 / vel;
-        s = format!("{s} · {} MB/s · {}", idioma::num(vel / (1u64 << 20) as f64, 1), tempo_restante(falta));
+        s = format!(
+            "{s} · {} MB/s · {}",
+            idioma::num(vel / (1u64 << 20) as f64, 1),
+            tempo_restante(falta)
+        );
         s
     }
 }
@@ -241,7 +255,10 @@ fn tempo_restante(seg: f64) -> String {
     } else if seg < 3600 {
         idioma::tf("about {n} min left", &[("n", &seg.div_ceil(60))])
     } else {
-        idioma::tf("about {h} h {m} min left", &[("h", &(seg / 3600)), ("m", &(seg % 3600 / 60))])
+        idioma::tf(
+            "about {h} h {m} min left",
+            &[("h", &(seg / 3600)), ("m", &(seg % 3600 / 60))],
+        )
     }
 }
 
@@ -532,20 +549,32 @@ fn sincronizar(app: &App, ui: &AppWindow) {
     if let Some(r) = app.img.remoto.iter().find(|r| r.path == img)
         && !app.img.instalado.contains_key(&img)
     {
-        nota = format!("{nota}\n{}", idioma::tf("Downloads {mb} before creating.", &[("mb", &mb(r.size))]))
-            .trim()
-            .to_string();
-    }
-    let custo = idioma::num(kind.estimate_gb(), 1);
-    nota = format!("{nota}\n{}", idioma::tf("Uses about {custo} GB of memory while on.", &[("custo", &custo)]))
+        nota = format!(
+            "{nota}\n{}",
+            idioma::tf("Downloads {mb} before creating.", &[("mb", &mb(r.size))])
+        )
         .trim()
         .to_string();
+    }
+    let custo = idioma::num(kind.estimate_gb(), 1);
+    nota = format!(
+        "{nota}\n{}",
+        idioma::tf(
+            "Uses about {custo} GB of memory while on.",
+            &[("custo", &custo)]
+        )
+    )
+    .trim()
+    .to_string();
     ui.set_novo_nota(nota.as_str().into());
     ui.set_opcoes(ModelRc::new(VecModel::from(ops)));
     ui.set_novo_erro(app.novo_erro.as_str().into());
     let prog = app.img.progresso.get(&img);
     ui.set_novo_ocupado(prog.is_some());
-    ui.set_novo_progresso(prog.map_or(-1.0, |pr| if pr.baixando() { pr.fracao as f32 } else { 2.0 }));
+    ui.set_novo_progresso(prog.map_or(
+        -1.0,
+        |pr| if pr.baixando() { pr.fracao as f32 } else { 2.0 },
+    ));
     ui.set_novo_situacao(prog.map(Progresso::situacao).unwrap_or_default().into());
     if let Some((p, _)) = &app.img.licenca {
         ui.set_licenca_titulo(catalog::title(&p.path, host()).into());
@@ -666,7 +695,13 @@ impl Ctx {
             if catalog::installed(&d.info.image, &sdk).is_none() {
                 return Err(idioma::tf(
                     "{nome} uses {imagem}, which isn't installed",
-                    &[("nome", &d.info.name), ("imagem", &catalog::title(&d.info.image, catalog::Host::current()))],
+                    &[
+                        ("nome", &d.info.name),
+                        (
+                            "imagem",
+                            &catalog::title(&d.info.image, catalog::Host::current()),
+                        ),
+                    ],
                 ));
             }
             let usadas: Vec<u16> = app.devs.iter().filter_map(|o| o.console).collect();
@@ -739,7 +774,9 @@ impl Ctx {
         let link = match Link::connect(grpc, token).await {
             Ok(l) => l,
             Err(e) => {
-                self.com(nome, |d, _| d.mensagem = idioma::tf("no gRPC connection: {e}", &[("e", &e)]));
+                self.com(nome, |d, _| {
+                    d.mensagem = idioma::tf("no gRPC connection: {e}", &[("e", &e)])
+                });
                 return self.avisar();
             }
         };
@@ -855,8 +892,9 @@ impl Ctx {
             ));
         }
         let Some(adb) = Adb::from_sdk(&devices::sdk_root()) else {
-            return self
-                .aviso(idioma::t("Download the platform tools (adb) in Images before starting"));
+            return self.aviso(idioma::t(
+                "Download the platform tools (adb) in Images before starting",
+            ));
         };
         let Some(Some(l)) = self.com(nome, |d, _| {
             if d.rodando() && d.estado != Estado::Externo {
@@ -895,7 +933,10 @@ impl Ctx {
                         d.estado = Estado::Desligado;
                         d.mensagem = String::new();
                     });
-                    return c.aviso(idioma::tf("{nome} didn't start: {e}", &[("nome", &nome), ("e", &e)]));
+                    return c.aviso(idioma::tf(
+                        "{nome} didn't start: {e}",
+                        &[("nome", &nome), ("e", &e)],
+                    ));
                 }
             };
             let canal = CanalLeve {
@@ -1427,7 +1468,10 @@ impl Ctx {
             Ok(()) => {
                 app.state.copy_from(nome, &novo);
                 Self::recarregar(&mut app);
-                app.aviso = idioma::tf("{novo} created from {nome}", &[("novo", &novo), ("nome", &nome)]);
+                app.aviso = idioma::tf(
+                    "{novo} created from {nome}",
+                    &[("novo", &novo), ("nome", &nome)],
+                );
             }
             Err(e) => app.aviso = idioma::tf("Couldn't duplicate: {e}", &[("e", &e)]),
         }
@@ -1481,8 +1525,10 @@ impl Ctx {
         app.novo_erro.clear();
         let nome = c.nome.trim().to_string();
         if !devices::valid_name(&nome) {
-            app.novo_erro =
-                idioma::t("Use a name with letters, numbers, dot, hyphen or underscore (no spaces).").into();
+            app.novo_erro = idioma::t(
+                "Use a name with letters, numbers, dot, hyphen or underscore (no spaces).",
+            )
+            .into();
         } else if app.devs.iter().any(|d| d.info.name == nome) {
             app.novo_erro = idioma::t("A device with that name already exists.").into();
         } else if c.leve {
@@ -1492,7 +1538,8 @@ impl Ctx {
                         app.state.groups.insert(nome.clone(), c.grupo.trim().into());
                     }
                     Self::recarregar(&mut app);
-                    app.aviso = idioma::tf("{nome} created on the light engine", &[("nome", &nome)]);
+                    app.aviso =
+                        idioma::tf("{nome} created on the light engine", &[("nome", &nome)]);
                     drop(app);
                     self.mostrar("");
                     return self.avisar();
@@ -1567,7 +1614,10 @@ impl Ctx {
             app.img.erro = if falhas.is_empty() {
                 String::new()
             } else {
-                idioma::tf("Couldn't read the repository: {falhas}", &[("falhas", &falhas.join("; "))])
+                idioma::tf(
+                    "Couldn't read the repository: {falhas}",
+                    &[("falhas", &falhas.join("; "))],
+                )
             };
             app.img.carregando = false;
             app.img.lido = true;
@@ -1605,12 +1655,14 @@ impl Ctx {
         let mut app = self.app.lock().unwrap();
         let Some(pkg) = app.img.remoto.iter().find(|r| r.path == path).cloned() else {
             app.novo_erro =
-                idioma::t("This image isn't in the repository right now; try again in Images.").into();
+                idioma::t("This image isn't in the repository right now; try again in Images.")
+                    .into();
             drop(app);
             return self.avisar();
         };
         if em_uso(&app, path) {
-            app.aviso = idioma::t("Shut down the devices that use this image before updating").into();
+            app.aviso =
+                idioma::t("Shut down the devices that use this image before updating").into();
             drop(app);
             return self.avisar();
         }
@@ -1654,7 +1706,14 @@ impl Ctx {
                 }
             }
             let _ = slint::invoke_from_event_loop(move || {
-                let tem = c.app.lock().unwrap().img.remoto.iter().any(|r| r.path == catalog::EMULATOR);
+                let tem = c
+                    .app
+                    .lock()
+                    .unwrap()
+                    .img
+                    .remoto
+                    .iter()
+                    .any(|r| r.path == catalog::EMULATOR);
                 if tem {
                     c.baixar(catalog::EMULATOR, None);
                 } else {
@@ -1692,7 +1751,10 @@ impl Ctx {
             return self.mostrar(volta);
         }
         if let Err(e) = install::accept(&pkg, &devices::sdk_root()) {
-            self.aviso(idioma::tf("Couldn't record the acceptance: {e}", &[("e", &e)]));
+            self.aviso(idioma::tf(
+                "Couldn't record the acceptance: {e}",
+                &[("e", &e)],
+            ));
             return self.mostrar("");
         }
         self.mostrar(volta);
@@ -1711,7 +1773,12 @@ impl Ctx {
             }
             app.img.progresso.insert(
                 pkg.path.clone(),
-                Progresso { fracao: 0.0, fase: "baixando".into(), total: pkg.size, inicio: Instant::now() },
+                Progresso {
+                    fracao: 0.0,
+                    fase: "baixando".into(),
+                    total: pkg.size,
+                    inicio: Instant::now(),
+                },
             );
             app.img.cancelar.insert(pkg.path.clone(), cancel.clone());
         }
@@ -1729,7 +1796,10 @@ impl Ctx {
                 install::install(&pkg, &sdk, &work, &cancel, |f| {
                     // A cada 1% ou a cada segundo, para o tempo que falta andar
                     // mesmo numa conexão lenta.
-                    if f - ultimo >= 0.01 || f >= 1.0 || ultima_vez.elapsed() >= Duration::from_secs(1) {
+                    if f - ultimo >= 0.01
+                        || f >= 1.0
+                        || ultima_vez.elapsed() >= Duration::from_secs(1)
+                    {
                         ultimo = f;
                         ultima_vez = Instant::now();
                         let fase = if f >= 1.0 {
@@ -1744,7 +1814,11 @@ impl Ctx {
                             pr.fase = fase.into();
                             if p == catalog::EMULATOR {
                                 let s = idioma::tf("Emulator: {s}", &[("s", &pr.situacao())]);
-                                for d in app.devs.iter_mut().filter(|d| app.img.ligar_depois.contains(&d.info.name)) {
+                                for d in app
+                                    .devs
+                                    .iter_mut()
+                                    .filter(|d| app.img.ligar_depois.contains(&d.info.name))
+                                {
                                     d.mensagem = s.clone();
                                 }
                             }
@@ -1875,7 +1949,9 @@ impl Ctx {
                     d.cpu = r.cpu;
                     soma += r.memory;
                 }
-                None if d.pid.is_some() && !matches!(d.estado, Estado::Desligando | Estado::Ligando) => {
+                None if d.pid.is_some()
+                    && !matches!(d.estado, Estado::Desligando | Estado::Ligando) =>
+                {
                     // Fechou por fora, ou o emulador que este app abriu morreu
                     // (no Windows d.pid é o qemu e child o emulator.exe).
                     let vivo = d.child.as_mut().is_some_and(|c| c.alive())
@@ -1916,29 +1992,38 @@ fn centralizar(ui: &AppWindow) {
     let timer = std::rc::Rc::new(slint::Timer::default());
     let t = timer.clone();
     let mut tentativas = 0;
-    timer.start(slint::TimerMode::Repeated, Duration::from_millis(50), move || {
-        tentativas += 1;
-        let Some(ui) = ui.upgrade() else { return t.stop() };
-        let feito = ui.window().with_winit_window(|w: &winit::window::Window| {
-            let Some(m) = w.current_monitor().or_else(|| w.primary_monitor()) else {
-                return;
+    timer.start(
+        slint::TimerMode::Repeated,
+        Duration::from_millis(50),
+        move || {
+            tentativas += 1;
+            let Some(ui) = ui.upgrade() else {
+                return t.stop();
             };
-            let (mp, ms) = (m.position(), m.size());
-            let (inner, outer) = (w.inner_size(), w.outer_size());
-            // Bordas e barra de título: o que a janela tem fora da área do app.
-            let (bw, bh) = (outer.width - inner.width, outer.height - inner.height);
-            let (ow, oh) = (outer.width.min(ms.width * 9 / 10), outer.height.min(ms.height * 9 / 10));
-            if (ow, oh) != (outer.width, outer.height) {
-                let _ = w.request_inner_size(winit::dpi::PhysicalSize::new(ow - bw, oh - bh));
+            let feito = ui.window().with_winit_window(|w: &winit::window::Window| {
+                let Some(m) = w.current_monitor().or_else(|| w.primary_monitor()) else {
+                    return;
+                };
+                let (mp, ms) = (m.position(), m.size());
+                let (inner, outer) = (w.inner_size(), w.outer_size());
+                // Bordas e barra de título: o que a janela tem fora da área do app.
+                let (bw, bh) = (outer.width - inner.width, outer.height - inner.height);
+                let (ow, oh) = (
+                    outer.width.min(ms.width * 9 / 10),
+                    outer.height.min(ms.height * 9 / 10),
+                );
+                if (ow, oh) != (outer.width, outer.height) {
+                    let _ = w.request_inner_size(winit::dpi::PhysicalSize::new(ow - bw, oh - bh));
+                }
+                let x = mp.x + ((ms.width - ow) / 2) as i32;
+                let y = mp.y + ((ms.height - oh) / 2) as i32;
+                w.set_outer_position(winit::dpi::PhysicalPosition::new(x, y));
+            });
+            if feito.is_some() || tentativas >= 40 {
+                t.stop();
             }
-            let x = mp.x + ((ms.width - ow) / 2) as i32;
-            let y = mp.y + ((ms.height - oh) / 2) as i32;
-            w.set_outer_position(winit::dpi::PhysicalPosition::new(x, y));
-        });
-        if feito.is_some() || tentativas >= 40 {
-            t.stop();
-        }
-    });
+        },
+    );
 }
 
 fn main() -> Result<(), slint::PlatformError> {

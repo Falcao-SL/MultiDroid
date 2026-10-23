@@ -3,8 +3,8 @@
 //! de zip, sem chamar `ditto` nem `unzip` (o ditto não lê alguns zips do repositório,
 //! como o do Wear OS 33 r04 e o do AOSP 33 r02).
 
-use crate::idioma as t;
 use crate::catalog::{self, RemotePackage};
+use crate::idioma as t;
 use sha1::{Digest, Sha1};
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
@@ -28,15 +28,26 @@ impl std::fmt::Display for Error {
             Error::Io(e) => write!(f, "{e}"),
             Error::Http(e) => write!(f, "{}", t::tf("the download failed: {e}", &[("e", e)])),
             Error::Checksum { .. } => {
-                write!(f, "{}", t::t("the downloaded file doesn't match the published SHA-1"))
+                write!(
+                    f,
+                    "{}",
+                    t::t("the downloaded file doesn't match the published SHA-1")
+                )
             }
-            Error::Zip(e) => write!(f, "{}", t::tf("couldn't extract the file: {e}", &[("e", e)])),
+            Error::Zip(e) => write!(
+                f,
+                "{}",
+                t::tf("couldn't extract the file: {e}", &[("e", e)])
+            ),
             Error::Empty => write!(f, "{}", t::t("empty file")),
             Error::Cancelled => write!(f, "{}", t::t("download cancelled")),
             Error::NoSpace { needed } => write!(
                 f,
                 "{}",
-                t::tf("not enough space: needs {gb} GB free", &[("gb", &t::num(*needed as f64 / 1e9, 1))])
+                t::tf(
+                    "not enough space: needs {gb} GB free",
+                    &[("gb", &t::num(*needed as f64 / 1e9, 1))]
+                )
             ),
         }
     }
@@ -252,7 +263,13 @@ pub fn install(
     let nome: String = pkg
         .path
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '.' || c == '-' { c } else { '_' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '.' || c == '-' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect();
     let zip = work.join(format!("dl-{}-{nome}.zip", std::process::id()));
     let result = (|| {

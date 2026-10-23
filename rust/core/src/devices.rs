@@ -305,7 +305,9 @@ pub fn create(
     host: Host,
 ) -> Result<(), String> {
     if !valid_name(name) {
-        return Err(crate::idioma::t("use only letters, numbers, dot, hyphen and underscore").into());
+        return Err(
+            crate::idioma::t("use only letters, numbers, dot, hyphen and underscore").into(),
+        );
     }
     let dir = avd_home.join(format!("{name}.avd"));
     let top = avd_home.join(format!("{name}.ini"));
@@ -335,7 +337,9 @@ pub fn create(
 /// no Windows cópia simples. Sem locks e com o nome novo nos dois .ini.
 pub fn duplicate(avd_home: &Path, d: &Device, new_name: &str) -> Result<(), String> {
     if !valid_name(new_name) {
-        return Err(crate::idioma::t("use only letters, numbers, dot, hyphen and underscore").into());
+        return Err(
+            crate::idioma::t("use only letters, numbers, dot, hyphen and underscore").into(),
+        );
     }
     let new_dir = avd_home.join(format!("{new_name}.avd"));
     let new_top = avd_home.join(format!("{new_name}.ini"));
@@ -387,7 +391,10 @@ pub fn import_from_studio(studio: &Path, avd_home: &Path, name: &str) -> Result<
         .unwrap_or_else(|| studio.join(format!("{name}.avd")));
     let dst = avd_home.join(format!("{name}.avd"));
     if dst.exists() {
-        return Err(crate::idioma::tf("{name} already exists in MultiDroid", &[("name", &name)]));
+        return Err(crate::idioma::tf(
+            "{name} already exists in MultiDroid",
+            &[("name", &name)],
+        ));
     }
     fs::create_dir_all(avd_home).map_err(|e| e.to_string())?;
     if fs::rename(&src, &dst).is_err() {
