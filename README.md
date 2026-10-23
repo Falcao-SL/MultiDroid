@@ -20,7 +20,7 @@ O MultiDroid não automatiza contas nem burla a verificação de integridade dos
 
 ![A mesa do MultiDroid com três celulares e um relógio ligados ao mesmo tempo, ao lado do painel com a memória e a CPU de cada aparelho](docs/screenshots/mesa-ligada.webp)
 
-*A mesa com três celulares e um relógio ligados ao mesmo tempo, num Mac de 24 GB. Cada quadro tem os botões do aparelho ao lado da tela: voltar, início, recentes, volume, girar, captura, pausar, hibernar e desligar; o ícone no canto de cima organiza a mesa para caber na janela.*
+*A mesa com três celulares e um relógio ligados ao mesmo tempo, num Mac de 24 GB. Cada quadro tem os botões do aparelho na barra inferior: voltar, início, recentes, volume, girar, captura, pausar, hibernar e desligar; o ícone no canto de cima organiza a mesa para caber na janela.*
 
 <table>
 <tr>
@@ -33,7 +33,7 @@ O MultiDroid não automatiza contas nem burla a verificação de integridade dos
 </tr>
 </table>
 
-Capturas da MultiDroid Preview 0.3 (versão Rust, em inglês), de 2026-10-21: a interface real desenhada fora da tela pelo mesmo renderizador do app (`rust/app/examples/capturas.rs`), com as telas e a memória e a CPU medidas de quatro aparelhos ligados (Android 13 com Google Play e Wear OS 13). A 0.2, a versão publicada, é em português e muda pouco no visual.
+Capturas da MultiDroid Preview 0.3 (versão Rust, em inglês), de 2026-10-22: a interface real desenhada fora da tela pelo mesmo renderizador do app (`rust/app/examples/capturas.rs`), com as telas e a memória e a CPU medidas de quatro aparelhos ligados (Android 13 com Google Play e Wear OS 13). A 0.2, a versão publicada, é em português e muda pouco no visual.
 
 ## Funcionalidades
 
