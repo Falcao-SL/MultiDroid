@@ -1,6 +1,6 @@
 # Status — MultiDroid
 
-> Atualizado em **2026-10-21**. Fonte única de "em que pé está".
+> Atualizado em **2026-10-26**. Fonte única de "em que pé está".
 
 | Campo | Valor |
 |---|---|
@@ -12,8 +12,9 @@
 | **Distribuição** | `.dmg` assinado e notarizado no GitHub Releases, fora da Mac App Store (decisão M-6); repositório público |
 | **Site** | https://multidroid.falcaosl.com (em `site/`, inglês) |
 | **Monetização** | **Nenhuma: código aberto, GPL-3.0** (2026-10-10; [MONETIZACAO.md](MONETIZACAO.md)) |
-| **Versão Rust** | Preview 0.3 em `rust/` (Rust + Slint), inglês como língua principal e português como tradução. No Mac: 4 celulares + 1 relógio ligados com toque, teclas e texto, e memória igual à 0.2 (~115 MB com 5 aparelhos, renderizador por software), medidos em 2026-10-21. Linux (motor leve) só testado no CI sem tela; Windows sem aparelho ligado ainda. Ver [`../spec/MULTIPLATAFORMA.md`](../spec/MULTIPLATAFORMA.md) |
+| **Versão Rust** | Preview 0.3 em `rust/` (Rust + Slint), inglês como língua principal e português como tradução. No Mac: 4 celulares + 1 relógio ligados com toque, teclas e texto, e memória igual à 0.2 (~115 MB com 5 aparelhos, renderizador por software). No Windows: emulador liga aparelhos via WHPX, baixa emulador automaticamente, captura via MMAP e fecha salvando estado (2026-10-22). No Linux: pacotes .deb, .rpm e .AppImage gerados no CI; motor leve (Redroid) com 8 aparelhos. Interface com painel recolhível em trilho, barra inferior de botões no quadro, redimensionamento proporcional e barra de progresso nos downloads com velocidade e ETA. Ver [`../spec/MULTIPLATAFORMA.md`](../spec/MULTIPLATAFORMA.md) |
 | **Próximo marco** | Mac: várias mesas e importar do Android Studio pela interface, para a Rust substituir a 0.2. Linux e Windows: testar em máquinas nativas |
+| **Data-alvo** | A definir |
 
 Em 2026-10-09 o MultiDroid passou a ser só o app de Mac. O plano dos apps de
 celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
@@ -47,7 +48,7 @@ celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 
 ## Mac, Windows e Linux (2026-10-18)
 
-Decidido: um código em Rust com interface Slint nos três sistemas ([`spec/MULTIPLATAFORMA.md`](../spec/MULTIPLATAFORMA.md)), em `rust/`. A 0.2 SwiftUI continua sendo a versão publicada no Mac até a Rust alcançá-la. Etapas R-0 a R-5 feitas em código (2026-10-18): catálogo e instalador, aparelhos e o `state.json` da 0.2, emulador por gRPC, mesa com a tela por MMAP, Imagens, Novo aparelho, teto, lote e grade. O emulador real liga, pausa, mostra a tela e desliga no CI do Linux. A R-6 está feita: no Linux, o motor leve (Redroid) liga 8 Androids com vídeo ao mesmo tempo, ~1,1 GB cada, com tela e toque pelo protocolo do scrcpy. A R-7 espera uma VM Windows x86_64 alugada. Os pacotes dos três sistemas saem por tag como "MultiDroid Preview" em pré-release (R-8). Pendente no Mac: ligar 4 celulares e 1 relógio e medir a memória, o que pede espaço em disco (o emulador quer 7,4 GB livres por aparelho novo).
+Decidido: um código em Rust com interface Slint nos três sistemas ([`spec/MULTIPLATAFORMA.md`](../spec/MULTIPLATAFORMA.md)), em `rust/`. A 0.2 SwiftUI continua sendo a versão publicada no Mac até a Rust alcançá-la. Etapas R-0 a R-5 feitas em código (2026-10-18): catálogo e instalador, aparelhos e o `state.json` da 0.2, emulador por gRPC, mesa com a tela por MMAP, Imagens, Novo aparelho, teto, lote e grade. O emulador real liga, pausa, mostra a tela e desliga no CI do Linux. A R-6 está feita: no Linux, o motor leve (Redroid) liga 8 Androids com vídeo ao mesmo tempo, ~1,1 GB cada, com tela e toque pelo protocolo do scrcpy; pacotes `.deb`, `.rpm` e `.AppImage` gerados pelo CI. A R-7 avançou em 2026-10-22 com testes no Windows 11 x86_64 (WHPX): boot em 46 s, emulador baixado ao ligar com platform-tools, captura MMAP e desligamento salvando estado. Interface atualizada com painel lateral recolhível em trilho, botões na barra inferior do quadro, redimensionamento proporcional e barra de progresso nos downloads com velocidade e tempo restante. Os pacotes dos três sistemas saem por tag como "MultiDroid Preview" em pré-release (R-8). Pendente no Mac: ligar 4 celulares e 1 relógio e medir a memória, o que pede espaço em disco (o emulador quer 7,4 GB livres por aparelho novo).
 
 ## O que falta
 
