@@ -28,6 +28,10 @@ jobs:
       - name: Bibliotecas do Slint no Linux
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev
+      # O núcleo C (rust/native) entra no binário pelo build.rs. O runner já
+      # traz o CMake; sem ele o build.rs cai no compilador C direto, o mesmo código.
+      - name: CMake do núcleo nativo
+        run: cmake --version
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy

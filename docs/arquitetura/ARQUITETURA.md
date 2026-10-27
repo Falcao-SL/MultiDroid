@@ -46,7 +46,19 @@ MultiDroid/
    trabalho com o que não está à vista (MAC.md §2.3).
 2. **Emulador oficial, não motor próprio** (M-1); a API gRPC é fixada por
    versão do emulador (`proto/`, `gen-grpc.sh`).
-3. **Independente**: nada de Android Studio, Java, `sdkmanager` ou `adb`
-   (MAC.md §2.7).
+3. **O instalador não exige o Studio**: nada de Java, `sdkmanager` ou
+   `avdmanager`. O aparelho, quando há `adb`, aparece na porta 5037 para o
+   Run do Android Studio ([ADR-001](ADR-001-nucleo-nativo-e-android-studio.md)).
 4. **Nada sai do Mac por causa do MultiDroid**: só downloads do Google que o
    usuário pede; o emulador roda com `-no-metrics`.
+
+## Versão Rust: núcleo nativo e Android Studio
+
+A prévia em `rust/` (Mac, Windows e Linux) acrescenta duas peças, decididas em
+[ADR-001](ADR-001-nucleo-nativo-e-android-studio.md):
+
+- `rust/native/` — núcleo C (CMake) no processo hospedeiro. O caminho quente é
+  a cópia do quadro RGBA, com NEON no Apple Silicon e SSE2 no x86_64.
+- `rust/core/src/studio.rs` e `rust/scripts/studio-adb.sh` — o aparelho entra
+  na lista do Run do Android Studio pelo adb da porta 5037, sem criar um AVD
+  no Studio.

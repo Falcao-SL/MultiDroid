@@ -61,6 +61,16 @@ cargo run          # abre a janela
 cargo test
 ```
 
+### Run a partir do Android Studio
+
+O aparelho do MultiDroid entra na lista do Run pelo adb, na porta 5037. Não se cria um AVD no Studio. Decisão e limites: [`docs/arquitetura/ADR-001-nucleo-nativo-e-android-studio.md`](docs/arquitetura/ADR-001-nucleo-nativo-e-android-studio.md).
+
+```sh
+rust/scripts/studio-adb.sh   # Windows: rust/scripts/studio-adb.ps1
+```
+
+Ligue o aparelho no MultiDroid depois do script (se já estava ligado, desligue e ligue). No menu de aparelhos do Run, escolha `emulator-5600`, ou o par seguinte. No Linux, o motor leve aparece como `127.0.0.1:5700` depois de `adb connect`.
+
 ## Como rodar
 
 Requisitos: macOS 26 e Apple Silicon.

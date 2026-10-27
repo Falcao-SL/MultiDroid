@@ -1,6 +1,6 @@
 # Status — MultiDroid
 
-> Atualizado em **2026-10-26**. Fonte única de "em que pé está".
+> Atualizado em **2026-10-27**. Fonte única de "em que pé está".
 
 | Campo | Valor |
 |---|---|
@@ -49,6 +49,18 @@ celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
 ## Mac, Windows e Linux (2026-10-18)
 
 Decidido: um código em Rust com interface Slint nos três sistemas ([`spec/MULTIPLATAFORMA.md`](../spec/MULTIPLATAFORMA.md)), em `rust/`. A 0.2 SwiftUI continua sendo a versão publicada no Mac até a Rust alcançá-la. Etapas R-0 a R-5 feitas em código (2026-10-18): catálogo e instalador, aparelhos e o `state.json` da 0.2, emulador por gRPC, mesa com a tela por MMAP, Imagens, Novo aparelho, teto, lote e grade. O emulador real liga, pausa, mostra a tela e desliga no CI do Linux. A R-6 está feita: no Linux, o motor leve (Redroid) liga 8 Androids com vídeo ao mesmo tempo, ~1,1 GB cada, com tela e toque pelo protocolo do scrcpy; pacotes `.deb`, `.rpm` e `.AppImage` gerados pelo CI. A R-7 avançou em 2026-10-22 com testes no Windows 11 x86_64 (WHPX): boot em 46 s, emulador baixado ao ligar com platform-tools, captura MMAP e desligamento salvando estado. Interface atualizada com painel lateral recolhível em trilho, botões na barra inferior do quadro, redimensionamento proporcional e barra de progresso nos downloads com velocidade e tempo restante. Os pacotes dos três sistemas saem por tag como "MultiDroid Preview" em pré-release (R-8). Pendente no Mac: ligar 4 celulares e 1 relógio e medir a memória, o que pede espaço em disco (o emulador quer 7,4 GB livres por aparelho novo).
+
+## Aparelho no Android Studio e núcleo nativo (2026-10-27)
+
+Decisão em [ADR-001](../arquitetura/ADR-001-nucleo-nativo-e-android-studio.md). O Run do Studio usa o aparelho do MultiDroid pelo adb da porta 5037. O caminho quente da tela é C no processo hospedeiro (NEON ou SSE2), não código dentro do Android.
+
+| Peça | Neste corte | Depois |
+|------|-------------|--------|
+| Núcleo C (`rust/native`, CMake) | Carimbo do quadro RGBA no binário Rust; bomba de uma thread; a mesa e o scrcpy passam por ele | Medir o blit com aparelhos ligados; dois buffers; desenho da mesa por GPU (M-2) |
+| Ponte adb | Servidor na 5037 antes do emulador; serial `emulator-<console>`; motor leve segue `127.0.0.1:<porta>` | Não deixar um adb de outra versão reiniciar o servidor do Studio |
+| Studio | `rust/scripts/studio-adb.sh` e `.ps1`. Não se cria AVD. A 0.2 não troca a porta do adb | Botão na interface com o serial |
+
+Como apontar o Studio: o passo a passo está no ADR-001. Resumo: rodar o script, ligar o aparelho em seguida, escolher `emulator-5600` (ou o par seguinte) no Run.
 
 ## O que falta
 

@@ -25,6 +25,7 @@ Emulator oficial sem janela.
 | Documento | Conteúdo |
 |-----------|----------|
 | [arquitetura/ARQUITETURA.md](arquitetura/ARQUITETURA.md) | Visão curta do app e do repositório; detalhes em MAC.md §2 |
+| [arquitetura/ADR-001-nucleo-nativo-e-android-studio.md](arquitetura/ADR-001-nucleo-nativo-e-android-studio.md) | Núcleo C no hospedeiro, ponte adb e como o Run do Android Studio acha o aparelho |
 
 ## Produto — [`produto/`](produto)
 

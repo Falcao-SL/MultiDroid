@@ -24,6 +24,8 @@ use proto::emulator_controller_client::EmulatorControllerClient;
 
 /// Portas do console: pares a partir de 5600 (o emulador usa a par para o console e
 /// a ímpar para o adb). O gRPC fica em 8600 + metade da distância.
+/// O Android Studio lista o aparelho como `emulator-<console>` no adb da porta
+/// 5037 (`studio`, `rust/scripts/studio-adb.sh`).
 pub const CONSOLE_FIRST: u16 = 5600;
 pub const CONSOLE_LAST: u16 = 5680;
 
@@ -122,10 +124,24 @@ pub fn launch(name: &str, used_ports: &[u16], o: &LaunchOptions) -> std::io::Res
     // Sem platform-tools (mesmo vazia) o emulador não reconhece a pasta como
     // SDK e fecha com "Broken AVD system path".
     std::fs::create_dir_all(o.sdk.join("platform-tools"))?;
-    let log = std::fs::File::create(o.log_dir.join(format!("{name}.log")))?;
+    // Servidor adb na 5037 antes do processo, para o emulador se anunciar ao
+    // Android Studio. Sem adb instalado, o aparelho liga do mesmo jeito.
+    let adb = crate::studio::prepare_adb_server(o.sdk);
+    let mut log = std::fs::File::create(o.log_dir.join(format!("{name}.log")))?;
+    let adb_txt = adb
+        .as_ref()
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|| "sem adb".into());
+    let _ = writeln!(
+        log,
+        "Android Studio: adb -s {} ({adb_txt})",
+        crate::studio::serial(console)
+    );
     let mut cmd = Command::new(executable(o.sdk));
     cmd.args(args(name, o.cores, console, grpc, &o.gpu))
         .env_remove("ANDROID_HOME")
+        .env_remove("ANDROID_ADB_SERVER_PORT")
+        .env_remove("ADB_SERVER_SOCKET")
         .envs(environment(o.sdk, o.avd_home, o.home))
         .stdin(Stdio::null())
         .stdout(log.try_clone()?)

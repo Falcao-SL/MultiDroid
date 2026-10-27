@@ -24,6 +24,8 @@ sysinfo = { version = "0.33", default-features = false, features = ["system", "d
 [build-dependencies]
 tonic-build = "0.12"
 protoc-bin-vendored = "3"
+cmake = "0.1"
+cc = "1"
 
 [dev-dependencies]
 tempfile = "3"

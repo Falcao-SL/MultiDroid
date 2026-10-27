@@ -307,9 +307,7 @@ impl Decoder {
         let (w, h) = yuv.dimensions();
         let mut rgba = vec![0u8; w * h * 4];
         yuv.write_rgba8(&mut rgba);
-        for px in rgba.as_chunks_mut::<4>().0 {
-            px[3] = 255;
-        }
+        crate::native::stamp_inplace(&mut rgba);
         Ok(Some(crate::screen::Frame {
             width: w as u32,
             height: h as u32,

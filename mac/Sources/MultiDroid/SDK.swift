@@ -52,6 +52,10 @@ enum SDK {
     static var environment: [String: String] {
         var env = ProcessInfo.processInfo.environment
         env["ANDROID_HOME"] = nil
+        // Porta 5037, a do Android Studio. Um servidor adb noutra porta
+        // esconderia o aparelho da lista do Run.
+        env["ANDROID_ADB_SERVER_PORT"] = nil
+        env["ADB_SERVER_SOCKET"] = nil
         env["ANDROID_SDK_ROOT"] = root.path
         env["ANDROID_AVD_HOME"] = avdHome.path
         env["ANDROID_EMULATOR_HOME"] = home.path

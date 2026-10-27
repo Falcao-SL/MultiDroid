@@ -1,5 +1,7 @@
 //! O adb do pacote oficial platform-tools, instalado pelo MultiDroid como o
-//! emulador (`catalog::PLATFORM_TOOLS`). Só o motor leve usa: o emulador fala gRPC.
+//! emulador (`catalog::PLATFORM_TOOLS`). O motor leve usa para tela e toque.
+//! O emulador oficial fala gRPC com o MultiDroid e, à parte, se anuncia a este
+//! mesmo adb para o Android Studio (ADR-001). Sempre a porta 5037.
 
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -23,6 +25,9 @@ impl Adb {
 
     fn cmd(&self, serial: Option<&str>) -> Command {
         let mut c = Command::new(&self.exe);
+        // A porta do Android Studio. Outra porta deixa o Run sem este aparelho.
+        c.env_remove("ANDROID_ADB_SERVER_PORT");
+        c.env_remove("ADB_SERVER_SOCKET");
         if let Some(s) = serial {
             c.args(["-s", s]);
         }

@@ -37,13 +37,27 @@ impl Transport {
     }
 }
 
-/// Copia `count` bytes RGBA e põe alfa 255 (o emulador manda o quarto byte sem uso).
+/// Copia o RGBA e põe alfa 255 (o emulador manda o quarto byte sem uso).
+/// O carimbo é o núcleo C, no processo hospedeiro.
 pub fn opaque(src: &[u8]) -> Vec<u8> {
     let mut v = src.to_vec();
-    for px in v.as_chunks_mut::<4>().0 {
-        px[3] = 255;
-    }
+    crate::native::stamp_inplace(&mut v);
     v
+}
+
+/// Quadro opaco para a mesa. A cópia (NEON ou SSE2) corre na thread da bomba
+/// e esta função espera o fim: o mmap do emulador é um buffer só. Se a bomba
+/// não subir, o carimbo acontece nesta tarefa.
+fn quadro_opaco(pump: Option<&crate::native::Pump>, src: &[u8]) -> Vec<u8> {
+    if let Some(p) = pump
+        && let Some(mut v) = p.copy_frame(src)
+    {
+        if src.len() > v.len() {
+            v.extend_from_slice(&src[v.len()..]);
+        }
+        return v;
+    }
+    opaque(src)
 }
 
 fn file_url(path: &Path) -> String {
@@ -65,6 +79,7 @@ pub async fn stream(
     mut on_frame: impl FnMut(Frame) -> bool,
 ) -> Result<(), String> {
     let bytes = (width * height * 4) as usize;
+    let pump = crate::native::Pump::start();
     let mut fmt = proto::ImageFormat {
         format: proto::image_format::ImgFormat::Rgba8888 as i32,
         // Largura E altura: só assim o emulador escala.
@@ -107,9 +122,9 @@ pub async fn stream(
             continue;
         }
         let rgba = match &map {
-            Some(m) if n <= m.len() => opaque(&m[..n]),
+            Some(m) if n <= m.len() => quadro_opaco(pump.as_ref(), &m[..n]),
             Some(_) => continue,
-            None if img.image.len() >= n => opaque(&img.image[..n]),
+            None if img.image.len() >= n => quadro_opaco(pump.as_ref(), &img.image[..n]),
             None => continue,
         };
         if !on_frame(Frame {
