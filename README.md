@@ -1,5 +1,7 @@
 # MultiDroid
 
+A convenção de pastas está em [`docs/ESTRUTURA.md`](docs/ESTRUTURA.md).
+
 ![macOS 26](https://img.shields.io/badge/macOS-26%20%C2%B7%20Apple%20Silicon-lightgrey) ![Swift / SwiftUI](https://img.shields.io/badge/Swift-SwiftUI%20%2B%20gRPC-orange) [![GPL-3.0](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0-blue)](LICENSE) ![Versão 0.2](https://img.shields.io/badge/vers%C3%A3o-0.2-yellow)
 
 Um ambiente para rodar várias contas e aparelhos Android ao mesmo tempo, no seu Mac.
