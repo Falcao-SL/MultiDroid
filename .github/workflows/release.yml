@@ -24,7 +24,7 @@ jobs:
       nome: ${{ steps.v.outputs.nome }}
       pre: ${{ steps.v.outputs.pre }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - id: v
         run: |
           CARGO=$(sed -n 's/^version = "\(.*\)"/\1/p' rust/Cargo.toml | head -1)
@@ -59,7 +59,7 @@ jobs:
         shell: bash
         working-directory: rust
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Bibliotecas do Slint e do AppImage no Linux
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev libfuse2 file

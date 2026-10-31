@@ -24,7 +24,7 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Bibliotecas do Slint no Linux
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev
@@ -62,7 +62,7 @@ jobs:
       MULTIDROID_GPU: swiftshader_indirect
       MULTIDROID_SDK: ${{ github.workspace }}/sdk
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: KVM para o emulador
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -92,7 +92,7 @@ jobs:
     env:
       MULTIDROID_SDK: ${{ github.workspace }}/sdk-leve
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: binder no kernel
         run: |
           sudo apt-get update -qq
