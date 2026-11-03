@@ -9,6 +9,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}
 CONF=${1:-release}
+VERSION=$(cat VERSION)
+BUILD_NUMBER=${BUILD_NUMBER:-3}
 swift build -c "$CONF"
 APP=build/MultiDroid.app
 rm -rf "$APP"
@@ -16,7 +18,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp ".build/$CONF/MultiDroid" "$APP/Contents/MacOS/MultiDroid"
 xcrun actool ../docs/design/icone/AppIcon.icon --compile "$APP/Contents/Resources" \
   --platform macosx --minimum-deployment-target 26.0 --app-icon AppIcon \
-  --output-partial-info-plist build/icon-info.plist >/dev/null
+  --output-partial-info-plist build/icon-info.plist
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -27,8 +29,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleIdentifier</key><string>com.falcaosl.multidroid</string>
   <key>CFBundleExecutable</key><string>MultiDroid</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.2</string>
-  <key>CFBundleVersion</key><string>2</string>
+  <key>CFBundleShortVersionString</key><string>$VERSION</string>
+  <key>CFBundleVersion</key><string>$BUILD_NUMBER</string>
   <key>CFBundleIconName</key><string>AppIcon</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>LSMinimumSystemVersion</key><string>26.0</string>
@@ -37,12 +39,20 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
+if [[ "${SKIP_SIGNING:-0}" == 1 ]]; then
+  echo "ok: $APP (assembled; release signing runs on an isolated temporary copy)"
+  exit 0
+fi
+# Finder metadata from file providers is not allowed in signed build products.
+for attribute in com.apple.FinderInfo com.apple.ResourceFork; do
+  xattr -dr "$attribute" "$APP" 2>/dev/null || true
+done
 SIGN_ID=${SIGN_ID:-$(security find-identity -v -p codesigning 2>/dev/null \
   | awk -F'"' '/Developer ID Application/{print $2; exit}')}
 if [ -n "$SIGN_ID" ] && [ "$SIGN_ID" != "-" ]; then
   codesign --force --options runtime --timestamp --sign "$SIGN_ID" "$APP"
   echo "ok: $APP (assinado: $SIGN_ID)"
 else
-  codesign --force --sign - "$APP" >/dev/null 2>&1
+  codesign --force --sign - "$APP"
   echo "ok: $APP (ad hoc: só abre neste Mac)"
 fi

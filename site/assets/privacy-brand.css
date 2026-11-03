@@ -1,0 +1,1 @@
+:root{--fundo:var(--brand-paper);--superficie:#fff;--tinta:var(--brand-ink);--muted:#56565b;--sombra-cor:#141414;color-scheme:light}body{background:var(--fundo);color:var(--tinta)}header,nav,footer{background:var(--fundo)}a:focus-visible{outline:3px solid #365fa8;outline-offset:4px}

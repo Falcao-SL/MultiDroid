@@ -120,6 +120,8 @@ final class ScreenStream {
             fmt.height = UInt32(h)
             fmt.transport.channel = .mmap
             fmt.transport.handle = "file://" + path
+            // Reuse the color space for the whole stream instead of allocating one per frame.
+            guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else { return }
             _ = try? await link.api.streamScreenshot(fmt, metadata: link.metadata) { response in
                 var frames = 0, window = Date()
                 for try await img in response.messages {
@@ -129,7 +131,7 @@ final class ScreenStream {
                     let data = frame.copy(count: fw * fh * 4)  // cópia: evita rasgar o quadro
                     guard let provider = CGDataProvider(data: data as CFData),
                           let cg = CGImage(width: fw, height: fh, bitsPerComponent: 8, bitsPerPixel: 32,
-                                           bytesPerRow: fw * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                           bytesPerRow: fw * 4, space: colorSpace,
                                            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
                                            provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent)
                     else { continue }

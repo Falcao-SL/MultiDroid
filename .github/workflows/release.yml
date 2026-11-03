@@ -1,124 +1,219 @@
-# Pacotes da versão Rust nos três sistemas (docs/spec/MULTIPLATAFORMA.md §6).
-# Uma tag v<versão do rust/Cargo.toml>[-sufixo] gera .dmg, instalador do Windows,
-# .AppImage, .deb e .rpm e publica tudo numa release. Tag com sufixo (v0.3.0-alpha.1)
-# sai como pré-release. Tag de outra versão (a do app SwiftUI, por exemplo)
-# não roda nada aqui. "Run workflow" à mão só gera os pacotes, sem release.
-#
-# O .dmg do CI sai sem assinatura da Apple; rust/scripts/release-mac.sh <tag>
-# gera no Mac do dono o assinado e notarizado e troca o arquivo na release.
-name: release
-
+name: Release signed installers
 on:
   push:
-    tags: ["v*"]
+    tags: ['v*']
   workflow_dispatch:
-
+    inputs:
+      tag:
+        description: 'Version to publish: v0.2.1 (native Mac) or v0.3.0-alpha.4 (desktop preview)'
+        required: true
+        type: string
+      publish:
+        description: Publish the validated installers and update site downloads
+        type: boolean
+        default: true
 permissions:
   contents: read
-
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 jobs:
-  versao:
-    runs-on: ubuntu-latest
+  version:
+    runs-on: [self-hosted, Linux, homelab]
     outputs:
-      rust: ${{ steps.v.outputs.rust }}
-      nome: ${{ steps.v.outputs.nome }}
-      pre: ${{ steps.v.outputs.pre }}
+      tag: ${{ steps.version.outputs.tag }}
+      name: ${{ steps.version.outputs.name }}
+      native: ${{ steps.version.outputs.native }}
+      preview: ${{ steps.version.outputs.preview }}
     steps:
-      - uses: actions/checkout@v5
-      - id: v
-        run: |
-          CARGO=$(sed -n 's/^version = "\(.*\)"/\1/p' rust/Cargo.toml | head -1)
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            TAG=${GITHUB_REF_NAME#v}
-            BASE=${TAG%%-*}
-          else
-            TAG="$CARGO-teste"; BASE=$CARGO
-          fi
-          if [ "$BASE" = "$CARGO" ]; then echo rust=true >>"$GITHUB_OUTPUT"; else echo rust=false >>"$GITHUB_OUTPUT"; fi
-          echo "nome=$TAG" >>"$GITHUB_OUTPUT"
-          case "$TAG" in *-*) echo pre=true ;; *) echo pre=false ;; esac >>"$GITHUB_OUTPUT"
-          echo "Cargo $CARGO, tag $TAG"
+      - uses: actions/checkout@v7
+      - id: version
+        env:
+          REQUESTED_TAG: ${{ inputs.tag || github.ref_name }}
+        run: python3 scripts/release-version.py
+      - run: python3 scripts/check-brand.py
 
-  pacotes:
-    needs: versao
-    if: needs.versao.outputs.rust == 'true'
+  mac:
+    needs: version
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 90
+    env:
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || '6EZ89E2F5S' }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Require production signing credentials
+        if: github.ref_type == 'tag' || inputs.publish == true
+        shell: bash
+        run: |
+          test -n "$APPLE_ID" && test -n "$APPLE_APP_PASSWORD" || { echo 'Configure APPLE_ID and APPLE_APP_PASSWORD before production builds.'; exit 1; }
+          security find-identity -v -p codesigning | grep 'Developer ID Application' | grep -F "($APPLE_TEAM_ID)"
+      - name: Prepare DMG tooling
+        shell: bash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/multidroid-dmgbuild"
+          "$RUNNER_TEMP/multidroid-dmgbuild/bin/pip" install 'dmgbuild==1.6.7'
+          echo "DMGBUILD_PYTHON=$RUNNER_TEMP/multidroid-dmgbuild/bin/python" >> "$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@stable
+        if: needs.version.outputs.native != 'true'
+      - uses: Swatinem/rust-cache@v2
+        if: needs.version.outputs.native != 'true'
+        with:
+          workspaces: rust
+      - name: Build native Mac application
+        if: needs.version.outputs.native == 'true'
+        working-directory: mac
+        env:
+          SKIP_SIGNING: '1'
+        run: scripts/build-app.sh release
+      - name: Test and package desktop preview app
+        if: needs.version.outputs.native != 'true'
+        working-directory: rust
+        run: |
+          cargo test --workspace --lib --bins --locked
+          cargo install cargo-packager --locked --version 0.11.8
+          cd app
+          cargo packager --release -f app
+      - name: Sign, notarize, staple and verify both app and DMG
+        if: github.ref_type == 'tag' || inputs.publish == true
+        shell: bash
+        env:
+          NATIVE: ${{ needs.version.outputs.native }}
+          VERSION: ${{ needs.version.outputs.name }}
+        run: |
+          mkdir -p out
+          if [[ "$NATIVE" == true ]]; then
+            APP="$PWD/mac/build/MultiDroid.app"
+            DMG="$PWD/out/MultiDroid-$VERSION.dmg"
+          else
+            APP="$PWD/rust/target/packages/MultiDroid Preview.app"
+            DMG="$PWD/out/MultiDroid-Preview-$VERSION-mac-arm64.dmg"
+          fi
+          bash scripts/sign-apple-release.sh "$APP" "$DMG"
+      - name: Build local-only QA disk image
+        if: github.ref_type != 'tag' && inputs.publish != true
+        shell: bash
+        env:
+          NATIVE: ${{ needs.version.outputs.native }}
+          VERSION: ${{ needs.version.outputs.name }}
+        run: |
+          mkdir -p out
+          if [[ "$NATIVE" == true ]]; then APP="$PWD/mac/build/MultiDroid.app"; else APP="$PWD/rust/target/packages/MultiDroid Preview.app"; fi
+          bash scripts/create-qa-dmg.sh "$APP" "$PWD/out/MultiDroid-$VERSION-mac-arm64-QA-NOT-FOR-RELEASE.dmg"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ (github.ref_type == 'tag' || inputs.publish == true) && 'signed-mac' || 'qa-mac-not-for-release' }}
+          path: out/*.dmg
+          if-no-files-found: error
+          retention-days: 7
+
+  desktop:
+    needs: version
+    if: needs.version.outputs.native != 'true'
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            formatos: dmg
-          - os: windows-latest
-            formatos: nsis
-          # 22.04 para o .AppImage rodar em distribuições com glibc mais antiga.
-          - os: ubuntu-22.04
-            formatos: appimage,deb
-    runs-on: ${{ matrix.os }}
+          - runner: [self-hosted, Windows, X64]
+            platform: windows
+            formats: nsis
+          # Keep the original glibc baseline for desktop Linux installers.
+          - runner: ubuntu-22.04
+            platform: linux
+            formats: appimage,deb
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
     defaults:
       run:
         shell: bash
         working-directory: rust
     steps:
-      - uses: actions/checkout@v5
-      - name: Bibliotecas do Slint e do AppImage no Linux
+      - uses: actions/checkout@v7
+      - name: Linux packaging dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev libfuse2 file
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
-      - name: cargo-packager
-        run: cargo install cargo-packager --locked --version 0.11.8
-      - name: Pacotes
+      - uses: actions/setup-python@v6
+        if: runner.os == 'Windows'
+        with:
+          python-version: '3.12'
+      - run: cargo test --workspace --lib --bins --locked
+      - run: cargo install cargo-packager --locked --version 0.11.8
+      - name: Build branded installers
         working-directory: rust/app
-        run: |
-          cargo packager --release -f ${{ matrix.formatos }}
-      # O .rpm sai do cargo-generate-rpm (o cargo-packager não gera), com o mesmo
-      # binário que o packager acabou de compilar.
-      - name: .rpm
+        run: cargo packager --release -f ${{ matrix.formats }}
+      - name: RPM installer
         if: runner.os == 'Linux'
         run: |
           cargo install cargo-generate-rpm --locked --version 0.21.1
           cargo generate-rpm -p app -o target/packages/
-      - name: Nomes dos arquivos
+      - name: Normalize and validate installer names
+        env:
+          VERSION: ${{ needs.version.outputs.name }}
+          PLATFORM: ${{ matrix.platform }}
         run: |
-          N="MultiDroid-Preview-${{ needs.versao.outputs.nome }}"
-          mkdir -p out
-          cd target/packages
-          for f in *.dmg *-setup.exe *.AppImage *.deb *.rpm; do
-            [ -e "$f" ] || continue
-            case "$f" in
-              *.dmg) mv "$f" "../../out/$N-mac-arm64.dmg" ;;
-              *-setup.exe) mv "$f" "../../out/$N-windows-x64-setup.exe" ;;
-              *.AppImage) mv "$f" "../../out/$N-linux-x86_64.AppImage" ;;
-              *.deb) mv "$f" "../../out/$N-linux-amd64.deb" ;;
-              *.rpm) mv "$f" "../../out/$N-linux-x86_64.rpm" ;;
-            esac
-          done
-          ls -la ../../out
-      - uses: actions/upload-artifact@v4
+          if [[ "$RUNNER_OS" == Windows ]]; then python ../scripts/collect-installers.py; else python3 ../scripts/collect-installers.py; fi
+      - uses: actions/upload-artifact@v7
         with:
-          name: pacote-${{ runner.os }}
+          name: desktop-${{ matrix.platform }}
           path: rust/out/*
           if-no-files-found: error
+          retention-days: 7
 
-  publicar:
-    needs: [versao, pacotes]
-    if: github.ref_type == 'tag'
-    runs-on: ubuntu-latest
+  publish:
+    needs: [version, mac, desktop]
+    if: >-
+      always() && needs.version.result == 'success' && needs.mac.result == 'success' &&
+      (needs.desktop.result == 'success' || needs.desktop.result == 'skipped') &&
+      (github.ref_type == 'tag' || inputs.publish == true)
+    runs-on: [self-hosted, Linux, homelab]
     permissions:
       contents: write
+      actions: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/download-artifact@v8
         with:
           path: out
           merge-multiple: true
-      - name: Release
+      - name: Verify complete release and write checksums
+        env:
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+          NATIVE: ${{ needs.version.outputs.native }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: python3 scripts/verify-release.py
+      - name: Publish release with readable platform notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+          PREVIEW: ${{ needs.version.outputs.preview }}
+        run: |
+          args=()
+          [[ "$PREVIEW" == true ]] && args+=(--prerelease)
+          shopt -s nullglob
+          assets=(out/*.dmg out/*.exe out/*.deb out/*.rpm out/*.AppImage out/SHA256SUMS.txt out/release.json)
+          gh release create "$RELEASE_TAG" "${assets[@]}" "${args[@]}" --target "$GITHUB_SHA" \
+            --draft --title "MultiDroid $RELEASE_TAG" --notes-file out/RELEASE-NOTES.md
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > "$RUNNER_TEMP/multidroid-draft-release.json"
+          python3 scripts/verify-uploaded-release.py "$RUNNER_TEMP/multidroid-draft-release.json"
+          gh release edit "$RELEASE_TAG" --draft=false
+      - name: Refresh reviewed site download fallbacks
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          PRE=""
-          [ "${{ needs.versao.outputs.pre }}" = true ] && PRE="--prerelease"
-          gh release create "$GITHUB_REF_NAME" out/* $PRE -R "$GITHUB_REPOSITORY" \
-            --title "MultiDroid Preview ${{ needs.versao.outputs.nome }} (Mac, Windows e Linux)" \
-            --notes "Pré-release da versão Rust, para testar. Liga aparelhos do emulador oficial e mostra a tela na mesa no Mac, no Windows (x86_64, com a Plataforma de Hipervisor do Windows) e no Linux; no Linux também há o motor leve (Redroid, pelo Docker, ~1,1 GB por aparelho). Linux: .deb (Debian, Ubuntu), .rpm (Fedora, openSUSE) ou .AppImage. Para o uso do dia a dia no Mac, a versão é a 0.2. Andamento em docs/spec/MULTIPLATAFORMA.md."
+          python3 scripts/update-site-downloads.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add site/index.html site/releases.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore(site): update published MultiDroid installers'
+            git push origin HEAD:main
+          fi
+          gh workflow run deploy-site.yml --ref main

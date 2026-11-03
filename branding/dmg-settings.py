@@ -1,0 +1,19 @@
+format = 'ULFO'
+from pathlib import Path
+root = Path(defines['root']).resolve()
+app = str(Path(defines['app']).resolve())
+appname = Path(app).name
+files = [app]
+symlinks = {'Applications': '/Applications'}
+icon_locations = {appname: (185, 235), 'Applications': (475, 235)}
+window_rect = ((180, 150), (660, 440))
+background = str(root / 'branding/dmg-background.png')
+icon = str(root / 'rust/app/icons/icon.icns')
+icon_size = 96
+text_size = 14
+show_status_bar = False
+show_tab_view = False
+show_toolbar = False
+show_pathbar = False
+show_sidebar = False
+include_icon_view_settings = True

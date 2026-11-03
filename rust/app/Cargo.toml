@@ -75,3 +75,13 @@ libxkbcommon = "*"
 
 [package.metadata.packager.nsis]
 installer-mode = "currentUser"
+installer-icon = "icons/icon.ico"
+header-image = "../../branding/nsis-header.bmp"
+sidebar-image = "../../branding/nsis-sidebar.bmp"
+languages = ["English", "PortugueseBR"]
+
+[package.metadata.packager.dmg]
+background = "../../branding/dmg-background.png"
+window-size = { width = 660, height = 440 }
+app-position = { x = 185, y = 235 }
+application-folder-position = { x = 475, y = 235 }

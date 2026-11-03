@@ -1,0 +1,44 @@
+{
+  "stable": {
+    "tag": "v0.2",
+    "url": "https://github.com/Falcao-SL/MultiDroid/releases/tag/v0.2",
+    "assets": [
+      {
+        "name": "MultiDroid-0.2.dmg",
+        "url": "https://github.com/Falcao-SL/MultiDroid/releases/download/v0.2/MultiDroid-0.2.dmg",
+        "size": 11746528
+      }
+    ]
+  },
+  "preview": {
+    "tag": "v0.3.0-alpha.3",
+    "url": "https://github.com/Falcao-SL/MultiDroid/releases/tag/v0.3.0-alpha.3",
+    "assets": [
+      {
+        "name": "MultiDroid-Preview-0.3.0-alpha.3-linux-amd64.deb",
+        "url": "https://github.com/Falcao-SL/MultiDroid/releases/download/v0.3.0-alpha.3/MultiDroid-Preview-0.3.0-alpha.3-linux-amd64.deb",
+        "size": 14927838
+      },
+      {
+        "name": "MultiDroid-Preview-0.3.0-alpha.3-linux-x86_64.AppImage",
+        "url": "https://github.com/Falcao-SL/MultiDroid/releases/download/v0.3.0-alpha.3/MultiDroid-Preview-0.3.0-alpha.3-linux-x86_64.AppImage",
+        "size": 14756344
+      },
+      {
+        "name": "MultiDroid-Preview-0.3.0-alpha.3-linux-x86_64.rpm",
+        "url": "https://github.com/Falcao-SL/MultiDroid/releases/download/v0.3.0-alpha.3/MultiDroid-Preview-0.3.0-alpha.3-linux-x86_64.rpm",
+        "size": 11229767
+      },
+      {
+        "name": "MultiDroid-Preview-0.3.0-alpha.3-mac-arm64.dmg",
+        "url": "https://github.com/Falcao-SL/MultiDroid/releases/download/v0.3.0-alpha.3/MultiDroid-Preview-0.3.0-alpha.3-mac-arm64.dmg",
+        "size": 10505532
+      },
+      {
+        "name": "MultiDroid-Preview-0.3.0-alpha.3-windows-x64-setup.exe",
+        "url": "https://github.com/Falcao-SL/MultiDroid/releases/download/v0.3.0-alpha.3/MultiDroid-Preview-0.3.0-alpha.3-windows-x64-setup.exe",
+        "size": 8850171
+      }
+    ]
+  }
+}

@@ -70,7 +70,7 @@ jobs:
         run: |
           adb -s 127.0.0.1:5561 exec-out screencap -p > tela-1.png
           file tela-1.png | tee -a "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: leve-tela
           path: tela-1.png

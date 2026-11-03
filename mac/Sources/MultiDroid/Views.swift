@@ -28,7 +28,11 @@ struct RootView: View {
                     .brutal(fill: Tema.amarelo)
                     .padding(20)
                     .onTapGesture { model.banner = nil }
-                    .task(id: b) { try? await Task.sleep(for: .seconds(5)); model.banner = nil }
+                    .task(id: b) {
+                        do { try await Task.sleep(for: .seconds(5)) } catch { return }
+                        guard model.banner == b else { return }
+                        model.banner = nil
+                    }
             }
         }
     }

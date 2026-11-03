@@ -23,3 +23,7 @@ DerivedData/
 # Configurações locais do Claude Code (por máquina)
 .claude/settings.local.json
 .mcp.json
+
+# Local Python checks and brand tooling
+__pycache__/
+*.pyc
