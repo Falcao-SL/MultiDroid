@@ -8,6 +8,11 @@ on:
         description: 'Version to publish: v0.2.1 (native Mac) or v0.3.0-alpha.4 (desktop preview)'
         required: true
         type: string
+      platform:
+        description: QA platform (production publication always requires all)
+        type: choice
+        options: [all, windows, linux, mac]
+        default: all
       publish:
         description: Publish the validated installers and update site downloads
         type: boolean
@@ -25,16 +30,22 @@ jobs:
       name: ${{ steps.version.outputs.name }}
       native: ${{ steps.version.outputs.native }}
       preview: ${{ steps.version.outputs.preview }}
+      mac: ${{ steps.version.outputs.mac }}
+      desktop: ${{ steps.version.outputs.desktop }}
+      matrix: ${{ steps.version.outputs.matrix }}
     steps:
       - uses: actions/checkout@v7
       - id: version
         env:
           REQUESTED_TAG: ${{ inputs.tag || github.ref_name }}
+          QA_PLATFORM: ${{ inputs.platform || 'all' }}
+          PUBLISH: ${{ github.ref_type == 'tag' || inputs.publish == true }}
         run: python3 scripts/release-version.py
       - run: python3 scripts/check-brand.py
 
   mac:
     needs: version
+    if: needs.version.outputs.mac == 'true'
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 90
     env:
@@ -111,18 +122,10 @@ jobs:
 
   desktop:
     needs: version
-    if: needs.version.outputs.native != 'true'
+    if: needs.version.outputs.desktop == 'true'
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - runner: [self-hosted, Windows, X64]
-            platform: windows
-            formats: nsis
-          # Keep the original glibc baseline for desktop Linux installers.
-          - runner: ubuntu-22.04
-            platform: linux
-            formats: appimage,deb
+      matrix: ${{ fromJSON(needs.version.outputs.matrix) }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     defaults:
@@ -131,6 +134,13 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v7
+      - name: Use Git Bash instead of the Windows WSL launcher
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $gitBash = Join-Path $env:ProgramFiles 'Git\bin'
+          if (-not (Test-Path (Join-Path $gitBash 'bash.exe'))) { throw 'Git Bash is required on the Windows runner' }
+          Add-Content -Path $env:GITHUB_PATH -Value $gitBash
       - name: Linux packaging dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev libfuse2 file
