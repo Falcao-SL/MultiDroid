@@ -148,10 +148,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
-      - uses: actions/setup-python@v6
-        if: runner.os == 'Windows'
-        with:
-          python-version: '3.12'
       - run: cargo test --workspace --lib --bins --locked
       - run: cargo install cargo-packager --locked --version 0.11.8
       - name: Build branded installers
@@ -162,12 +158,18 @@ jobs:
         run: |
           cargo install cargo-generate-rpm --locked --version 0.21.1
           cargo generate-rpm -p app -o target/packages/
-      - name: Normalize and validate installer names
+      - name: Normalize and validate Linux installer names
+        if: runner.os == 'Linux'
         env:
           VERSION: ${{ needs.version.outputs.name }}
-          PLATFORM: ${{ matrix.platform }}
-        run: |
-          if [[ "$RUNNER_OS" == Windows ]]; then python ../scripts/collect-installers.py; else python3 ../scripts/collect-installers.py; fi
+          PLATFORM: linux
+        run: python3 ../scripts/collect-installers.py
+      - name: Normalize and validate Windows installer name
+        if: runner.os == 'Windows'
+        shell: powershell
+        env:
+          VERSION: ${{ needs.version.outputs.name }}
+        run: ../scripts/collect-windows-installer.ps1
       - uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.platform }}
