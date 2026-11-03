@@ -1,0 +1,45 @@
+# CI da versão 0.2 SwiftUI (mac/): compila o .app em cada push/PR que mexe
+# em mac/ ou neste workflow. Sem certificado Apple no CI de PR — assinatura
+# ad hoc basta para validar o build (DISTRIBUICAO.md).
+name: swift-mac
+
+on:
+  push:
+    branches: [main]
+    paths: ["mac/**", "docs/design/icone/**", ".github/workflows/swift-mac.yml"]
+  pull_request:
+    paths: ["mac/**", "docs/design/icone/**", ".github/workflows/swift-mac.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: mac
+    steps:
+      - uses: actions/checkout@v5
+      - name: Xcode
+        run: |
+          export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR" >>"$GITHUB_ENV"
+          xcodebuild -version
+          swift --version
+      - name: Compila MultiDroid.app
+        run: |
+          chmod +x scripts/build-app.sh
+          SIGN_ID=- scripts/build-app.sh release
+      - name: Confere o bundle
+        run: |
+          test -x build/MultiDroid.app/Contents/MacOS/MultiDroid
+          /usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" \
+            build/MultiDroid.app/Contents/Info.plist
+          codesign --verify --verbose=2 build/MultiDroid.app || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MultiDroid-swift-unsigned
+          path: mac/build/MultiDroid.app
+          if-no-files-found: error

@@ -1,6 +1,6 @@
 # Status — MultiDroid
 
-> Atualizado em **2026-10-27**. Fonte única de "em que pé está".
+> Atualizado em **2026-11-03**. Fonte única de "em que pé está".
 
 | Campo | Valor |
 |---|---|
@@ -9,7 +9,7 @@
 | **Stack** | Swift Package em `mac/`: SwiftUI + gRPC sobre o Android Emulator oficial |
 | **Versão** | 0.2 (build 2), assinada com Developer ID (`scripts/build-app.sh`); notarização e `.dmg` por `scripts/release.sh` |
 | **Identificador** | `com.falcaosl.multidroid` · Apple Team `6EZ89E2F5S` |
-| **Distribuição** | `.dmg` assinado e notarizado no GitHub Releases, fora da Mac App Store (decisão M-6); repositório público |
+| **Distribuição** | `.dmg` assinado e notarizado no GitHub Releases, fora da Mac App Store (decisão M-6); CI secrets-ready + cask em `packaging/homebrew/`; repositório público |
 | **Site** | https://multidroid.falcaosl.com (em `site/`, inglês) |
 | **Monetização** | **Nenhuma: código aberto, GPL-3.0** (2026-10-10; [MONETIZACAO.md](MONETIZACAO.md)) |
 | **Versão Rust** | Preview 0.3 em `rust/` (Rust + Slint), inglês como língua principal e português como tradução. No Mac: 4 celulares + 1 relógio ligados com toque, teclas e texto, e memória igual à 0.2 (~115 MB com 5 aparelhos, renderizador por software). No Windows: emulador liga aparelhos via WHPX, baixa emulador automaticamente, captura via MMAP e fecha salvando estado (2026-10-22). No Linux: pacotes .deb, .rpm e .AppImage gerados no CI; motor leve (Redroid) com 8 aparelhos. Interface com painel recolhível em trilho, barra inferior de botões no quadro, redimensionamento proporcional e barra de progresso nos downloads com velocidade e ETA. Ver [`../spec/MULTIPLATAFORMA.md`](../spec/MULTIPLATAFORMA.md) |
@@ -70,8 +70,8 @@ Como apontar o Studio: o passo a passo está no ADR-001. Resumo: rodar o script,
 - Versão Linux: spec escrita ([LINUX.md](../spec/LINUX.md)), sem código; a fase 0 precisa de um PC Linux com GPU Intel ou AMD e 16 GB (o homelab não serve).
 - Desenho por Metal (decisão M-2): hoje a tela é desenhada como imagem no
   SwiftUI.
-- Pipeline de build e release no GitHub Actions; Homebrew cask depois da primeira release notarizada.
-- Interface só em português; decidir os outros idiomas.
+- Pipeline CI/CD: **feito** — `swift-mac.yml` + `release-swift.yml` (0.2), `rust.yml` + `release.yml` (Preview); assinatura/notarização no CI quando existem segredos Apple; cask em `packaging/homebrew/Casks/multidroid.rb` (publicar no tap ainda é manual). Detalhe em [DISTRIBUICAO.md](DISTRIBUICAO.md).
+- Interface só em português na 0.2; Preview Rust já tem en/pt.
 - Revisar com advogado a licença das imagens do Google antes de tornar o
   repositório público (MAC.md §5).
 

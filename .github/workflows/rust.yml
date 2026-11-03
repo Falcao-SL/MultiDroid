@@ -1,6 +1,7 @@
 # Versão Rust do MultiDroid nos três sistemas (docs/spec/MULTIPLATAFORMA.md §6):
 # formata, analisa, testa e compila no macOS, no Windows e no Linux a cada push
-# que mexe em rust/ ou nos tokens de design. O app SwiftUI (mac/) não passa aqui.
+# que mexe em rust/ ou nos tokens de design. O app SwiftUI (mac/) não passa aqui
+# — ver swift-mac.yml.
 name: rust
 
 on:
@@ -9,6 +10,16 @@ on:
     paths: ["rust/**", "docs/design/tokens.json", ".github/workflows/rust.yml"]
   pull_request:
     paths: ["rust/**", "docs/design/tokens.json", ".github/workflows/rust.yml"]
+  workflow_dispatch:
+    inputs:
+      emulador_macos:
+        description: "Tentar emulador_real no macOS (Hypervisor; lento; continue-on-error)"
+        type: boolean
+        default: false
+      emulador_windows:
+        description: "Tentar emulador_real no Windows (só útil com runner WHPX/self-hosted)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -79,6 +90,110 @@ jobs:
           path: sdk
           key: sdk-linux-emulador-aosp33-v1
       - run: cargo test -p multidroid-core --test emulador_real -- --ignored --nocapture
+
+  # macOS: Hypervisor.framework existe nos runners, mas SDK+imagem (~3 GB) e
+  # boot costumam estourar tempo/disco. Só sob pedido (workflow_dispatch) ou
+  # com a variável de repositório MULTIDROID_MACOS_EMULATOR=true. Falha não
+  # vermelha o CI (continue-on-error).
+  emulador-macos:
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.emulador_macos == true) || vars.MULTIDROID_MACOS_EMULATOR == 'true' }}
+    runs-on: macos-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: rust
+    env:
+      MULTIDROID_GPU: swiftshader_indirect
+      MULTIDROID_SDK: ${{ github.workspace }}/sdk
+    steps:
+      - uses: actions/checkout@v5
+      - name: Hypervisor
+        run: |
+          if ! sysctl -n kern.hv_support 2>/dev/null | grep -q 1; then
+            echo "::warning::Hypervisor indisponível neste runner — pulando emulador_real."
+            echo "skip=1" >>"$GITHUB_ENV"
+          else
+            echo "ok: kern.hv_support=1"
+          fi
+      - uses: dtolnay/rust-toolchain@stable
+        if: env.skip != '1'
+      - uses: Swatinem/rust-cache@v2
+        if: env.skip != '1'
+        with:
+          workspaces: rust
+      - uses: actions/cache@v4
+        if: env.skip != '1'
+        with:
+          path: sdk
+          key: sdk-macos-emulador-aosp33-v1
+      - name: emulador_real
+        if: env.skip != '1'
+        run: cargo test -p multidroid-core --test emulador_real -- --ignored --nocapture
+
+  # Windows: runners hospedados do GitHub não expõem WHPX/virtualização aninhada
+  # de forma confiável. O job só roda sob pedido ou MULTIDROID_WINDOWS_EMULATOR;
+  # sem WHPX encerra com aviso (exit 0). Self-hosted com WHPX: ligue a variável.
+  emulador-windows:
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.emulador_windows == true) || vars.MULTIDROID_WINDOWS_EMULATOR == 'true' }}
+    runs-on: windows-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: rust
+    env:
+      MULTIDROID_GPU: swiftshader_indirect
+      MULTIDROID_SDK: ${{ github.workspace }}/sdk
+    steps:
+      - uses: actions/checkout@v5
+      - name: WHPX disponível?
+        shell: pwsh
+        run: |
+          $ok = $false
+          try {
+            $feat = Get-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform -ErrorAction SilentlyContinue
+            if ($feat -and $feat.State -eq 'Enabled') { $ok = $true }
+          } catch {}
+          if (-not $ok) {
+            # Fallback: presença do serviço / driver comum em máquinas com WHPX.
+            if (Get-Service vmcompute -ErrorAction SilentlyContinue) { $ok = $true }
+          }
+          if (-not $ok) {
+            Write-Host "::notice::GitHub-hosted Windows não tem WHPX confiável. Use self-hosted com Plataforma de Hipervisor, ou teste em PC nativo (MULTIPLATAFORMA.md §4). Job encerrado sem falhar."
+            "skip=1" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          } else {
+            Write-Host "ok: indício de WHPX/Hyper-V"
+          }
+      - uses: dtolnay/rust-toolchain@stable
+        if: env.skip != '1'
+      - uses: Swatinem/rust-cache@v2
+        if: env.skip != '1'
+        with:
+          workspaces: rust
+      - uses: actions/cache@v4
+        if: env.skip != '1'
+        with:
+          path: sdk
+          key: sdk-windows-emulador-aosp33-v1
+      - name: emulador_real
+        if: env.skip != '1'
+        shell: bash
+        run: cargo test -p multidroid-core --test emulador_real -- --ignored --nocapture
+
+  # Aviso estável no gráfico de checks: o emulador real fora do Linux não roda
+  # por padrão nos runners hospedados (ver jobs acima e MULTIPLATAFORMA.md §6).
+  emulador-extras-status:
+    if: ${{ github.event_name != 'workflow_dispatch' || (inputs.emulador_macos != true && inputs.emulador_windows != true) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Onde o emulador real roda
+        run: |
+          echo "## Emulador real no CI" >>"$GITHUB_STEP_SUMMARY"
+          echo "- **Linux**: job \`emulador-linux\` (KVM) a cada push/PR em \`rust/\`." >>"$GITHUB_STEP_SUMMARY"
+          echo "- **macOS / Windows**: não rodam por padrão nos runners hospedados (Windows sem WHPX; macOS com Hypervisor mas pesado)." >>"$GITHUB_STEP_SUMMARY"
+          echo "- Para tentar: *Actions → rust → Run workflow* com \`emulador_macos\` / \`emulador_windows\`, ou defina as variáveis \`MULTIDROID_MACOS_EMULATOR\` / \`MULTIDROID_WINDOWS_EMULATOR\` (self-hosted)." >>"$GITHUB_STEP_SUMMARY"
+          echo "::notice::Emulador real macOS/Windows: só workflow_dispatch ou vars MULTIDROID_*_EMULATOR. Linux cobre R-3 no CI."
 
   # Etapa R-6: motor leve no Linux x86_64. Liga um Android em Redroid (Docker,
   # binder do kernel), mostra a tela pelo scrcpy e guarda os dados

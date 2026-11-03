@@ -90,7 +90,7 @@ core não sabe em que sistema está.
 | R-5 no Mac, memória | **Cumprida** (2026-10-21). Com os 5 aparelhos e as telas mexendo por 40 s (`AGITAR=40` no `mesa_real`), app medido por `footprint` e tempo de CPU: 0.2 ~116 MB e 82% de um núcleo; Rust com femtovg 303 MB e 56%; Skia/Metal 363 MB e 32%; **software ~115 MB e 73%**. O femtovg e o Skia guardam ~150 MB em superfícies de GPU (IOSurface e memória gráfica). O app passa a usar o renderizador por software no Mac (`SLINT_BACKEND` ainda escolhe outro); isso muda a decisão X-2 só no Mac. Também corrigido: no quadro baixo (relógio 6×6) a coluna de botões passava da altura e a tela vazava do quadro; agora os botões vão para duas colunas |
 | R-6 | **Feita** (2026-10-18), no Linux x86_64 do CI: `leve` liga, pausa (congela o contêiner), desliga e apaga aparelhos Redroid pelo Docker, com o /data num volume do Docker; `adb` usa o platform-tools oficial; `scrcpy` fala o protocolo da versão 3.3.4 (servidor com SHA-256 fixado), decodifica o H.264 com openh264 e manda toque, texto e teclas. No app, o Novo aparelho do Linux escolhe Leve (padrão) ou Completo. Testes reais: um aparelho liga em ~12 s, mostra 360×800 em 0,5 s e guarda os dados ao desligar; **8 ligados ao mesmo tempo com vídeo, em 64 s, somando 8,9 GB a mais (~1,1 GB cada)** numa máquina de 16 GB. O Podman sem root não roda o Redroid privilegiado (sai com 129): o app prefere o Docker. Falta testar num Linux com tela (o CI não tem) |
 | R-7 | **Em andamento** (2026-10-22): num Windows 11 x86_64 de verdade (i7-1165G7, 16 GB, WHPX) o app liga, mostra a tela e desliga. Corrigido no caminho: `sdk/platform-tools` vazia criada antes de ligar (sem ela o emulador fecha com "Broken AVD system path"); o `emulator.exe` é só lançador, e o token gRPC e as métricas vêm do qemu filho (`emulator::engine_pid`); o desligar espera até 150 s, porque salvar 4 GB de RAM passa de 20 s com a memória cheia. Medido: boot a frio do Android 17 em 32 a 100 s (o primeiro, com a configuração inicial, ~7 min), estado salvo carregado em 0,5 s, salvar em 8 a 10 s; quadros por mensagem e por MMAP funcionam; toque, teclas, texto, pausa, hibernar, captura e girar conferidos. O instalador NSIS sai daqui (`cargo packager -f nsis`). Falta: vários aparelhos ao mesmo tempo e medir a CPU dos dois transportes de quadro |
-| R-8 | **Adiantada** (2026-10-18): `release.yml` gera os pacotes dos três sistemas por tag, como "MultiDroid Preview" em pré-release; `rust/scripts/release-mac.sh` assina e notariza o .dmg no Mac |
+| R-8 | **Feita** (2026-11-03): `release.yml` gera os pacotes dos três por tag ("MultiDroid Preview"); no CI assina/notariza o .dmg se houver segredos Apple, senão fluxo híbrido com `rust/scripts/release-mac.sh`. CI em `rust.yml` (não `ci.yml`). Emulador macOS/Windows: skip claro + `workflow_dispatch` |
 
 ## 4. Como testar cada sistema a partir do Mac
 
@@ -117,19 +117,24 @@ A versão Rust vira a publicada no Mac quando, num Mac limpo:
 
 Até lá, `mac/` recebe só correções.
 
-## 6. Release dos três sistemas
+## 6. CI e release dos três sistemas
 
-Workflow `.github/workflows/release.yml`, disparado por tag `v*`:
+| Workflow | Papel |
+|---|---|
+| [`.github/workflows/rust.yml`](../../.github/workflows/rust.yml) | CI a cada push/PR em `rust/`: `fmt`, `clippy`, `test`, `build` em macOS, Windows e Ubuntu; `emulador-linux` (KVM); `leve-linux` (Redroid). Emulador real em macOS/Windows **não** roda por padrão nos runners hospedados (Windows sem WHPX; macOS com Hypervisor mas pesado) — só `workflow_dispatch` com `emulador_macos` / `emulador_windows`, ou variáveis `MULTIDROID_MACOS_EMULATOR` / `MULTIDROID_WINDOWS_EMULATOR` (self-hosted). |
+| [`.github/workflows/release.yml`](../../.github/workflows/release.yml) | Tag `v*` alinhada a `rust/Cargo.toml` → `.dmg`, NSIS, AppImage, deb, rpm na mesma release ("MultiDroid Preview"). |
+| [`.github/workflows/swift-mac.yml`](../../.github/workflows/swift-mac.yml) / [`release-swift.yml`](../../.github/workflows/release-swift.yml) | CI e release da 0.2 SwiftUI (`mac/`); tags da Preview Rust não entram aí. |
+
+Release Preview (`release.yml`), tag `v*` = versão do Cargo:
 
 | Máquina | Gera | Assinatura |
 |---|---|---|
-| `macos-latest` | `.dmg` | Developer ID + notarização, com o certificado e a senha de app como segredos do repositório |
-| `windows-latest` | `.msi` ou `.exe` | sem assinatura no começo: o SmartScreen avisa na primeira vez; certificado de código do Windows é compra à parte |
-| `ubuntu-latest` | `.AppImage` e `.deb` (x86_64; arm64 depois) | não se aplica |
+| `macos-latest` | `.dmg` | Se existirem `APPLE_CERTIFICATE_P12` (+ senha) e `APPLE_API_KEY` (+ ID/ISSUER): Developer ID + notarização no CI (`scripts/ci/`). Sem segredos: `.dmg` unsigned + aviso; o dono troca com `rust/scripts/release-mac.sh <tag>` (fluxo híbrido). |
+| `windows-latest` | `.exe` (NSIS) | sem assinatura no começo: o SmartScreen avisa na primeira vez; certificado de código do Windows é compra à parte |
+| `ubuntu-22.04` | `.AppImage`, `.deb` e `.rpm` (x86_64) | não se aplica |
 
 Os artefatos vão para a release da tag, e o site aponta um botão por sistema.
-Um workflow `ci.yml` roda `cargo fmt --check`, `cargo clippy` e `cargo test` nos
-três a cada push.
+Homebrew da 0.2: [`packaging/homebrew/Casks/multidroid.rb`](../../packaging/homebrew/Casks/multidroid.rb). Segredos e tabelas completas em [DISTRIBUICAO.md](../produto/DISTRIBUICAO.md).
 
 ## 7. Riscos
 

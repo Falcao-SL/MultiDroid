@@ -87,7 +87,12 @@ mac/scripts/release.sh            # compila, assina, monta o .dmg, notariza e gr
 NOTARIZE=0 mac/scripts/release.sh # só monta e assina (para testar)
 ```
 
-A notarização exige guardar a credencial uma vez: `xcrun notarytool store-credentials notary --apple-id <e-mail> --team-id 6EZ89E2F5S`. O pacote Swift está em [`mac/Package.swift`](mac/Package.swift) e não tem alvo de testes.
+A notarização local exige guardar a credencial uma vez: `xcrun notarytool store-credentials notary --apple-id <e-mail> --team-id 6EZ89E2F5S`. No CI, use os segredos `APPLE_CERTIFICATE_P12` / `APPLE_API_KEY` (+ ID/ISSUER) — ver [`docs/produto/DISTRIBUICAO.md`](docs/produto/DISTRIBUICAO.md). O pacote Swift está em [`mac/Package.swift`](mac/Package.swift) e não tem alvo de testes.
+
+```sh
+# Homebrew (cask no repo; aponta para o .dmg da release 0.2)
+brew install --cask ./packaging/homebrew/Casks/multidroid.rb
+```
 
 ## O que falta
 
@@ -99,7 +104,7 @@ Do [`docs/produto/STATUS.md`](docs/produto/STATUS.md) e de [`docs/spec/MAC.md`](
 - Modo leve: o vídeo não toca no Redroid 13 (decodificador falha ao mapear o buffer; Redroid 12 e 14 falham igual). Depois disso, balão de memória na VM, apps reais por APK sem serviços do Google, tela e toque pelo protocolo do scrcpy.
 - Desenho da tela por Metal (decisão M-2); hoje é desenhada como imagem no SwiftUI.
 - Versão Rust (Mac, Windows e Linux): Linux com motor leve feito e testado só no CI sem tela (R-6); Windows compila e empacota, mas nenhum aparelho ligou ainda (R-7); no Mac o app já gasta o mesmo que a 0.2 (~115 MB com 5 aparelhos, renderizador por software, medido em 2026-10-21); falta conferir a janela com 4 celulares e 1 relógio e fechar a R-5 (várias mesas, importar do Android Studio pela interface). Ver [`docs/spec/MULTIPLATAFORMA.md`](docs/spec/MULTIPLATAFORMA.md) §3. Os testes de Linux e Windows serão feitos em máquinas nativas.
-- Pipeline de build e release no GitHub Actions (a criar); Homebrew cask depois da primeira release notarizada.
+- Pipeline CI/CD: `swift-mac.yml` / `release-swift.yml` (0.2), `rust.yml` / `release.yml` (Preview). Assinatura e notarização no CI quando os segredos Apple estão configurados; sem eles o job avisa e sobe unsigned (fluxo híbrido com `mac/scripts/release.sh` / `rust/scripts/release-mac.sh`). Homebrew: `packaging/homebrew/Casks/multidroid.rb` (`brew install --cask …`; publicar no tap é manual). Ver [`docs/produto/DISTRIBUICAO.md`](docs/produto/DISTRIBUICAO.md).
 - Versão Rust: inglês como língua principal e português como tradução, escolhida pelo idioma do sistema (`MULTIDROID_LANG=en|pt` força uma). A interface usa `@tr` com `rust/app/translations/pt_BR`; as mensagens do Rust, `multidroid_core::idioma`. Texto novo precisa entrar nos dois. A 0.2 segue em português. Revisar com advogado a licença das imagens do Google (o app não as redistribui: cada pessoa baixa do Google e aceita a licença).
 
 Riscos registrados: licença das imagens Play e Wear, apps que bloqueiam emulador, memória em Macs de 8 a 16 GB e mudanças na API do emulador ([`MAC.md`](docs/spec/MAC.md) §5).
