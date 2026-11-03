@@ -41,6 +41,10 @@ jobs:
       REMOTE: /data/sites
     steps:
       - uses: actions/checkout@v7
+      - name: Verify shared brand and public download contracts
+        run: |
+          python3 scripts/check-brand.py
+          python3 -m unittest discover -s tests
 
       - name: rsync site → /data/sites/<slug>/public
         env:

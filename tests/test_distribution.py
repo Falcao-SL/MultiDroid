@@ -1,4 +1,4 @@
-import hashlib,json,os,re,subprocess,tempfile,unittest
+import hashlib,json,os,re,subprocess,tempfile,tomllib,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -26,7 +26,9 @@ class Distribution(unittest.TestCase):
     result=subprocess.run(['python3',str(ROOT/'scripts/release-version.py')],env={**os.environ,'REQUESTED_TAG':tag,'GITHUB_OUTPUT':out.name},capture_output=True)
     self.assertNotEqual(result.returncode,0)
  def test_version_routes_native_and_preview(self):
-  for tag,native in [('v0.2.1','true'),('v0.3.0-alpha.4','false')]:
+  native_version=(ROOT/'mac/VERSION').read_text().strip()
+  rust_version=tomllib.loads((ROOT/'rust/Cargo.toml').read_text())['workspace']['package']['version'].split('-')[0]
+  for tag,native in [('v'+native_version,'true'),('v'+rust_version+'-alpha.4','false')]:
    with tempfile.NamedTemporaryFile() as out:
     subprocess.run(['python3',str(ROOT/'scripts/release-version.py')],env={**os.environ,'REQUESTED_TAG':tag,'GITHUB_OUTPUT':out.name},check=True,capture_output=True)
     self.assertIn('native='+native,Path(out.name).read_text())
@@ -35,5 +37,23 @@ class Distribution(unittest.TestCase):
    (Path(directory)/'out').mkdir()
    result=subprocess.run(['python3',str(ROOT/'scripts/verify-release.py')],cwd=directory,env={**os.environ,'RELEASE_TAG':'v0.3.0-alpha.4','NATIVE':'false','SOURCE_COMMIT':'test'},capture_output=True)
    self.assertNotEqual(result.returncode,0)
+
+ def test_production_rejects_partial_platform_selection(self):
+  rust=tomllib.loads((ROOT/'rust/Cargo.toml').read_text())['workspace']['package']['version'].split('-')[0]
+  with tempfile.NamedTemporaryFile() as out:
+   result=subprocess.run(['python3',str(ROOT/'scripts/release-version.py')],env={**os.environ,'REQUESTED_TAG':'v'+rust+'-alpha.4','GITHUB_OUTPUT':out.name,'QA_PLATFORM':'windows','PUBLISH':'true'},capture_output=True)
+   self.assertNotEqual(result.returncode,0)
+ def test_draft_verification_rejects_incomplete_upload(self):
+  with tempfile.TemporaryDirectory() as directory:
+   work=Path(directory);(work/'out').mkdir();(work/'out/package.exe').write_bytes(b'example')
+   draft=work/'draft.json';draft.write_text(json.dumps({'draft':True,'assets':[]}))
+   result=subprocess.run(['python3',str(ROOT/'scripts/verify-uploaded-release.py'),str(draft)],cwd=work,capture_output=True)
+   self.assertNotEqual(result.returncode,0)
+ def test_draft_verification_accepts_matching_digest(self):
+  with tempfile.TemporaryDirectory() as directory:
+   work=Path(directory);(work/'out').mkdir();data=b'example';(work/'out/package.exe').write_bytes(data)
+   draft=work/'draft.json';draft.write_text(json.dumps({'draft':True,'assets':[{'name':'package.exe','state':'uploaded','size':len(data),'digest':'sha256:'+hashlib.sha256(data).hexdigest()}]}))
+   result=subprocess.run(['python3',str(ROOT/'scripts/verify-uploaded-release.py'),str(draft)],cwd=work,capture_output=True)
+   self.assertEqual(result.returncode,0,result.stderr.decode())
 
 if __name__=='__main__':unittest.main()
