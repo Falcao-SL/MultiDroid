@@ -123,8 +123,8 @@ x0, y0, x1, y1 = _bbox
 diag = ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
 scale = 64 / diag
 tx, ty = 54 - (x0 + x1) / 2 * scale, 54 - (y0 + y1) / 2 * scale
-SHADOW_D = set(re.findall(r'd="([^"]+)"', group("shadow")))
-BACK_FILL_D = re.findall(r'd="([^"]+)"', group("back"))[0]
+SHADOW_D = set(re.findall(r'<path[^>]*\bd="([^"]+)"', group("shadow")))
+BACK_FILL_D = re.findall(r'<path[^>]*\bd="([^"]+)"', group("back"))[1]
 
 
 def vector(color_override=None):

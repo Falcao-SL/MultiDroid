@@ -76,13 +76,13 @@ como ícone de interface. Nenhum logo de serviço nem do Google/Android.
 
 ## Ícone do app
 
-- Arte (2026-10-07): **dois aparelhos iguais deslocados** (a ideia de
-  "duplicar"), em releitura neo-brutalista: aparelho de trás `roxo`
-  (`#A78BFA`), da frente `ciano` (`#5CE1E6`), borda grossa off-white
-  (`#EFEDE6`) e a sombra dura na cor do aparelho de trás, sobre grafite
-  (`#14161B`; `#0B0C10` no modo escuro). Sem qualquer referência a marcas.
+- Arte: **dois aparelhos iguais deslocados** (a ideia de "duplicar" e múltiplos aparelhos),
+  com cantos arredondados e proporções centradas: aparelho de trás lavanda (`#8999FF`),
+  aparelho da frente menta (`#8CE4CD`), bordas off-white (`#E8F5F5`), câmera e barra
+  inferior (`#183542`), e sombra azul marinho (`#253651`) sobre fundo azul escuro
+  (`#101924`; `#0B0C10` no modo escuro). Sem qualquer referência a marcas.
 - Fonte única: `icone/multidroid-icon.svg` (camadas `bg`, `back`, `shadow`, `front`).
-  Tudo é gerado por `icone/export_icons.py`; nunca edite as saídas à mão.
+  Tudo é sincronizado via `scripts/sync-brand.py` e gerado por `icone/export_icons.py`; nunca edite as saídas à mão.
 - **Mac**: `icone/AppIcon.icon` (Icon Composer, Xcode 26+), com fundo
   próprio no escuro e uma camada por aparelho; `mac/scripts/build-app.sh`
   compila com `actool` para macOS.
