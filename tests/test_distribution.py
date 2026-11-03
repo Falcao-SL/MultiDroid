@@ -56,4 +56,12 @@ class Distribution(unittest.TestCase):
    result=subprocess.run(['python3',str(ROOT/'scripts/verify-uploaded-release.py'),str(draft)],cwd=work,capture_output=True)
    self.assertEqual(result.returncode,0,result.stderr.decode())
 
+ def test_site_staging_versions_the_actual_icon_bytes(self):
+  with tempfile.TemporaryDirectory() as directory:
+   output=Path(directory)/'site'
+   subprocess.run(['python3',str(ROOT/'scripts/prepare-site.py'),'--output',str(output)],check=True,capture_output=True)
+   digest=hashlib.sha256((ROOT/'site/assets/multidroid-mark.svg').read_bytes()).hexdigest()[:12]
+   self.assertIn('assets/multidroid-mark.svg?v='+digest,(output/'index.html').read_text())
+   self.assertNotIn('fonts.googleapis.com',(output/'assets/redesign.css').read_text())
+
 if __name__=='__main__':unittest.main()

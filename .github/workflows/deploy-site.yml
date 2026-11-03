@@ -46,6 +46,9 @@ jobs:
           python3 scripts/check-brand.py
           python3 -m unittest discover -s tests
 
+      - name: Prepare static site with content-based asset cache keys
+        run: python3 scripts/prepare-site.py --output "$RUNNER_TEMP/multidroid-site"
+
       - name: rsync site → /data/sites/<slug>/public
         env:
           SSH_KEY: ${{ secrets.HOMELAB_DEPLOY_SSH_KEY }}
@@ -54,7 +57,7 @@ jobs:
           test -n "${SSH_KEY:-}" || { echo "Falta secret HOMELAB_DEPLOY_SSH_KEY na org"; exit 1; }
 
           if [[ -f site/index.html ]]; then
-            SRC=site
+            SRC="$RUNNER_TEMP/multidroid-site"
             RSYNC_EXCLUDES=()
           elif [[ -f index.html ]]; then
             SRC=.
