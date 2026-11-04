@@ -22,7 +22,7 @@ desenvolvedor desconhecido.
 | Embalagem | **`.dmg`** assinado (`mac/build/MultiDroid-<versão>.dmg`), com atalho para Aplicativos |
 | Página de download | GitHub Releases; site `multidroid.falcaosl.com` |
 | Homebrew cask | **no repo**: [`packaging/homebrew/Casks/multidroid.rb`](../../packaging/homebrew/Casks/multidroid.rb); publicar no tap é passo manual do dono |
-| Atualização automática | a decidir |
+| Atualização in-app | **feito**: feed `https://multidroid.falcaosl.com/releases.json`, botão manual, SHA-256 quando a release traz `SHA256SUMS.txt` (Swift estável + Preview Rust) |
 | Pipeline de build e release | **feito** — ver tabela abaixo |
 
 ## Pipelines no GitHub Actions

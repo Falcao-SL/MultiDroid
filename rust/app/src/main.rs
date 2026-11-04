@@ -12,7 +12,7 @@ use multidroid_core::emulator::{self, LaunchOptions, Launched, Link, Processes};
 use multidroid_core::idioma;
 use multidroid_core::install;
 use multidroid_core::state::{MAIN_DESK, State, grid};
-use multidroid_core::{catalog, platform, screen, tokens};
+use multidroid_core::{catalog, platform, screen, tokens, update};
 use multidroid_core::{leve, scrcpy};
 use slint::{Model, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, VecModel};
 use std::collections::{BTreeMap, HashMap};
@@ -279,6 +279,24 @@ struct Imagens {
     ligar_depois: Vec<String>,
 }
 
+struct Atualizacao {
+    disponivel: Option<update::Available>,
+    status: String,
+    progresso: f32,
+    ocupada: bool,
+}
+
+impl Default for Atualizacao {
+    fn default() -> Self {
+        Atualizacao {
+            disponivel: None,
+            status: String::new(),
+            progresso: -1.0,
+            ocupada: false,
+        }
+    }
+}
+
 struct App {
     devs: Vec<Dev>,
     state: State,
@@ -286,6 +304,7 @@ struct App {
     memoria: String,
     img: Imagens,
     novo_erro: String,
+    atualizacao: Atualizacao,
 }
 
 type Shared = Arc<Mutex<App>>;
@@ -517,6 +536,18 @@ fn sincronizar(app: &App, ui: &AppWindow) {
     ui.set_aviso(app.aviso.as_str().into());
     ui.set_memoria(app.memoria.as_str().into());
     ui.set_teto(app.state.ceiling_gb as f32);
+    let upd = &app.atualizacao;
+    ui.set_atualizacao_pendente(upd.disponivel.is_some() || upd.ocupada);
+    ui.set_atualizacao_versao(
+        upd.disponivel
+            .as_ref()
+            .map(|a| a.version.as_str())
+            .unwrap_or("")
+            .into(),
+    );
+    ui.set_atualizacao_status(upd.status.as_str().into());
+    ui.set_atualizacao_progresso(upd.progresso);
+    ui.set_atualizacao_ocupada(upd.ocupada);
     ui.set_linhas(
         app.state
             .spots
@@ -608,6 +639,155 @@ impl Ctx {
     fn aviso(&self, texto: impl Into<String>) {
         self.app.lock().unwrap().aviso = texto.into();
         self.avisar();
+    }
+
+    /// Consulta o feed do site em background; só mostra o cartão se houver novidade.
+    fn checar_atualizacao(&self) {
+        let c = self.clone();
+        self.rt.spawn(async move {
+            let r = tokio::task::spawn_blocking(|| update::check(update::Channel::Preview)).await;
+            let c2 = c.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                let mut app = c2.app.lock().unwrap();
+                match r {
+                    Ok(Ok(Some(a))) => {
+                        app.atualizacao.disponivel = Some(a);
+                        app.atualizacao.status.clear();
+                    }
+                    Ok(Ok(None)) => {
+                        if !app.atualizacao.ocupada {
+                            app.atualizacao.disponivel = None;
+                            app.atualizacao.status.clear();
+                        }
+                    }
+                    _ => {}
+                }
+                drop(app);
+                if let Some(ui) = c2.ui.upgrade() {
+                    sincronizar(&c2.app.lock().unwrap(), &ui);
+                }
+            });
+        });
+    }
+
+    /// Botão Atualizar: baixa, confere SHA-256 e instala/relança.
+    fn atualizar_app(&self) {
+        let disponivel = {
+            let mut app = self.app.lock().unwrap();
+            if app.atualizacao.ocupada {
+                return;
+            }
+            let Some(a) = app.atualizacao.disponivel.clone() else {
+                return;
+            };
+            app.atualizacao.ocupada = true;
+            app.atualizacao.progresso = 0.0;
+            app.atualizacao.status = idioma::t("Downloading update…").into();
+            a
+        };
+        self.avisar();
+        let c = self.clone();
+        let cancel = Arc::new(AtomicBool::new(false));
+        self.rt.spawn(async move {
+            let cancel2 = cancel.clone();
+            let c_prog = c.clone();
+            let dest = tokio::task::spawn_blocking(move || {
+                update::download_update(&disponivel, &cancel2, |frac| {
+                    let f = frac as f32;
+                    let c3 = c_prog.clone();
+                    let _ = slint::invoke_from_event_loop(move || {
+                        let mut app = c3.app.lock().unwrap();
+                        app.atualizacao.progresso = f;
+                        app.atualizacao.status = idioma::t("Downloading update…").into();
+                        drop(app);
+                        if let Some(ui) = c3.ui.upgrade() {
+                            sincronizar(&c3.app.lock().unwrap(), &ui);
+                        }
+                    });
+                })
+                .map(|p| (p, disponivel))
+            })
+            .await;
+            match dest {
+                Ok(Ok((path, avail))) => {
+                    let c2 = c.clone();
+                    let _ = slint::invoke_from_event_loop(move || {
+                        let mut app = c2.app.lock().unwrap();
+                        app.atualizacao.progresso = 1.0;
+                        app.atualizacao.status = idioma::t("Installing update…").into();
+                        drop(app);
+                        if let Some(ui) = c2.ui.upgrade() {
+                            sincronizar(&c2.app.lock().unwrap(), &ui);
+                        }
+                    });
+                    let install = tokio::task::spawn_blocking(move || {
+                        update::install_and_relaunch(&path, &avail)
+                    })
+                    .await;
+                    match install {
+                        Ok(Ok(())) => {}
+                        Ok(Err(e)) => {
+                            let msg = e.to_string();
+                            let c2 = c.clone();
+                            let _ = slint::invoke_from_event_loop(move || {
+                                let mut app = c2.app.lock().unwrap();
+                                app.atualizacao.ocupada = false;
+                                app.atualizacao.progresso = -1.0;
+                                app.atualizacao.status =
+                                    idioma::tf("Update failed: {e}", &[("e", &msg)]);
+                                drop(app);
+                                if let Some(ui) = c2.ui.upgrade() {
+                                    sincronizar(&c2.app.lock().unwrap(), &ui);
+                                }
+                            });
+                        }
+                        Err(e) => {
+                            let msg = e.to_string();
+                            let c2 = c.clone();
+                            let _ = slint::invoke_from_event_loop(move || {
+                                let mut app = c2.app.lock().unwrap();
+                                app.atualizacao.ocupada = false;
+                                app.atualizacao.progresso = -1.0;
+                                app.atualizacao.status =
+                                    idioma::tf("Update failed: {e}", &[("e", &msg)]);
+                                drop(app);
+                                if let Some(ui) = c2.ui.upgrade() {
+                                    sincronizar(&c2.app.lock().unwrap(), &ui);
+                                }
+                            });
+                        }
+                    }
+                }
+                Ok(Err(e)) => {
+                    let msg = e.to_string();
+                    let c2 = c.clone();
+                    let _ = slint::invoke_from_event_loop(move || {
+                        let mut app = c2.app.lock().unwrap();
+                        app.atualizacao.ocupada = false;
+                        app.atualizacao.progresso = -1.0;
+                        app.atualizacao.status = idioma::tf("Update failed: {e}", &[("e", &msg)]);
+                        drop(app);
+                        if let Some(ui) = c2.ui.upgrade() {
+                            sincronizar(&c2.app.lock().unwrap(), &ui);
+                        }
+                    });
+                }
+                Err(e) => {
+                    let msg = e.to_string();
+                    let c2 = c.clone();
+                    let _ = slint::invoke_from_event_loop(move || {
+                        let mut app = c2.app.lock().unwrap();
+                        app.atualizacao.ocupada = false;
+                        app.atualizacao.progresso = -1.0;
+                        app.atualizacao.status = idioma::tf("Update failed: {e}", &[("e", &msg)]);
+                        drop(app);
+                        if let Some(ui) = c2.ui.upgrade() {
+                            sincronizar(&c2.app.lock().unwrap(), &ui);
+                        }
+                    });
+                }
+            }
+        });
     }
 
     // MARK: ligar e conectar
@@ -2069,7 +2249,7 @@ fn main() -> Result<(), slint::PlatformError> {
     tema.set_raio(t.forma.raio);
     tema.set_sombra_x(t.forma.sombra.x);
     tema.set_sombra_y(t.forma.sombra.y);
-    ui.set_versao(env!("CARGO_PKG_VERSION").into());
+    ui.set_versao(update::installed_version().into());
     // O motor leve só existe no Linux.
     ui.set_tem_leve(cfg!(target_os = "linux"));
     ui.set_novo_motor(if cfg!(target_os = "linux") { 1 } else { 0 });
@@ -2089,6 +2269,7 @@ fn main() -> Result<(), slint::PlatformError> {
         memoria: String::new(),
         img: Imagens::default(),
         novo_erro: String::new(),
+        atualizacao: Atualizacao::default(),
     }));
     Ctx::ler_instalados(&mut app.lock().unwrap());
     let ctx = Ctx {
@@ -2160,6 +2341,19 @@ fn main() -> Result<(), slint::PlatformError> {
     ui.on_grupo(move |n, g| c.grupo(&n, &g));
     let c = ctx.clone();
     ui.on_apagar(move |n| c.apagar(&n));
+    let c = ctx.clone();
+    ui.on_atualizar_app(move || c.atualizar_app());
+
+    // Feed do site: há release preview mais nova?
+    ctx.checar_atualizacao();
+    // De novo a cada 6 h enquanto o app fica aberto.
+    let c = ctx.clone();
+    runtime.spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(6 * 3600)).await;
+            c.checar_atualizacao();
+        }
+    });
 
     // Métricas e aparelhos abertos por fora, a cada 2 s, fora da interface.
     let c = ctx.clone();

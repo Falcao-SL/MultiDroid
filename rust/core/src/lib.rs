@@ -17,3 +17,4 @@ pub mod screen;
 pub mod state;
 pub mod studio;
 pub mod tokens;
+pub mod update;

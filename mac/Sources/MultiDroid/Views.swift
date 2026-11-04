@@ -63,6 +63,7 @@ struct PanelView: View {
                     .buttonStyle(BrutalButtonStyle())
             }
             MemoryCard()
+            UpdateCard()
             if !selection.isEmpty { batchBar }
             ScrollView {
                 VStack(spacing: 12) {
@@ -117,6 +118,30 @@ struct PanelView: View {
         }
         Divider()
         Button("Apagar…", role: .destructive) { confirmDelete = d }.disabled(d.isRunning)
+    }
+}
+
+struct UpdateCard: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let u = model.appUpdate
+        if let text = u.bannerText {
+            HStack(spacing: 10) {
+                Text(text)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Tema.tintaSobreAcento)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                if u.showButton {
+                    Button(u.buttonLabel) { u.install() }
+                        .buttonStyle(BrutalButtonStyle(fill: Tema.azul))
+                        .disabled(u.isBusy)
+                }
+            }
+            .padding(12)
+            .brutal(fill: Tema.ciano)
+        }
     }
 }
 

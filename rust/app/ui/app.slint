@@ -643,6 +643,12 @@ export component AppWindow inherits Window {
     in property <float> teto;
     in property <string> aviso;
     in property <bool> sem-emulador;
+    // Atualização do próprio Preview (feed do site, botão manual).
+    in property <bool> atualizacao-pendente;
+    in property <string> atualizacao-versao;
+    in property <string> atualizacao-status;
+    in property <float> atualizacao-progresso: -1;
+    in property <bool> atualizacao-ocupada;
     in property <int> selecionados;
     // linhas ocupadas na grade (o maior y + h)
     in property <int> linhas;
@@ -682,6 +688,7 @@ export component AppWindow inherits Window {
     callback criar(int, int, string, string, string);
     callback grupo(string, string);
     callback apagar(string);
+    callback atualizar-app();
 
     // Painel lateral aberto (330 px) ou recolhido num trilho de ícones (32 px).
     in-out property <bool> painel-aberto: true;
@@ -740,6 +747,27 @@ export component AppWindow inherits Window {
                     padding: 12px; spacing: 8px;
                     Text { text: @tr("The emulator is needed to start devices."); font-size: 12px; font-weight: 700; color: Tema.tinta-sobre-acento; wrap: word-wrap; vertical-alignment: center; }
                     Botao { texto: @tr("Open Images"); cor: Tema.superficie; clicou => { abrir-imagens(); } }
+                }
+            }
+            if atualizacao-pendente: Bloco {
+                cor: Tema.ciano; height: atualizacao-ocupada && atualizacao-progresso >= 0 ? 88px : 64px;
+                VerticalLayout {
+                    padding: 12px; spacing: 8px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text {
+                            text: atualizacao-status != "" ? atualizacao-status : @tr("Update {} is available", atualizacao-versao);
+                            font-size: 12px; font-weight: 700; color: Tema.tinta-sobre-acento; wrap: word-wrap; vertical-alignment: center; horizontal-stretch: 1;
+                        }
+                        Botao {
+                            texto: @tr("Update");
+                            cor: Tema.azul;
+                            ativo: !atualizacao-ocupada;
+                            dica: @tr("Download, install and relaunch");
+                            clicou => { atualizar-app(); }
+                        }
+                    }
+                    if atualizacao-ocupada && atualizacao-progresso >= 0: Barra { valor: atualizacao-progresso; }
                 }
             }
             // Lote: botões em duas linhas de dois, todos com a mesma largura e fonte.

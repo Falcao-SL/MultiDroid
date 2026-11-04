@@ -299,6 +299,41 @@ const PT_BR: &[(&str, &str)] = &[
     ),
     ("the destination already exists", "o destino já existe"),
     ("invalid token", "token inválido"),
+    // Atualização do app
+    (
+        "the downloaded file doesn't match the published SHA-256",
+        "o arquivo baixado não confere com o SHA-256 publicado",
+    ),
+    (
+        "no installer for this system in the latest release",
+        "não há instalador para este sistema na release mais nova",
+    ),
+    ("the DMG has no .app bundle", "o DMG não tem um .app"),
+    ("the installer failed", "o instalador falhou"),
+    (
+        "installed, but the new executable wasn't found",
+        "instalou, mas o executável novo não apareceu",
+    ),
+    (
+        "open the .deb to finish installing, then restart MultiDroid",
+        "abra o .deb para terminar a instalação e abra o MultiDroid de novo",
+    ),
+    (
+        "open the .rpm to finish installing, then restart MultiDroid",
+        "abra o .rpm para terminar a instalação e abra o MultiDroid de novo",
+    ),
+    (
+        "AppImage downloaded — replace your current one and relaunch",
+        "AppImage baixado — troque o atual pelo novo e abra de novo",
+    ),
+    ("unsupported installer format", "formato de instalador não suportado"),
+    (
+        "Update {v} is ready",
+        "Atualização {v} pronta",
+    ),
+    ("Downloading update…", "Baixando atualização…"),
+    ("Installing update…", "Instalando atualização…"),
+    ("Update failed: {e}", "A atualização falhou: {e}"),
 ];
 
 #[cfg(test)]

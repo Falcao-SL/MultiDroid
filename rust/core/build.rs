@@ -4,6 +4,14 @@
 // O núcleo C (../native) entra no mesmo binário: CMake quando há `cmake` no
 // PATH (é o caso do GitHub Actions); senão o compilador C direto, o mesmo código.
 fn main() {
+    // Tag completa da release no pacote do CI (VERSION / MULTIDROID_RELEASE).
+    let release = std::env::var("MULTIDROID_RELEASE")
+        .or_else(|_| std::env::var("VERSION"))
+        .unwrap_or_else(|_| std::env::var("CARGO_PKG_VERSION").expect("CARGO_PKG_VERSION"));
+    println!("cargo:rustc-env=MULTIDROID_RELEASE={release}");
+    println!("cargo:rerun-if-env-changed=MULTIDROID_RELEASE");
+    println!("cargo:rerun-if-env-changed=VERSION");
+
     compilar_nativo();
     let proto = "../../mac/proto/emulator_controller.proto";
     println!("cargo:rerun-if-changed={proto}");

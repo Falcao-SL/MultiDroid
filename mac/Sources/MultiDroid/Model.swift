@@ -87,6 +87,7 @@ final class AppModel {
     var swapGB = 0.0
     var banner: String?
     let images = ImageStore()
+    let appUpdate = AppUpdate()
 
     private var metricsTask: Task<Void, Never>?
     private let stateURL: URL
@@ -101,6 +102,7 @@ final class AppModel {
         wireImageSwap()
         loadState()
         refresh()
+        appUpdate.start()
         // --start A,B: liga aparelhos ao abrir (testes e atalhos), um de cada
         // vez: o próximo só começa quando o anterior terminou o boot.
         let args = ProcessInfo.processInfo.arguments

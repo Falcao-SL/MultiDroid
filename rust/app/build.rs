@@ -1,4 +1,13 @@
 fn main() {
+    // Tag completa da release (ex. 0.3.0-alpha.4) no pacote do CI; localmente
+    // cai na versão do Cargo.toml. Sem isso, alpha.N não se compara com alpha.N+1.
+    let release = std::env::var("MULTIDROID_RELEASE")
+        .or_else(|_| std::env::var("VERSION"))
+        .unwrap_or_else(|_| std::env::var("CARGO_PKG_VERSION").expect("CARGO_PKG_VERSION"));
+    println!("cargo:rustc-env=MULTIDROID_RELEASE={release}");
+    println!("cargo:rerun-if-env-changed=MULTIDROID_RELEASE");
+    println!("cargo:rerun-if-env-changed=VERSION");
+
     // O inglês é a língua principal; o português vem de translations/pt_BR,
     // embutido no binário e escolhido pelo idioma do sistema no main.rs.
     let config =
