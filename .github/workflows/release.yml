@@ -1,3 +1,15 @@
+# Unified multi-platform release (Mac + Windows + Linux).
+#
+# Tag push v* matching mac/VERSION → native Swift .dmg only.
+# Tag push v* matching rust/Cargo.toml (e.g. v0.3.0-alpha.N) → Preview for
+#   macOS (.dmg), Windows (.exe) and Linux (.deb, .rpm, .AppImage).
+# After the GitHub Release goes public, sync-site-on-release.yml rewrites
+# site/ downloads and dispatches deploy-site.yml.
+#
+# Production secrets (self-hosted Mac keychain + notary):
+#   APPLE_ID, APPLE_APP_PASSWORD  (required to publish a signed Mac DMG)
+#   APPLE_TEAM_ID                 (optional; default 6EZ89E2F5S)
+# Site deploy (org): HOMELAB_DEPLOY_SSH_KEY, optional HOMELAB_DEPLOY_HOST
 name: Release signed installers
 on:
   push:
@@ -14,7 +26,7 @@ on:
         options: [all, windows, linux, mac]
         default: all
       publish:
-        description: Publish the validated installers and update site downloads
+        description: Publish the validated installers (site sync runs on release published)
         type: boolean
         default: true
 permissions:
@@ -186,7 +198,6 @@ jobs:
     runs-on: [self-hosted, Linux, homelab]
     permissions:
       contents: write
-      actions: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -211,21 +222,15 @@ jobs:
           [[ "$PREVIEW" == true ]] && args+=(--prerelease)
           shopt -s nullglob
           assets=(out/*.dmg out/*.exe out/*.deb out/*.rpm out/*.AppImage out/SHA256SUMS.txt out/release.json)
-          gh release create "$RELEASE_TAG" "${assets[@]}" "${args[@]}" --target "$GITHUB_SHA" \
-            --draft --title "MultiDroid $RELEASE_TAG" --notes-file out/RELEASE-NOTES.md
+          # Always land as draft first so verify-uploaded-release.py can check digests.
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --draft=true "${args[@]}" --notes-file out/RELEASE-NOTES.md
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" "${args[@]}" --target "$GITHUB_SHA" \
+              --draft --title "MultiDroid $RELEASE_TAG" --notes-file out/RELEASE-NOTES.md
+          fi
           gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > "$RUNNER_TEMP/multidroid-draft-release.json"
           python3 scripts/verify-uploaded-release.py "$RUNNER_TEMP/multidroid-draft-release.json"
+          # Undrafting fires sync-site-on-release.yml → site/ + deploy-site.yml.
           gh release edit "$RELEASE_TAG" --draft=false
-      - name: Refresh reviewed site download fallbacks
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          python3 scripts/update-site-downloads.py
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add site/index.html site/releases.json
-          if ! git diff --cached --quiet; then
-            git commit -m 'chore(site): update published MultiDroid installers'
-            git push origin HEAD:main
-          fi
-          gh workflow run deploy-site.yml --ref main

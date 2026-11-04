@@ -1,61 +1,32 @@
-# Release da versão 0.2 SwiftUI (mac/): tag v<CFBundleShortVersionString>
-# (ex.: v0.2) gera o .dmg, assina/notariza quando os segredos Apple existem, e
-# anexa à GitHub Release. Tags da Preview Rust (versão do Cargo.toml) são
-# ignoradas aqui — ficam com release.yml. "Run workflow" gera o artefato sem
-# publicar release.
+# DEPRECATED as a tag-triggered release path.
+# Production releases (native Mac 0.2.x and Rust Preview 0.3.x) go through
+# release.yml, which builds every supported platform, publishes the GitHub
+# Release, then sync-site-on-release.yml updates multidroid.falcaosl.com.
 #
-# Segredos (opcionais; sem eles o .dmg sai assinado ad hoc / sem notarizar):
-#   APPLE_CERTIFICATE_P12, APPLE_CERTIFICATE_PASSWORD
-#   APPLE_API_KEY, APPLE_API_KEY_ID, APPLE_API_ISSUER
-#   APPLE_SIGN_IDENTITY (opcional)
-name: release-swift
+# Kept only for emergency workflow_dispatch QA of a Swift .dmg on a
+# GitHub-hosted macOS runner (ad hoc or secrets-based signing). Does not
+# publish a release or touch the site.
+
+name: release-swift (QA only)
 
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  versao:
-    runs-on: ubuntu-latest
-    outputs:
-      swift: ${{ steps.v.outputs.swift }}
-      nome: ${{ steps.v.outputs.nome }}
-    steps:
-      - uses: actions/checkout@v5
-      - id: v
-        run: |
-          SWIFT=$(sed -n 's/.*CFBundleShortVersionString<\/key><string>\([^<]*\)<\/string>.*/\1/p' \
-            mac/scripts/build-app.sh | head -1)
-          CARGO=$(sed -n 's/^version = "\(.*\)"/\1/p' rust/Cargo.toml | head -1)
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            TAG=${GITHUB_REF_NAME#v}
-            BASE=${TAG%%-*}
-          else
-            TAG="$SWIFT-teste"; BASE=$SWIFT
-          fi
-          # Só roda se a tag bate com a 0.2 (Swift) e NÃO com a Preview Rust.
-          if [ "$BASE" = "$SWIFT" ] && [ "$BASE" != "$CARGO" ]; then
-            echo swift=true >>"$GITHUB_OUTPUT"
-          else
-            echo swift=false >>"$GITHUB_OUTPUT"
-          fi
-          echo "nome=$TAG" >>"$GITHUB_OUTPUT"
-          echo "Swift $SWIFT, Cargo $CARGO, tag $TAG → swift=$( [ "$BASE" = "$SWIFT" ] && [ "$BASE" != "$CARGO" ] && echo true || echo false )"
-
   dmg:
-    needs: versao
-    if: needs.versao.outputs.swift == 'true'
     runs-on: macos-latest
     env:
       HAS_SIGNING: ${{ secrets.APPLE_CERTIFICATE_P12 != '' }}
       HAS_NOTARY: ${{ secrets.APPLE_API_KEY != '' }}
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
+      - name: Point to the unified release pipeline
+        run: |
+          echo "::notice::For production, push a v* tag (or Run workflow on 'Release signed installers'). This job only builds a QA .dmg artifact."
       - name: Xcode
         run: xcodebuild -version && swift --version
       - name: Importa Developer ID
@@ -82,7 +53,6 @@ jobs:
             export SIGN_ID="$APPLE_SIGN_IDENTITY"
             scripts/release.sh
           else
-            # release.sh exige Developer ID; sem cert, monta o .dmg à mão (ad hoc).
             SIGN_ID=- scripts/build-app.sh release
             APP=build/MultiDroid.app
             VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Contents/Info.plist")
@@ -111,44 +81,18 @@ jobs:
           chmod +x scripts/ci/notarize.sh
           DMG=$(ls mac/build/MultiDroid-*.dmg | head -1)
           scripts/ci/notarize.sh "$DMG"
-      - name: Notarização pulada
-        if: env.HAS_SIGNING == 'true' && env.HAS_NOTARY != 'true'
-        run: echo "::notice::APPLE_API_KEY ausente — .dmg assinado, sem notarizar. Use mac/scripts/release.sh no Mac do dono ou configure os segredos."
       - name: Nome do artefato
         id: out
         run: |
           SRC=$(ls mac/build/MultiDroid-*.dmg | head -1)
-          DEST="MultiDroid-${{ needs.versao.outputs.nome }}.dmg"
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" mac/build/MultiDroid.app/Contents/Info.plist)
+          DEST="MultiDroid-${VERSION}-QA.dmg"
           mkdir -p out
           cp "$SRC" "out/$DEST"
           echo "file=$DEST" >>"$GITHUB_OUTPUT"
           ls -la out/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
-          name: MultiDroid-swift-dmg
+          name: MultiDroid-swift-dmg-qa
           path: out/*
           if-no-files-found: error
-
-  publicar:
-    needs: [versao, dmg]
-    if: github.ref_type == 'tag' && needs.versao.outputs.swift == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: MultiDroid-swift-dmg
-          path: out
-      - name: Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          NOTES="Versão 0.2 SwiftUI para Mac (Apple Silicon). .dmg Developer ID + notarizado quando os segredos Apple estão no repositório. Fora da Mac App Store (docs/produto/DISTRIBUICAO.md)."
-          if gh release view "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" out/* --clobber -R "$GITHUB_REPOSITORY"
-          else
-            gh release create "$GITHUB_REF_NAME" out/* -R "$GITHUB_REPOSITORY" \
-              --title "MultiDroid ${{ needs.versao.outputs.nome }}" \
-              --notes "$NOTES"
-          fi

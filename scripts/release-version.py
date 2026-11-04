@@ -11,7 +11,10 @@ platform=os.environ.get('QA_PLATFORM','all')
 if platform not in ('all','windows','linux','mac'):raise SystemExit('Unsupported QA platform')
 if os.environ.get('PUBLISH')=='true' and platform!='all':raise SystemExit('Production publication requires all supported platforms')
 if native and platform not in ('all','mac'):raise SystemExit('The native release is Mac only')
-runners=[{'runner':['self-hosted','Windows','X64'],'platform':'windows','formats':'nsis'},{'runner':'ubuntu-22.04','platform':'linux','formats':'appimage,deb'}]
+# Windows uses GitHub-hosted runners: the Sciensa self-hosted box blocks
+# cargo build-script binaries under Application Control (os error 4551).
+# Restore ['self-hosted','Windows','X64'] once WDAC allows target/debug/build/*.
+runners=[{'runner':'windows-latest','platform':'windows','formats':'nsis'},{'runner':'ubuntu-22.04','platform':'linux','formats':'appimage,deb'}]
 selected=[] if native else [item for item in runners if platform in ('all',item['platform'])]
 with open(os.environ['GITHUB_OUTPUT'],'a') as output:
  for key,value in {'mac':str(platform in ('all','mac')).lower(),'desktop':str(bool(selected)).lower(),'matrix':json.dumps({'include':selected})}.items():output.write(f'{key}={value}\n')

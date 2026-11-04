@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Refresh static downloads only from assets actually published on GitHub."""
+"""Refresh static downloads only from assets actually published on GitHub.
+
+Used by sync-site-on-release.yml after every published release (stable or
+preview). Reads the public Releases API — no draft assets — and rewrites
+site/index.html + site/releases.json so multidroid.falcaosl.com needs no
+client-side GitHub calls.
+"""
 import json,os,re,urllib.request
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
@@ -11,6 +17,8 @@ with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=
 releases=[release for release in releases if not release['draft']]
 stable=next((release for release in releases if not release['prerelease'] and any(re.fullmatch(r'MultiDroid-[\d.]+\.dmg',asset['name']) for asset in release['assets'])),None)
 preview=next((release for release in releases if release['prerelease'] and any(asset['name'].endswith('-windows-x64-setup.exe') for asset in release['assets'])),None)
+if not stable and not preview:
+ raise SystemExit('No published MultiDroid release with recognized installers was found')
 page=ROOT/'site/index.html';html=page.read_text()
 manifest={}
 for channel,release in [('stable',stable),('preview',preview)]:

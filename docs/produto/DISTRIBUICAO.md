@@ -18,7 +18,7 @@ desenvolvedor desconhecido.
 | Conta Apple Developer (Team `6EZ89E2F5S`) | existe |
 | Certificado **Developer ID Application** | no Keychain; `mac/scripts/build-app.sh` usa sozinho quando encontra |
 | Assinatura com hardened runtime | **feito**: Developer ID + `--options runtime --timestamp`, sem entitlements (o app não usa o Hypervisor nem sandbox; quem usa é o emulador, assinado pelo Google) |
-| Notarização (`notarytool`) e grampo (`stapler`) | `mac/scripts/release.sh` no Mac; no CI via `APPLE_API_KEY` + ID + ISSUER (`scripts/ci/notarize.sh`) |
+| Notarização (`notarytool`) e grampo (`stapler`) | `release.yml` no Mac self-hosted via `APPLE_ID` + `APPLE_APP_PASSWORD`; local com `mac/scripts/release.sh` |
 | Embalagem | **`.dmg`** assinado (`mac/build/MultiDroid-<versão>.dmg`), com atalho para Aplicativos |
 | Página de download | GitHub Releases; site `multidroid.falcaosl.com` |
 | Homebrew cask | **no repo**: [`packaging/homebrew/Casks/multidroid.rb`](../../packaging/homebrew/Casks/multidroid.rb); publicar no tap é passo manual do dono |
@@ -30,32 +30,62 @@ desenvolvedor desconhecido.
 | Workflow | Quando | O que faz |
 |----------|--------|-----------|
 | [`swift-mac.yml`](../../.github/workflows/swift-mac.yml) | push/PR em `mac/` | Compila `MultiDroid.app` (ad hoc no PR) |
-| [`release-swift.yml`](../../.github/workflows/release-swift.yml) | tag `v*` = versão Swift (`0.2`) | `.dmg` da 0.2; assina/notariza se houver segredos; anexa à release |
 | [`rust.yml`](../../.github/workflows/rust.yml) | push/PR em `rust/` | fmt, clippy, test, build nos 3 SO; `emulador-linux` + `leve-linux`; macOS/Windows emulador só sob pedido |
-| [`release.yml`](../../.github/workflows/release.yml) | tag `v*` = versão Cargo (`0.3.0`) | Preview: dmg/exe/AppImage/deb/rpm; dmg assinado/notarizado se houver segredos |
-| [`deploy-site.yml`](../../.github/workflows/deploy-site.yml) | site | Publica multidroid.falcaosl.com |
+| [`release.yml`](../../.github/workflows/release.yml) | tag `v*` **ou** Run workflow | **Única** release de produção: todas as plataformas suportadas + GitHub Release |
+| [`sync-site-on-release.yml`](../../.github/workflows/sync-site-on-release.yml) | release publicada | Reescreve `site/` (versão + URLs) e dispara o deploy |
+| [`deploy-site.yml`](../../.github/workflows/deploy-site.yml) | push em `site/**` ou dispatch | rsync → multidroid.falcaosl.com |
+| [`release-swift.yml`](../../.github/workflows/release-swift.yml) | só Run workflow | QA de `.dmg` Swift (não publica release nem site) |
 
-### Segredos Apple (opcionais)
+### Como disparar uma release
 
-Sem eles o CI **não falha**: sobe artefato unsigned/ad hoc e imprime `::notice::`.
-Com eles, assina e notariza no runner.
+1. Confirme a versão: `mac/VERSION` (estável nativa) **ou** `rust/Cargo.toml` (Preview).
+2. Na `main` limpa: `git tag vX.Y.Z` (ex.: `v0.2.1` ou `v0.3.0-alpha.4`) e `git push origin vX.Y.Z`.
+3. Ou: **Actions → Release signed installers → Run workflow** com a tag e `publish=true`.
+4. O job `publish` sobe os instaladores, verifica o rascunho e publica a Release.
+5. `sync-site-on-release` atualiza `site/index.html` + `site/releases.json` e dispara `deploy-site`.
+
+| Tag | Plataformas geradas |
+|-----|---------------------|
+| `v` + `mac/VERSION` (ex. `v0.2.1`) | macOS Apple Silicon `.dmg` (Swift nativo) |
+| `v` + versão Cargo com sufixo (ex. `v0.3.0-alpha.4`) | Preview: `.dmg` (arm64), `.exe` (x64), `.deb` / `.rpm` / `.AppImage` (amd64) |
+
+Publicação de produção exige `platform=all` (padrão). QA parcial (`windows`/`linux`/`mac`) só com `publish=false`.
+
+### Segredos e variáveis
+
+**Release Mac (obrigatórios para publicar DMG assinado no self-hosted):**
+
+| Segredo | Uso |
+|---------|-----|
+| `APPLE_ID` | Apple ID da conta Developer |
+| `APPLE_APP_PASSWORD` | senha de app para `notarytool` |
+| `APPLE_TEAM_ID` | opcional; padrão `6EZ89E2F5S` |
+
+O runner self-hosted macOS precisa do certificado **Developer ID Application** no Keychain (não vai no GitHub).
+
+**QA Swift em runner hospedado (`release-swift.yml`, opcionais):**
 
 | Segredo | Uso |
 |---------|-----|
 | `APPLE_CERTIFICATE_P12` | `.p12` do Developer ID em **base64** |
 | `APPLE_CERTIFICATE_PASSWORD` | senha do `.p12` |
 | `APPLE_SIGN_IDENTITY` | opcional — `Developer ID Application: …` |
-| `APPLE_API_KEY` | chave `.p8` (PEM cru ou base64) |
-| `APPLE_API_KEY_ID` | Key ID |
-| `APPLE_API_ISSUER` | Issuer UUID |
+| `APPLE_API_KEY` / `APPLE_API_KEY_ID` / `APPLE_API_ISSUER` | notarização via API key |
 
-Scripts: `scripts/ci/import-apple-cert.sh`, `resign-dmg.sh`, `notarize.sh`.
+**Deploy do site (org Falcao-SL):**
 
-### Fluxo híbrido (sem segredos no GitHub)
+| Segredo | Uso |
+|---------|-----|
+| `HOMELAB_DEPLOY_SSH_KEY` | chave do usuário `deploy` no Caddy |
+| `HOMELAB_DEPLOY_HOST` | opcional; no runner da VM: `127.0.0.1` |
 
-1. CI publica o `.dmg` unsigned na release.
-2. No Mac do dono: `mac/scripts/release.sh` (0.2) ou `rust/scripts/release-mac.sh <tag>` (Preview; `DO_CI=1` reassina o da release).
-3. `gh release upload <tag> ….dmg --clobber`.
+Scripts: `scripts/sign-apple-release.sh`, `scripts/update-site-downloads.py`, `scripts/ci/*`.
+
+### Fluxo híbrido (Mac sem notary no CI)
+
+1. CI publica o `.dmg` unsigned na release (ou falha o job Mac se faltar `APPLE_ID`).
+2. No Mac do dono: `mac/scripts/release.sh` (nativo) ou `rust/scripts/release-mac.sh <tag>` (Preview; `DO_CI=1` reassina o da release).
+3. `gh release upload <tag> ….dmg --clobber` — ao republicar/editar a release, rode **Sync site on release** se os links do site não atualizarem sozinhos.
 
 ## Homebrew
 
@@ -119,7 +149,7 @@ Credencial local (uma vez): `xcrun notarytool store-credentials notary --apple-i
 | Fase 0 (medir) | **Feito** |
 | Fase 1 (o app) | quase feito |
 | Developer ID + notarização | assinatura feita; CI secrets-ready; local com perfil `notary` |
-| Pipeline GitHub Actions | **Feito** (`swift-mac`, `release-swift`, `rust`, `release`) |
+| Pipeline GitHub Actions | **Feito** (`release.yml` multiplataforma + `sync-site-on-release` + `deploy-site`) |
 | Homebrew cask no repo | **Feito**; tap remoto a cargo do dono |
 | Página de download e política publicada | site no ar; política em docs |
 | Lançamento | 0.2 publicada; Preview Rust em pré-release |

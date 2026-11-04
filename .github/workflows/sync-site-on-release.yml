@@ -1,0 +1,79 @@
+# After a GitHub Release is published (stable or preview), rewrite site/
+# download links from the live assets and dispatch Deploy site.
+# Pattern shared with Dictasy (sync-site-on-release.yml).
+#
+# Triggered automatically when release.yml undrafts a release, or when a
+# release is published by hand. Commit uses [skip ci] so the site bump does
+# not re-enter rust/swift CI; deploy-site is dispatched explicitly.
+
+name: Sync site on release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Published tag to refresh from (informational; sync reads the API)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: sync-site-on-release
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        !github.event.release.draft &&
+        startsWith(github.event.release.tag_name, 'v')
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Refresh site downloads from published releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/update-site-downloads.py
+
+      - name: Commit site bump when needed
+        id: commit
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add site/index.html site/releases.json
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Site already matched the published MultiDroid installers."
+            exit 0
+          fi
+          tag="${{ github.event.release.tag_name || inputs.tag || 'published' }}"
+          git commit -m "$(cat <<EOF
+          chore(site): sync downloads from ${tag} [skip ci]
+
+          Auto-synced from the published GitHub Release so
+          multidroid.falcaosl.com points at the new installers.
+          EOF
+          )"
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch Deploy site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # [skip ci] would also skip deploy-site's push trigger; dispatch explicitly.
+          gh workflow run deploy-site.yml --ref main
+          echo "Dispatched deploy-site.yml"

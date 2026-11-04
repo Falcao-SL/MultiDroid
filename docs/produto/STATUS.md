@@ -70,7 +70,7 @@ Como apontar o Studio: o passo a passo está no ADR-001. Resumo: rodar o script,
 - Versão Linux: spec escrita ([LINUX.md](../spec/LINUX.md)), sem código; a fase 0 precisa de um PC Linux com GPU Intel ou AMD e 16 GB (o homelab não serve).
 - Desenho por Metal (decisão M-2): hoje a tela é desenhada como imagem no
   SwiftUI.
-- Pipeline CI/CD: **feito** — `swift-mac.yml` + `release-swift.yml` (0.2), `rust.yml` + `release.yml` (Preview); assinatura/notarização no CI quando existem segredos Apple; cask em `packaging/homebrew/Casks/multidroid.rb` (publicar no tap ainda é manual). Detalhe em [DISTRIBUICAO.md](DISTRIBUICAO.md).
+- Pipeline CI/CD: **feito** — `release.yml` gera instaladores de todas as plataformas da tag, publica a GitHub Release; `sync-site-on-release.yml` atualiza downloads em `site/` e dispara `deploy-site.yml`. CI de PR: `swift-mac.yml` + `rust.yml`. Cask em `packaging/homebrew/Casks/multidroid.rb` (tap remoto ainda manual). Detalhe em [DISTRIBUICAO.md](DISTRIBUICAO.md).
 - Interface só em português na 0.2; Preview Rust já tem en/pt.
 - Revisar com advogado a licença das imagens do Google antes de tornar o
   repositório público (MAC.md §5).
