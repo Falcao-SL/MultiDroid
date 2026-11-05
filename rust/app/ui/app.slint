@@ -760,7 +760,7 @@ export component AppWindow inherits Window {
                             font-size: 12px; font-weight: 700; color: Tema.tinta-sobre-acento; wrap: word-wrap; vertical-alignment: center; horizontal-stretch: 1;
                         }
                         Botao {
-                            texto: @tr("Update");
+                            texto: atualizacao-status != "" && !atualizacao-ocupada ? @tr("Try again") : @tr("Update");
                             cor: Tema.azul;
                             ativo: !atualizacao-ocupada;
                             dica: @tr("Download, install and relaunch");

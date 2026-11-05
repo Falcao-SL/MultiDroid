@@ -22,8 +22,15 @@ desenvolvedor desconhecido.
 | Embalagem | **`.dmg`** assinado (`mac/build/MultiDroid-<versão>.dmg`), com atalho para Aplicativos |
 | Página de download | GitHub Releases; site `multidroid.falcaosl.com` |
 | Homebrew cask | **no repo**: [`packaging/homebrew/Casks/multidroid.rb`](../../packaging/homebrew/Casks/multidroid.rb); publicar no tap é passo manual do dono |
-| Atualização in-app | **feito**: feed `https://multidroid.falcaosl.com/releases.json`, botão manual, SHA-256 quando a release traz `SHA256SUMS.txt` (Swift estável + Preview Rust) |
+| Atualização in-app | **feito**: feed `https://multidroid.falcaosl.com/releases.json` (fallback raw GitHub; Preview ainda cai na API de releases), botão manual, SHA-256 quando a release traz `SHA256SUMS.txt` (Swift estável + Preview Rust mac/win/linux) |
 | Pipeline de build e release | **feito** — ver tabela abaixo |
+
+### Como verificar a atualização in-app
+
+1. Confirme o feed publicado: `curl -sS https://multidroid.falcaosl.com/releases.json` (canais `stable` / `preview` + `assets`).
+2. **Estável (Swift):** rode um build cuja `CFBundleShortVersionString` seja menor que `stable.tag` (ex.: app 0.2 com feed em 0.2.1). Abra o app → cartão ciano no painel → **Atualizar** (baixa o `.dmg`, confere SHA-256 se houver `SHA256SUMS.txt`, monta, troca o `.app` e relança).
+3. **Preview (Rust):** mesma ideia no canal `preview`; o instalador escolhido é o da plataforma (`.dmg` arm64, `.exe`, `.deb`/`.rpm`/`.AppImage`). O botão só age sob clique — sem forçar update.
+4. Erro de checksum ou rede: o cartão mostra a falha e **Tentar de novo** / **Try again**; nada sobrescreve o app sem o botão.
 
 ## Pipelines no GitHub Actions
 

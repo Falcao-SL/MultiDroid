@@ -97,8 +97,13 @@ final class AppUpdate {
     }
 
     func check() {
-        guard !isBusy || phase == .checking else { return }
-        phase = .checking
+        // Não interrompe download/instalação; recheck em segundo plano
+        // preserva o cartão "disponível"/"falhou" se a rede falhar.
+        switch phase {
+        case .checking, .downloading, .installing: return
+        case .idle: phase = .checking
+        case .available, .failed: break
+        }
         Task { await self.refresh() }
     }
 
@@ -111,10 +116,11 @@ final class AppUpdate {
     }
 
     private func refresh() async {
+        let prior = phase
         do {
             let feed = try await Self.fetchFeed()
             guard let stable = feed.stable else {
-                phase = .idle
+                if case .checking = prior { phase = .idle }
                 return
             }
             let remote = stable.tag.hasPrefix("v") ? String(stable.tag.dropFirst()) : stable.tag
@@ -136,10 +142,11 @@ final class AppUpdate {
             )
             phase = .available(version: remote, tag: stable.tag)
         } catch {
-            // Silencioso no arranque; falha só fica visível se já havia cartão.
-            if case .available = phase { /* keep */ }
-            else if case .failed = phase { /* keep */ }
-            else { phase = .idle }
+            // Silencioso no arranque; mantém cartão se já havia oferta ou erro.
+            switch prior {
+            case .available, .failed: phase = prior
+            default: phase = .idle
+            }
         }
     }
 

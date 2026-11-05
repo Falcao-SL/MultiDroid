@@ -1,15 +1,15 @@
 # Status — MultiDroid
 
-> Atualizado em **2026-11-03**. Fonte única de "em que pé está".
+> Atualizado em **2026-11-04**. Fonte única de "em que pé está".
 
 | Campo | Valor |
 |---|---|
 | **Estágio** | **Publicado: 0.2 no GitHub Releases** (2026-10-18), código aberto. Fase 1 quase toda feita; fase 2 não começou |
 | **Plataformas** | Publicado: macOS 26, Apple Silicon. Em pré-release: Mac, Windows e Linux pela versão Rust (Preview 0.3) |
 | **Stack** | Swift Package em `mac/`: SwiftUI + gRPC sobre o Android Emulator oficial |
-| **Versão** | 0.2 (build 2), assinada com Developer ID (`scripts/build-app.sh`); notarização e `.dmg` por `scripts/release.sh` |
+| **Versão** | `mac/VERSION` = **0.2.1** (estável nativa); Preview Rust workspace **0.3.0** (tags `v0.3.0-alpha.*`) |
 | **Identificador** | `com.falcaosl.multidroid` · Apple Team `6EZ89E2F5S` |
-| **Distribuição** | `.dmg` assinado e notarizado no GitHub Releases, fora da Mac App Store (decisão M-6); CI secrets-ready + cask em `packaging/homebrew/`; repositório público |
+| **Distribuição** | `.dmg` assinado e notarizado no GitHub Releases, fora da Mac App Store (decisão M-6); CI secrets-ready + cask em `packaging/homebrew/`; repositório público; **atualização in-app** via `releases.json` (botão manual, SHA-256 quando houver) |
 | **Site** | https://multidroid.falcaosl.com (em `site/`, inglês) |
 | **Monetização** | **Nenhuma: código aberto, GPL-3.0** (2026-10-10; [MONETIZACAO.md](MONETIZACAO.md)) |
 | **Versão Rust** | Preview 0.3 em `rust/` (Rust + Slint), inglês como língua principal e português como tradução. No Mac: 4 celulares + 1 relógio ligados com toque, teclas e texto, e memória igual à 0.2 (~115 MB com 5 aparelhos, renderizador por software). No Windows: emulador liga aparelhos via WHPX, baixa emulador automaticamente, captura via MMAP e fecha salvando estado (2026-10-22). No Linux: pacotes .deb, .rpm e .AppImage gerados no CI; motor leve (Redroid) com 8 aparelhos. Interface com painel recolhível em trilho, barra inferior de botões no quadro, redimensionamento proporcional e barra de progresso nos downloads com velocidade e ETA. Ver [`../spec/MULTIPLATAFORMA.md`](../spec/MULTIPLATAFORMA.md) |

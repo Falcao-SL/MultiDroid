@@ -518,5 +518,9 @@ msgid "Update"
 msgstr "Atualizar"
 
 msgctxt "AppWindow"
+msgid "Try again"
+msgstr "Tentar de novo"
+
+msgctxt "AppWindow"
 msgid "Download, install and relaunch"
 msgstr "Baixar, instalar e reabrir"
