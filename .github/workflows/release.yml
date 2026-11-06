@@ -39,7 +39,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   version:
-    runs-on: [self-hosted, Linux, homelab]
+    # Signing-only QA need not wait for the shared Homelab runner.
+    runs-on: ${{ inputs.validate_signing == true && inputs.publish != true && 'ubuntu-latest' || fromJSON('["self-hosted", "Linux", "homelab"]') }}
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       name: ${{ steps.version.outputs.name }}
