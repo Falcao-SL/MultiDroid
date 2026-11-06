@@ -9,6 +9,14 @@ set -euo pipefail
 [[ "$MULTIDROID_TUNNEL_HOST_KEY" == ssh-ed25519\ * && "$MULTIDROID_TUNNEL_HOST_KEY" != *$'\n'* ]] || { echo 'Invalid pinned host key' >&2; exit 1; }
 umask 077
 work=$(mktemp -d /tmp/md-tunnel.XXXXXXXX)
+cleanup_on_failure() {
+  rc=$?
+  if (( rc != 0 )); then
+    ssh -S "$work/control" -O exit multidroid-ci-tunnel@localhost >/dev/null 2>&1 || true
+    rm -rf "$work"
+  fi
+}
+trap cleanup_on_failure EXIT
 printf 'MULTIDROID_TUNNEL_DIR=%s\n' "$work" >> "$GITHUB_ENV"
 printf '%s\n' "$MULTIDROID_TUNNEL_SSH_KEY" > "$work/id_ed25519"
 printf '%s %s\n' "$MULTIDROID_TUNNEL_HOST" "$MULTIDROID_TUNNEL_HOST_KEY" > "$work/known_hosts"
