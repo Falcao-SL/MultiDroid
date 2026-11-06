@@ -25,9 +25,10 @@ PY
 ssh -i "$work/id_ed25519" -o IdentitiesOnly=yes -o BatchMode=yes \
   -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$work/known_hosts" \
   -o ExitOnForwardFailure=yes -o ConnectTimeout=15 -M -S "$work/control" -f -N \
-  -L "127.0.0.1:$phase_port:127.0.0.1:8087" \
+  -D "127.0.0.1:$phase_port" \
   -L "127.0.0.1:$minio_port:127.0.0.1:9000" \
   "multidroid-ci-tunnel@$MULTIDROID_TUNNEL_HOST"
-printf 'PHASE_HOST=http://127.0.0.1:%s\n' "$phase_port" >> "$GITHUB_ENV"
+printf 'PHASE_HOST=http://%s:8087\n' "$MULTIDROID_TUNNEL_HOST" >> "$GITHUB_ENV"
+printf 'PHASE_PROXY=socks5://127.0.0.1:%s\n' "$phase_port" >> "$GITHUB_ENV"
 printf 'MINIO_TUNNEL_ENDPOINT=http://127.0.0.1:%s\n' "$minio_port" >> "$GITHUB_ENV"
 echo 'Restricted SSH tunnel established.'

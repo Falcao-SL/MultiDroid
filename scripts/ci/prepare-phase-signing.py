@@ -51,8 +51,12 @@ def security(*args):
 
 
 def main():
+    phase_env = os.environ.copy()
+    if phase_env.get('PHASE_PROXY'):
+        phase_env.update(HTTP_PROXY=phase_env['PHASE_PROXY'], HTTPS_PROXY=phase_env['PHASE_PROXY'],
+                         NO_PROXY='', no_proxy='')
     result = subprocess.run(['phase', 'secrets', 'export', '--app', 'multidroid', '--env', 'production', '--format', 'json'],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
+                            env=phase_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
     if result.returncode:
         message = (result.stderr + result.stdout).decode(errors='replace').lower()
         indicators = ('401', '403', '404', 'unauthorized', 'forbidden', 'permission',
