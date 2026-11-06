@@ -52,7 +52,13 @@ def security(*args):
 
 def main():
     result = subprocess.run(['phase', 'secrets', 'export', '--app', 'multidroid', '--env', 'production', '--format', 'json'],
-                            check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
+    if result.returncode:
+        message = (result.stderr + result.stdout).decode(errors='replace')[:600]
+        token = os.environ.get('PHASE_SERVICE_TOKEN', '')
+        if token:
+            message = message.replace(token, '[redacted]')
+        raise RuntimeError('Phase export failed: ' + message.strip())
     values = json.loads(result.stdout)
     required = ('MINIO_ENDPOINT', 'MINIO_BUCKET', 'MINIO_ACCESS_KEY', 'MINIO_SECRET_KEY',
                 'APPLE_DEVELOPER_ID_P12_PASSWORD', 'APPLE_DEVELOPER_ID_OBJECT', 'APPLE_API_KEY_OBJECT',
@@ -93,5 +99,6 @@ if __name__ == '__main__':
         main()
     except Exception as exc:
         detail = f' ({exc.cmd[1]})' if isinstance(exc, subprocess.CalledProcessError) and len(exc.cmd) > 1 else ''
-        print(f'Failed to prepare Apple signing: {type(exc).__name__}{detail}', file=sys.stderr)
+        message = str(exc) if isinstance(exc, RuntimeError) and str(exc).startswith('Phase export failed:') else type(exc).__name__ + detail
+        print('Failed to prepare Apple signing: ' + message, file=sys.stderr)
         sys.exit(1)
