@@ -68,7 +68,7 @@ def main():
     work.mkdir(mode=0o700)
     p12, api_key, keychain = work / 'developer-id.p12', work / 'AuthKey.p8', work / 'signing.keychain-db'
     for target, obj in ((p12, v['APPLE_DEVELOPER_ID_OBJECT']), (api_key, v['APPLE_API_KEY_OBJECT'])):
-        target.write_bytes(download(v['MINIO_ENDPOINT'], v['MINIO_BUCKET'], obj, v['MINIO_ACCESS_KEY'], v['MINIO_SECRET_KEY']))
+        target.write_bytes(download(os.environ.get('MINIO_TUNNEL_ENDPOINT', v['MINIO_ENDPOINT']), v['MINIO_BUCKET'], obj, v['MINIO_ACCESS_KEY'], v['MINIO_SECRET_KEY']))
         target.chmod(0o600)
     password = secrets.token_urlsafe(32)
     security('create-keychain', '-p', password, str(keychain))

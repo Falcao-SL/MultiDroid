@@ -68,11 +68,18 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
       - uses: actions/checkout@v7
+      - name: Open restricted tunnel to Homelab
+        if: github.ref_type == 'tag' || inputs.publish == true || inputs.validate_signing == true
+        shell: bash
+        env:
+          MULTIDROID_TUNNEL_SSH_KEY: ${{ secrets.MULTIDROID_TUNNEL_SSH_KEY }}
+          MULTIDROID_TUNNEL_HOST: ${{ vars.MULTIDROID_TUNNEL_HOST }}
+          MULTIDROID_TUNNEL_HOST_KEY: ${{ vars.MULTIDROID_TUNNEL_HOST_KEY }}
+        run: scripts/ci/open-homelab-tunnel.sh
       - name: Prepare production signing from Phase and MinIO
         if: github.ref_type == 'tag' || inputs.publish == true || inputs.validate_signing == true
         shell: bash
         env:
-          PHASE_HOST: ${{ vars.PHASE_HOST || 'http://192.168.1.112:8087' }}
           PHASE_SERVICE_TOKEN: ${{ secrets.PHASE_SERVICE_TOKEN }}
         run: |
           test -n "$PHASE_SERVICE_TOKEN" || { echo 'Configure the multidroid Phase service token.'; exit 1; }
@@ -148,6 +155,11 @@ jobs:
           dir="$RUNNER_TEMP/multidroid-signing-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           security delete-keychain "$dir/signing.keychain-db" >/dev/null 2>&1 || true
           rm -rf "$dir"
+          tunnel="${MULTIDROID_TUNNEL_DIR:-}"
+          if [[ "$tunnel" == /tmp/md-tunnel.* ]]; then
+            ssh -S "$tunnel/control" -O exit multidroid-ci-tunnel@localhost >/dev/null 2>&1 || true
+            rm -rf "$tunnel"
+          fi
       - uses: actions/upload-artifact@v7
         with:
           name: ${{ (github.ref_type == 'tag' || inputs.publish == true) && 'signed-mac' || 'qa-mac-not-for-release' }}
