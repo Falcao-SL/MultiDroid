@@ -6,9 +6,8 @@
 # After the GitHub Release goes public, sync-site-on-release.yml rewrites
 # site/ downloads and dispatches deploy-site.yml.
 #
-# Production secrets (self-hosted Mac keychain + notary):
-#   APPLE_ID, APPLE_APP_PASSWORD  (required to publish a signed Mac DMG)
-#   APPLE_TEAM_ID                 (optional; default 6EZ89E2F5S)
+# Production signing: PHASE_SERVICE_TOKEN scoped to multidroid / Production.
+# The macOS runner needs the Phase CLI and network access to Phase and MinIO.
 # Site deploy (org): HOMELAB_DEPLOY_SSH_KEY, optional HOMELAB_DEPLOY_HOST
 name: Release signed installers
 on:
@@ -29,6 +28,10 @@ on:
         description: Publish the validated installers (site sync runs on release published)
         type: boolean
         default: true
+      validate_signing:
+        description: Verify Phase, MinIO and Apple signing during a non-publishing QA run
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -36,7 +39,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   version:
-    runs-on: [self-hosted, Linux, homelab]
+    # Signing-only QA need not wait for the shared Homelab runner.
+    runs-on: ${{ inputs.validate_signing == true && inputs.publish != true && 'ubuntu-latest' || fromJSON('["self-hosted", "Linux", "homelab"]') }}
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       name: ${{ steps.version.outputs.name }}
@@ -62,17 +66,33 @@ jobs:
     timeout-minutes: 90
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || '6EZ89E2F5S' }}
     steps:
       - uses: actions/checkout@v7
-      - name: Require production signing credentials
-        if: github.ref_type == 'tag' || inputs.publish == true
+      - name: Open restricted tunnel to Homelab
+        if: github.ref_type == 'tag' || inputs.publish == true || inputs.validate_signing == true
+        shell: bash
+        env:
+          MULTIDROID_TUNNEL_SSH_KEY: ${{ secrets.MULTIDROID_TUNNEL_SSH_KEY }}
+          MULTIDROID_TUNNEL_HOST: ${{ vars.MULTIDROID_TUNNEL_HOST }}
+          MULTIDROID_TUNNEL_HOST_KEY: ${{ vars.MULTIDROID_TUNNEL_HOST_KEY }}
+        run: scripts/ci/open-homelab-tunnel.sh
+      - name: Prepare production signing from Phase and MinIO
+        if: github.ref_type == 'tag' || inputs.publish == true || inputs.validate_signing == true
+        shell: bash
+        env:
+          PHASE_SERVICE_TOKEN: ${{ secrets.PHASE_SERVICE_TOKEN }}
+        run: |
+          test -n "$PHASE_SERVICE_TOKEN" || { echo 'Configure the multidroid Phase service token.'; exit 1; }
+          export PATH="/opt/homebrew/bin:$PATH"
+          command -v phase >/dev/null || { echo 'Install the Phase CLI on the macOS runner.'; exit 1; }
+          python3 scripts/ci/prepare-phase-signing.py
+      - name: Verify notarization credentials (QA)
+        if: inputs.validate_signing == true && github.ref_type != 'tag' && inputs.publish != true
         shell: bash
         run: |
-          test -n "$APPLE_ID" && test -n "$APPLE_APP_PASSWORD" || { echo 'Configure APPLE_ID and APPLE_APP_PASSWORD before production builds.'; exit 1; }
-          security find-identity -v -p codesigning | grep 'Developer ID Application' | grep -F "($APPLE_TEAM_ID)"
+          security find-identity -v -p codesigning "$CI_KEYCHAIN" | grep 'Developer ID Application'
+          xcrun notarytool history --key "$APPLE_NOTARY_KEY_PATH" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID" --output-format json >/dev/null
+          echo 'Developer ID and Apple notarization credentials verified.'
       - name: Prepare DMG tooling
         shell: bash
         run: |
@@ -128,6 +148,18 @@ jobs:
           mkdir -p out
           if [[ "$NATIVE" == true ]]; then APP="$PWD/mac/build/MultiDroid.app"; else APP="$PWD/rust/target/packages/MultiDroid Preview.app"; fi
           bash scripts/create-qa-dmg.sh "$APP" "$PWD/out/MultiDroid-$VERSION-mac-arm64-QA-NOT-FOR-RELEASE.dmg"
+      - name: Remove temporary signing credentials
+        if: always() && (github.ref_type == 'tag' || inputs.publish == true || inputs.validate_signing == true)
+        shell: bash
+        run: |
+          dir="$RUNNER_TEMP/multidroid-signing-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          security delete-keychain "$dir/signing.keychain-db" >/dev/null 2>&1 || true
+          rm -rf "$dir"
+          tunnel="${MULTIDROID_TUNNEL_DIR:-}"
+          if [[ "$tunnel" == /tmp/md-tunnel.* ]]; then
+            ssh -S "$tunnel/control" -O exit multidroid-ci-tunnel@localhost >/dev/null 2>&1 || true
+            rm -rf "$tunnel"
+          fi
       - uses: actions/upload-artifact@v7
         with:
           name: ${{ (github.ref_type == 'tag' || inputs.publish == true) && 'signed-mac' || 'qa-mac-not-for-release' }}
