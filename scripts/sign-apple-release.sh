@@ -5,11 +5,21 @@ APP=${1:?Usage: sign-apple-release.sh /path/App.app /path/output.dmg}
 DMG=${2:?Output DMG required}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 TEAM=${APPLE_TEAM_ID:-6EZ89E2F5S}
-if [[ -z "${APPLE_NOTARY_PROFILE:-}" ]]; then
+if [[ -n "${APPLE_NOTARY_KEY_PATH:-}" ]]; then
+  : "${APPLE_API_KEY_ID:?Configure APPLE_API_KEY_ID}"
+  : "${APPLE_API_ISSUER_ID:?Configure APPLE_API_ISSUER_ID}"
+  [[ -r "$APPLE_NOTARY_KEY_PATH" ]] || { echo "Apple notarization API key is not readable." >&2; exit 1; }
+elif [[ -z "${APPLE_NOTARY_PROFILE:-}" ]]; then
   : "${APPLE_ID:?Configure APPLE_ID in GitHub Actions secrets}"
   : "${APPLE_APP_PASSWORD:?Configure APPLE_APP_PASSWORD in GitHub Actions secrets}"
 fi
-ID=$(security find-identity -v -p codesigning | awk -F'"' -v team="$TEAM" '/Developer ID Application/ && index($2,"(" team ")") {print $2; exit}')
+KEYCHAIN_ARGS=()
+CODESIGN_KEYCHAIN=()
+if [[ -n "${CI_KEYCHAIN:-}" ]]; then
+  KEYCHAIN_ARGS=("$CI_KEYCHAIN")
+  CODESIGN_KEYCHAIN=(--keychain "$CI_KEYCHAIN")
+fi
+ID=$(security find-identity -v -p codesigning "${KEYCHAIN_ARGS[@]}" | awk -F'"' -v team="$TEAM" '/Developer ID Application/ && index($2,"(" team ")") {print $2; exit}')
 [ -n "$ID" ] || { echo 'Developer ID Application for the configured team is missing from the runner keychain.' >&2; exit 1; }
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
@@ -23,13 +33,16 @@ done
 # Sign nested native code first.
 while IFS= read -r -d '' file; do
   if file -b "$file" | grep -q 'Mach-O'; then
-    codesign --force --options runtime --timestamp --sign "$ID" "$file"
+    codesign --force --options runtime --timestamp "${CODESIGN_KEYCHAIN[@]}" --sign "$ID" "$file"
   fi
 done < <(find "$APP/Contents" -type f -print0)
-codesign --force --options runtime --timestamp --sign "$ID" "$APP"
+codesign --force --options runtime --timestamp "${CODESIGN_KEYCHAIN[@]}" --sign "$ID" "$APP"
 codesign --verify --deep --strict --verbose=2 "$APP"
 submit() {
-  if [[ -n "${APPLE_NOTARY_PROFILE:-}" ]]; then
+  if [[ -n "${APPLE_NOTARY_KEY_PATH:-}" ]]; then
+    xcrun notarytool submit "$1" --key "$APPLE_NOTARY_KEY_PATH" --key-id "$APPLE_API_KEY_ID" \
+      --issuer "$APPLE_API_ISSUER_ID" --wait --output-format json > "$WORK/notary.json"
+  elif [[ -n "${APPLE_NOTARY_PROFILE:-}" ]]; then
     xcrun notarytool submit "$1" --keychain-profile "$APPLE_NOTARY_PROFILE" --wait --output-format json > "$WORK/notary.json"
   else
     xcrun notarytool submit "$1" --apple-id "$APPLE_ID" --team-id "$TEAM" \
@@ -45,7 +58,7 @@ xcrun stapler validate "$APP"
 spctl --assess --type execute --verbose=2 "$APP"
 mkdir -p "$(dirname "$DMG")"
 "${DMGBUILD_PYTHON:-python3}" -m dmgbuild -s "$ROOT/branding/dmg-settings.py" -D "app=$APP" -D "root=$ROOT" MultiDroid "$DMG"
-codesign --force --timestamp --sign "$ID" "$DMG"
+codesign --force --timestamp "${CODESIGN_KEYCHAIN[@]}" --sign "$ID" "$DMG"
 submit "$DMG"
 xcrun stapler staple "$DMG"
 xcrun stapler validate "$DMG"
