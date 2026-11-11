@@ -342,11 +342,26 @@ final class AppUpdate {
             try? FileManager.default.removeItem(at: mount)
         }
 
-        let apps = try FileManager.default.contentsOfDirectory(at: mount, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension == "app" }
-        guard let bundled = apps.first else {
+        let bundled = mount.appendingPathComponent("MultiDroid.app", isDirectory: true)
+        guard FileManager.default.fileExists(atPath: bundled.path) else {
             throw NSError(domain: "MultiDroid.Update", code: 2, userInfo: [
                 NSLocalizedDescriptionKey: "O DMG não tem um .app.",
+            ])
+        }
+
+        // A checksum delivered by the same feed is not proof of authorship.
+        // Verify the complete code signature and the expected Developer ID
+        // before copying or asking for elevated installation privileges.
+        let verify = Process()
+        verify.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
+        verify.arguments = ["--verify", "--deep", "--strict",
+                            "-R=identifier \"com.falcaosl.multidroid\" and anchor apple generic and certificate leaf[subject.OU] = \"6EZ89E2F5S\"",
+                            bundled.path]
+        try verify.run()
+        verify.waitUntilExit()
+        guard verify.terminationStatus == 0 else {
+            throw NSError(domain: "MultiDroid.Update", code: 5, userInfo: [
+                NSLocalizedDescriptionKey: "A assinatura da atualização não corresponde ao desenvolvedor do MultiDroid.",
             ])
         }
 
@@ -385,29 +400,35 @@ final class AppUpdate {
             )
         }
 
-        if FileManager.default.fileExists(atPath: dest.path) {
-            do {
-                try FileManager.default.removeItem(at: dest)
-                try FileManager.default.moveItem(at: staging, to: dest)
-            } catch {
-                try await elevatedShell(
-                    "rm -rf \(shellQuote(dest.path)) && mv \(shellQuote(staging.path)) \(shellQuote(dest.path))"
-                )
-            }
-        } else {
-            do {
-                try FileManager.default.moveItem(at: staging, to: dest)
-            } catch {
-                try await elevatedShell(
-                    "mv \(shellQuote(staging.path)) \(shellQuote(dest.path))"
-                )
-            }
-        }
+        let backup = dest.deletingLastPathComponent()
+            .appendingPathComponent(".MultiDroid-backup-\(ProcessInfo.processInfo.processIdentifier).app")
+        let replace = """
+        set -e
+        test ! -e \(shellQuote(backup.path))
+        if [ -e \(shellQuote(dest.path)) ]; then mv \(shellQuote(dest.path)) \(shellQuote(backup.path)); fi
+        if ! mv \(shellQuote(staging.path)) \(shellQuote(dest.path)); then
+          if [ -e \(shellQuote(backup.path)) ]; then mv \(shellQuote(backup.path)) \(shellQuote(dest.path)); fi
+          exit 1
+        fi
+        """
+        let swap = Process()
+        swap.executableURL = URL(fileURLWithPath: "/bin/sh")
+        swap.arguments = ["-c", replace]
+        try swap.run()
+        swap.waitUntilExit()
+        if swap.terminationStatus != 0 { try await elevatedShell(replace) }
 
         let open = Process()
         open.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         open.arguments = ["-n", dest.path]
         try open.run()
+        open.waitUntilExit()
+        guard open.terminationStatus == 0 else {
+            throw NSError(domain: "MultiDroid.Update", code: 6, userInfo: [
+                NSLocalizedDescriptionKey: "A atualização foi instalada, mas não foi possível reabrir o MultiDroid.",
+            ])
+        }
+        try? FileManager.default.removeItem(at: backup)
         // Encerra para a cópia nova assumir.
         exit(0)
     }
@@ -419,7 +440,9 @@ final class AppUpdate {
     private static func elevatedShell(_ script: String) async throws {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        p.arguments = ["-e", "do shell script \(shellQuote(script)) with administrator privileges"]
+        let appleScriptString = "\"" + script.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"") + "\""
+        p.arguments = ["-e", "do shell script \(appleScriptString) with administrator privileges"]
         try p.run()
         p.waitUntilExit()
         guard p.terminationStatus == 0 else {
