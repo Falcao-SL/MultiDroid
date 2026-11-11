@@ -85,7 +85,7 @@ jobs:
         with:
           workspaces: rust
       # Emulador e imagem AOSP 33 x86_64 (~1,5 GB) baixados uma vez e guardados.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: sdk
           key: sdk-linux-emulador-aosp33-v1
@@ -122,7 +122,7 @@ jobs:
         if: env.skip != '1'
         with:
           workspaces: rust
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         if: env.skip != '1'
         with:
           path: sdk
@@ -171,7 +171,7 @@ jobs:
         if: env.skip != '1'
         with:
           workspaces: rust
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         if: env.skip != '1'
         with:
           path: sdk

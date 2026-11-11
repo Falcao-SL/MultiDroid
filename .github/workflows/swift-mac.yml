@@ -38,7 +38,7 @@ jobs:
           /usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" \
             build/MultiDroid.app/Contents/Info.plist
           codesign --verify --verbose=2 build/MultiDroid.app || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: MultiDroid-swift-unsigned
           path: mac/build/MultiDroid.app
