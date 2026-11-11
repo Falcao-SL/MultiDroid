@@ -272,21 +272,21 @@ fn preferred_asset_name(assets: &[FeedAsset]) -> Option<String> {
     }
     #[cfg(target_os = "linux")]
     {
-        if std::env::var_os("APPIMAGE").is_some() {
-            if let Some(n) = names.iter().find(|n| n.ends_with(".AppImage")) {
-                return Some((*n).to_string());
-            }
+        if std::env::var_os("APPIMAGE").is_some()
+            && let Some(n) = names.iter().find(|n| n.ends_with(".AppImage"))
+        {
+            return Some((*n).to_string());
         }
         // deb/rpm pelo gerenciador; AppImage como fallback portátil.
-        if Path::new("/usr/bin/apt-get").exists() || Path::new("/usr/bin/dpkg").exists() {
-            if let Some(n) = names.iter().find(|n| n.ends_with(".deb")) {
-                return Some((*n).to_string());
-            }
+        if (Path::new("/usr/bin/apt-get").exists() || Path::new("/usr/bin/dpkg").exists())
+            && let Some(n) = names.iter().find(|n| n.ends_with(".deb"))
+        {
+            return Some((*n).to_string());
         }
-        if Path::new("/usr/bin/rpm").exists() || Path::new("/usr/bin/dnf").exists() {
-            if let Some(n) = names.iter().find(|n| n.ends_with(".rpm")) {
-                return Some((*n).to_string());
-            }
+        if (Path::new("/usr/bin/rpm").exists() || Path::new("/usr/bin/dnf").exists())
+            && let Some(n) = names.iter().find(|n| n.ends_with(".rpm"))
+        {
+            return Some((*n).to_string());
         }
         if let Some(n) = names.iter().find(|n| n.ends_with(".AppImage")) {
             return Some((*n).to_string());

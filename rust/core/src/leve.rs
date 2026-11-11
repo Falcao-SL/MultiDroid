@@ -200,7 +200,16 @@ pub fn start(rt: &str, data: &Path, l: &Leve) -> Result<(), String> {
 
 /// Desliga (o /data fica na pasta do aparelho).
 pub fn stop(rt: &str, name: &str) -> Result<(), String> {
-    run(rt, &["stop", "-t", "15", &container(name)]).map(|_| ())
+    run(rt, &["stop", "-t", "15", &container(name)])?;
+    // `docker stop` às vezes devolve antes do `ps` refletir o estado no runner.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    while running(rt).iter().any(|(n, _)| n == name) {
+        if std::time::Instant::now() >= deadline {
+            return Err(format!("container {name} still listed after stop"));
+        }
+        std::thread::sleep(std::time::Duration::from_millis(200));
+    }
+    Ok(())
 }
 
 /// Pausa e retoma o contêiner inteiro (cgroup freezer).
