@@ -147,7 +147,9 @@ pub fn check(channel: Channel) -> Result<Option<Available>, Error> {
         asset,
         sha256: None,
     };
-    available.sha256 = fetch_sha256(&available.tag, &available.asset.name).ok().flatten();
+    available.sha256 = fetch_sha256(&available.tag, &available.asset.name)
+        .ok()
+        .flatten();
     Ok(Some(available))
 }
 
@@ -218,10 +220,9 @@ fn get_text(url: &str) -> Result<String, Error> {
     }
     let mut req = ureq::get(url);
     if url.contains("api.github.com") {
-        req = req.set("User-Agent", "MultiDroid-updater").set(
-            "Accept",
-            "application/vnd.github+json",
-        );
+        req = req
+            .set("User-Agent", "MultiDroid-updater")
+            .set("Accept", "application/vnd.github+json");
     }
     req.call()
         .map_err(|e| Error::Http(e.to_string()))?
@@ -231,7 +232,10 @@ fn get_text(url: &str) -> Result<String, Error> {
 
 fn pick_asset(assets: &[FeedAsset]) -> Result<Asset, Error> {
     let name = preferred_asset_name(assets).ok_or(Error::NoAsset)?;
-    let a = assets.iter().find(|a| a.name == name).ok_or(Error::NoAsset)?;
+    let a = assets
+        .iter()
+        .find(|a| a.name == name)
+        .ok_or(Error::NoAsset)?;
     if !a.url.starts_with("https://") {
         return Err(Error::Http("installer URL must be HTTPS".into()));
     }
@@ -248,17 +252,23 @@ fn preferred_asset_name(assets: &[FeedAsset]) -> Option<String> {
     #[cfg(target_os = "macos")]
     {
         // Preview arm64 DMG; estável é MultiDroid-<ver>.dmg sem sufixo.
-        return names
+        names
             .iter()
-            .find(|n| n.ends_with("-mac-arm64.dmg") || (n.starts_with("MultiDroid-") && n.ends_with(".dmg") && !n.contains("Preview") && !n.contains("QA")))
-            .map(|s| (*s).to_string());
+            .find(|n| {
+                n.ends_with("-mac-arm64.dmg")
+                    || (n.starts_with("MultiDroid-")
+                        && n.ends_with(".dmg")
+                        && !n.contains("Preview")
+                        && !n.contains("QA"))
+            })
+            .map(|s| (*s).to_string())
     }
     #[cfg(target_os = "windows")]
     {
-        return names
+        names
             .iter()
             .find(|n| n.ends_with("-windows-x64-setup.exe") || n.ends_with(".exe"))
-            .map(|s| (*s).to_string());
+            .map(|s| (*s).to_string())
     }
     #[cfg(target_os = "linux")]
     {
@@ -297,9 +307,8 @@ fn preferred_asset_name(assets: &[FeedAsset]) -> Option<String> {
 }
 
 fn fetch_sha256(tag: &str, asset_name: &str) -> Result<Option<String>, Error> {
-    let url = format!(
-        "https://github.com/Falcao-SL/MultiDroid/releases/download/{tag}/SHA256SUMS.txt"
-    );
+    let url =
+        format!("https://github.com/Falcao-SL/MultiDroid/releases/download/{tag}/SHA256SUMS.txt");
     let text = match get_text(&url) {
         Ok(t) => t,
         Err(_) => return Ok(None),
@@ -345,14 +354,14 @@ impl PartialOrd for Ver {
 
 impl Ord for Ver {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        (self.major, self.minor, self.patch).cmp(&(other.major, other.minor, other.patch)).then_with(
-            || match (&self.pre, &other.pre) {
+        (self.major, self.minor, self.patch)
+            .cmp(&(other.major, other.minor, other.patch))
+            .then_with(|| match (&self.pre, &other.pre) {
                 (None, None) => std::cmp::Ordering::Equal,
                 (None, Some(_)) => std::cmp::Ordering::Greater,
                 (Some(_), None) => std::cmp::Ordering::Less,
                 (Some(a), Some(b)) => cmp_pre(a, b),
-            },
-        )
+            })
     }
 }
 
@@ -463,16 +472,16 @@ pub fn install_and_relaunch(installer: &Path, available: &Available) -> Result<(
     #[cfg(target_os = "macos")]
     {
         let _ = available;
-        return install_macos_dmg(installer);
+        install_macos_dmg(installer)
     }
     #[cfg(target_os = "windows")]
     {
         let _ = available;
-        return install_windows_nsis(installer);
+        install_windows_nsis(installer)
     }
     #[cfg(target_os = "linux")]
     {
-        return install_linux(installer, available);
+        install_linux(installer, available)
     }
     #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
     {
@@ -490,14 +499,12 @@ fn current_app_bundle() -> Option<PathBuf> {
             return Some(p.to_path_buf());
         }
         // …/App.app/Contents/MacOS/bin
-        if parent.file_name().and_then(|n| n.to_str()) == Some("MacOS") {
-            if let Some(contents) = parent.parent() {
-                if let Some(app) = contents.parent() {
-                    if app.extension().and_then(|e| e.to_str()) == Some("app") {
-                        return Some(app.to_path_buf());
-                    }
-                }
-            }
+        if parent.file_name().and_then(|n| n.to_str()) == Some("MacOS")
+            && let Some(contents) = parent.parent()
+            && let Some(app) = contents.parent()
+            && app.extension().and_then(|e| e.to_str()) == Some("app")
+        {
+            return Some(app.to_path_buf());
         }
         p = parent;
     }
@@ -516,12 +523,13 @@ fn install_macos_dmg(dmg: &Path) -> Result<(), Error> {
         .output()
         .map_err(|e| Error::Install(e.to_string()))?;
     if !attach.status.success() {
-        return Err(Error::Install(String::from_utf8_lossy(&attach.stderr).into()));
+        return Err(Error::Install(
+            String::from_utf8_lossy(&attach.stderr).into(),
+        ));
     }
     let result = (|| {
-        let bundled = find_app_in(&mount).ok_or_else(|| {
-            Error::Install(t::t("the DMG has no .app bundle").into())
-        })?;
+        let bundled = find_app_in(&mount)
+            .ok_or_else(|| Error::Install(t::t("the DMG has no .app bundle").into()))?;
         let dest = current_app_bundle()
             .filter(|p| p.starts_with("/Applications") || p.exists())
             .unwrap_or_else(|| PathBuf::from("/Applications").join(bundled.file_name().unwrap()));
@@ -552,9 +560,7 @@ fn install_macos_dmg(dmg: &Path) -> Result<(), Error> {
                 .output()
                 .map_err(|e| Error::Install(e.to_string()))?;
             if !elev.status.success() {
-                return Err(Error::Install(
-                    String::from_utf8_lossy(&elev.stderr).into(),
-                ));
+                return Err(Error::Install(String::from_utf8_lossy(&elev.stderr).into()));
             }
         }
         if dest.exists() {
@@ -571,9 +577,7 @@ fn install_macos_dmg(dmg: &Path) -> Result<(), Error> {
                     .output()
                     .map_err(|e| Error::Install(e.to_string()))?;
                 if !elev.status.success() {
-                    return Err(Error::Install(
-                        String::from_utf8_lossy(&elev.stderr).into(),
-                    ));
+                    return Err(Error::Install(String::from_utf8_lossy(&elev.stderr).into()));
                 }
             } else {
                 fs::rename(&staging, &dest).or_else(|_| {
@@ -597,7 +601,10 @@ fn install_macos_dmg(dmg: &Path) -> Result<(), Error> {
         let _ = Command::new("open").arg(&dest).status();
         Ok(())
     })();
-    let _ = Command::new("hdiutil").args(["detach", "-quiet"]).arg(&mount).status();
+    let _ = Command::new("hdiutil")
+        .args(["detach", "-quiet"])
+        .arg(&mount)
+        .status();
     let _ = fs::remove_dir_all(&mount);
     result?;
     // Encerra este processo para a cópia nova assumir.
@@ -638,8 +645,13 @@ fn install_windows_nsis(installer: &Path) -> Result<(), Error> {
         .unwrap_or_else(platform::home);
     let candidates = [
         local.join("MultiDroid Preview").join("multidroid.exe"),
-        local.join("Programs").join("MultiDroid Preview").join("multidroid.exe"),
-        local.join("MultiDroid Preview").join("MultiDroid Preview.exe"),
+        local
+            .join("Programs")
+            .join("MultiDroid Preview")
+            .join("multidroid.exe"),
+        local
+            .join("MultiDroid Preview")
+            .join("MultiDroid Preview.exe"),
     ];
     let exe = candidates.into_iter().find(|p| p.exists()).ok_or_else(|| {
         Error::Install(t::t("installed, but the new executable wasn't found").into())
@@ -662,9 +674,9 @@ fn install_linux(installer: &Path, available: &Available) -> Result<(), Error> {
             .status();
         match pk {
             Ok(s) if s.success() => {
-                let _ = Command::new("multidroid").spawn().or_else(|_| {
-                    Command::new("/usr/bin/multidroid").spawn()
-                });
+                let _ = Command::new("multidroid")
+                    .spawn()
+                    .or_else(|_| Command::new("/usr/bin/multidroid").spawn());
                 std::process::exit(0);
             }
             _ => {

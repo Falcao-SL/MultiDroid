@@ -654,11 +654,9 @@ impl Ctx {
                         app.atualizacao.disponivel = Some(a);
                         app.atualizacao.status.clear();
                     }
-                    Ok(Ok(None)) => {
-                        if !app.atualizacao.ocupada {
-                            app.atualizacao.disponivel = None;
-                            app.atualizacao.status.clear();
-                        }
+                    Ok(Ok(None)) if !app.atualizacao.ocupada => {
+                        app.atualizacao.disponivel = None;
+                        app.atualizacao.status.clear();
                     }
                     _ => {}
                 }
