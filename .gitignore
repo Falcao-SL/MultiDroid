@@ -27,3 +27,7 @@ DerivedData/
 # Local Python checks and brand tooling
 __pycache__/
 *.pyc
+
+# Lixo local e artefatos gerados
+*.profraw
+*.profdata

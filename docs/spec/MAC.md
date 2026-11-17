@@ -13,7 +13,7 @@ múltiplas instâncias do Windows. Resolve o problema de várias contas do mesmo
 serviço, cada uma isolada, com aparelhos inteiros em vez de perfis de
 navegador: o app nativo do serviço roda de verdade, com notificações, câmera
 virtual e tudo o que a versão web não tem. (O plano antigo de apps de celular
-está em [`../arquivo/celular/`](../arquivo/celular/README.md).)
+saiu do repositório e continua no Git.)
 
 Tipos de aparelho desde o começo: **celular, tablet, dobrável e relógio (Wear
 OS)**.

@@ -139,7 +139,6 @@ Fonte: `docs/produto/STATUS.md` e `docs/produto/DISTRIBUICAO.md`.
 | [docs/produto/STATUS.md](docs/produto/STATUS.md) | Estágio, o que existe, o que falta |
 | [docs/produto/PRODUTO.md](docs/produto/PRODUTO.md) | O que é, para quem, o que não faz |
 | [docs/design/IDENTIDADE_VISUAL.md](docs/design/IDENTIDADE_VISUAL.md) | Marca, tokens, ícone |
-| [docs/arquivo/celular/](docs/arquivo/celular/README.md) | Plano antigo dos apps de celular (descontinuado) |
 
 ---
 

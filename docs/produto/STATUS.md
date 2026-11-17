@@ -17,7 +17,7 @@
 | **Data-alvo** | A definir |
 
 Em 2026-10-09 o MultiDroid passou a ser só o app de Mac. O plano dos apps de
-celular foi arquivado em [`../arquivo/celular/`](../arquivo/celular/README.md).
+celular saiu do repositório e continua no Git.
 
 ## Fases (spec/MAC.md §3)
 

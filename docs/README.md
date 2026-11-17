@@ -43,8 +43,6 @@ Emulator oficial sem janela.
 |-----------|----------|
 | [publicacao/POLITICA_DE_PRIVACIDADE.md](publicacao/POLITICA_DE_PRIVACIDADE.md) | Política de privacidade do app de Mac |
 
-## Arquivo — [`arquivo/`](arquivo)
+## Arquivo
 
-| Documento | Conteúdo |
-|-----------|----------|
-| [arquivo/celular/](arquivo/celular/README.md) | Plano dos apps de Android e iOS, descontinuado em 2026-10-09; só para consulta |
+O plano dos apps de celular (Duo, descontinuado em 2026-10-09) saiu do repositório. O produto é o app de Mac. O texto antigo continua no Git.
