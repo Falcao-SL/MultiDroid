@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "historyId": "6ae7f99b-100b-42c9-a90b-e759c9bdd95b",
+  "currentRevision": null,
+  "pendingChanges": false,
+  "files": {
+    "AGENTS.md": {
+      "hash": "26e43c63a41e1ba38ba287bea1af2795c55ba2e3787d3a635c062c3a8a9818f4",
+      "content": "/Users/iramarfalcao/.cache/hyperframes/history/6ae7f99b-100b-42c9-a90b-e759c9bdd95b/blobs/26/26e43c63a41e1ba38ba287bea1af2795c55ba2e3787d3a635c062c3a8a9818f4"
+    },
+    "CLAUDE.md": {
+      "hash": "26e43c63a41e1ba38ba287bea1af2795c55ba2e3787d3a635c062c3a8a9818f4",
+      "content": "/Users/iramarfalcao/.cache/hyperframes/history/6ae7f99b-100b-42c9-a90b-e759c9bdd95b/blobs/26/26e43c63a41e1ba38ba287bea1af2795c55ba2e3787d3a635c062c3a8a9818f4"
+    },
+    "assets/desk-5.webp": {
+      "hash": "141a39736e90c54ec9ce4830a6add20227d464a6dbbe55f9f010b0e669d75add",
+      "content": "/Users/iramarfalcao/.cache/hyperframes/history/6ae7f99b-100b-42c9-a90b-e759c9bdd95b/blobs/14/141a39736e90c54ec9ce4830a6add20227d464a6dbbe55f9f010b0e669d75add"
+    },
+    "assets/gsap.min.js": {
+      "hash": "92bb9a96476f983d212a2bc4f54c889039c1696dd4461d40a736860938570fbb",
+      "content": "/Users/iramarfalcao/.cache/hyperframes/history/6ae7f99b-100b-42c9-a90b-e759c9bdd95b/blobs/92/92bb9a96476f983d212a2bc4f54c889039c1696dd4461d40a736860938570fbb"
+    },
+    "assets/panel-4.webp": {
+      "hash": "8a14b38af9024e748545a0e1ae3d612ca4bf35aa58fa17d1e06daa4e8301aa22",
+      "content": "/Users/iramarfalcao/.cache/hyperframes/history/6ae7f99b-100b-42c9-a90b-e759c9bdd95b/blobs/8a/8a14b38af9024e748545a0e1ae3d612ca4bf35aa58fa17d1e06daa4e8301aa22"
+    },
+    "hyperframes.json": {
+      "hash": "53dbce1e19aa713cbb12ee0bc4d206143b45ab15e6ffbfcaa8f69572d4d24d50",
+      "content": "/Users/iramarfalcao/.cache/hyperframes/history/6ae7f99b-100b-42c9-a90b-e759c9bdd95b/blobs/53/53dbce1e19aa713cbb12ee0bc4d206143b45ab15e6ffbfcaa8f69572d4d24d50"
+    },
+    "index.html": {
+      "hash": "c7eac04b4ee52c041cd301cf7edf8898c1254c6ce54a36dcf0a53e43f143b7ea",
+      "content": "/Users/iramarfalcao/.cache/hyperframes/history/6ae7f99b-100b-42c9-a90b-e759c9bdd95b/blobs/c7/c7eac04b4ee52c041cd301cf7edf8898c1254c6ce54a36dcf0a53e43f143b7ea"
+    },
+    "meta.json": {
+      "hash": "3c4dd53a091dc6cd178837cb854d275a61be02110925d3379b98b2b1322fb555",
+      "content": "/Users/iramarfalcao/.cache/hyperframes/history/6ae7f99b-100b-42c9-a90b-e759c9bdd95b/blobs/3c/3c4dd53a091dc6cd178837cb854d275a61be02110925d3379b98b2b1322fb555"
+    },
+    "package.json": {
+      "hash": "277874fed32f02b08927dbecf66ea2d1bb13befc3d9f732fc8f56cee5df047b2",
+      "content": "/Users/iramarfalcao/.cache/hyperframes/history/6ae7f99b-100b-42c9-a90b-e759c9bdd95b/blobs/27/277874fed32f02b08927dbecf66ea2d1bb13befc3d9f732fc8f56cee5df047b2"
+    }
+  },
+  "revisions": {},
+  "checks": {
+    "latest": null,
+    "revisions": {},
+    "unversioned": []
+  },
+  "snapshots": {
+    "latest": null,
+    "revisions": {},
+    "unversioned": []
+  },
+  "renders": {
+    "latest": {
+      "id": "7c82a986-3815-47c0-a031-fac5c113958d",
+      "completedAt": 1795046349759,
+      "output": "/Users/iramarfalcao/Github/Falcao-SL/MultiDroid/site/assets/multidroid-tour.mp4",
+      "status": "completed",
+      "revision": null
+    },
+    "retainedRevisions": []
+  },
+  "pendingArtifactCleanup": []
+}
